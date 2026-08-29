@@ -316,18 +316,52 @@ const Security = (() => {
     return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer;
   }
 
+  /* Running inside the wrapped Android app (Capacitor) rather than a
+     regular browser tab? WebAuthn platform authenticators aren't
+     available inside Capacitor's WebView, so biometric unlock there
+     goes through a small native plugin (BiometricAuth) that calls
+     Android's BiometricPrompt directly instead. */
+  function isNativeApp() {
+    return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  }
+  function nativeBiometric() {
+    return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BiometricAuth;
+  }
+
   async function isBiometricAvailable() {
+    if (isNativeApp()) {
+      const plugin = nativeBiometric();
+      if (!plugin) return false;
+      try { return !!(await plugin.isAvailable()).available; }
+      catch (e) { return false; }
+    }
     if (!window.PublicKeyCredential || !PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) return false;
     try { return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); }
     catch (e) { return false; }
   }
 
   async function registerBiometric() {
+    if (isNativeApp()) {
+      const plugin = nativeBiometric();
+      if (!plugin) return false;
+      try {
+        const result = await plugin.verify({ reason: 'Confirm your fingerprint or face to enable biometric unlock' });
+        if (!result || !result.verified) return false;
+        // No WebAuthn credential exists on native — the OS-level
+        // BiometricPrompt itself is the gate, so a fixed marker is
+        // stored instead of a real credential id.
+        await Settings.set('security', { biometricEnabled: true, biometricCredentialId: 'native' });
+        return true;
+      } catch (e) {
+        console.warn('Native biometric registration failed or was cancelled:', e);
+        return false;
+      }
+    }
     try {
       const credential = await navigator.credentials.create({
         publicKey: {
           challenge: crypto.getRandomValues(new Uint8Array(32)),
-          rp: { name: 'Store App' },
+          rp: { name: 'Better Store' },
           user: {
             id: crypto.getRandomValues(new Uint8Array(16)),
             name: 'store-owner',
@@ -349,6 +383,17 @@ const Security = (() => {
   }
 
   async function verifyBiometric(credentialId) {
+    if (isNativeApp()) {
+      const plugin = nativeBiometric();
+      if (!plugin) return false;
+      try {
+        const result = await plugin.verify({ reason: 'Unlock Better Store' });
+        return !!(result && result.verified);
+      } catch (e) {
+        console.warn('Native biometric verification failed or was cancelled:', e);
+        return false;
+      }
+    }
     try {
       const assertion = await navigator.credentials.get({
         publicKey: {

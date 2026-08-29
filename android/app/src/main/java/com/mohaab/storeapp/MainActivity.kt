@@ -14,6 +14,10 @@ class MainActivity : BridgeActivity() {
         Manifest.permission.VIBRATE
     )
 
+    init {
+        registerPlugin(BiometricAuthPlugin::class.java)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestNeededPermissions()

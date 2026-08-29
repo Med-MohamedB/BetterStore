@@ -17,6 +17,17 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Sync Capacitor (regenerates android/app/src/main/assets/public, cordova plugin glue, capacitor.config.json)
+        run: npx cap sync android
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 

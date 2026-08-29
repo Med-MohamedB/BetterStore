@@ -86,6 +86,13 @@ const SettingsScreen = (() => {
         <div class="list-row__body"><div class="list-row__title">Backup & Restore</div><div class="list-row__subtitle">Export, import, clear data</div></div>
         <div class="list-row__trailing text-faint">›</div>
       </a>
+
+      <div class="section-title">About</div>
+      <div class="list-row tappable" id="aboutAppRow">
+        <div class="list-row__icon">ℹ️</div>
+        <div class="list-row__body"><div class="list-row__title">About This App</div><div class="list-row__subtitle">Credits, contact & support</div></div>
+        <div class="list-row__trailing text-faint">›</div>
+      </div>
     `;
 
     wireStoreFields(container, store);
@@ -93,6 +100,78 @@ const SettingsScreen = (() => {
     wirePOSFields(container, pos);
     wireInventoryFields(container, inventory);
     wireSecurity(container, security);
+    container.querySelector('#aboutAppRow').addEventListener('click', openAboutSheet);
+  }
+
+  function copyRow(label, value) {
+    return `
+      <div class="list-row tappable" data-copy-value="${escapeHTML(value)}">
+        <div class="list-row__body">
+          <div class="list-row__title">${escapeHTML(label)}</div>
+          <div class="list-row__subtitle num">${escapeHTML(value)}</div>
+        </div>
+        <div class="list-row__trailing text-faint">📋</div>
+      </div>
+    `;
+  }
+
+  function openAboutSheet() {
+    const bodyHTML = `
+      <div style="text-align:center;">
+        <img src="assets/about-me.jpg" alt="" style="width:96px; height:96px; border-radius:50%; object-fit:cover; border:2px solid var(--border);">
+        <div style="font-weight:700; font-size:17px; margin-top:10px;">Better Store</div>
+        <div class="text-dim text-sm mt-8">Made by <a href="#" id="aboutOwnerLink" style="color:var(--accent);">@rwgmo</a> on Telegram</div>
+      </div>
+
+      <div class="card mt-16">
+        <div class="text-sm">
+          © All rights reserved. This app may not be resold or redistributed.
+          Use is permitted only for parties explicitly approved by the owner.
+        </div>
+      </div>
+
+      <div class="section-title">Contact & Shop</div>
+      <a class="list-row tappable" id="aboutTelegramLink" href="#">
+        <div class="list-row__icon">💬</div>
+        <div class="list-row__body"><div class="list-row__title">Telegram</div><div class="list-row__subtitle">t.me/rwgmo</div></div>
+        <div class="list-row__trailing text-faint">›</div>
+      </a>
+      <a class="list-row tappable" id="aboutShopLink" href="#">
+        <div class="list-row__icon">🛍️</div>
+        <div class="list-row__body"><div class="list-row__title">Telegram Shop</div><div class="list-row__subtitle">t.me/RwmShop</div></div>
+        <div class="list-row__trailing text-faint">›</div>
+      </a>
+
+      <div class="card mt-16">
+        <div class="text-sm">Open for app development and custom projects at affordable rates — reach out on Telegram.</div>
+      </div>
+
+      <div class="section-title">Support / Donate</div>
+      <div class="list" id="aboutDonateList">
+        ${copyRow('CCP Account', '007 99999 0042725714 28')}
+        ${copyRow('Binance ID', '814491654')}
+      </div>
+
+      <div class="text-faint text-sm" style="text-align:center; margin-top:20px;" id="aboutVersionFooter">Better Store</div>
+    `;
+
+    const sheetEl = Sheet.open({ title: 'About This App', bodyHTML });
+    getAppVersionLabel().then((label) => {
+      const el = sheetEl.querySelector('#aboutVersionFooter');
+      if (el) el.textContent = `Better Store · ${label}`;
+    });
+
+    const goTelegram = () => openExternal('https://t.me/rwgmo');
+    sheetEl.querySelector('#aboutOwnerLink').addEventListener('click', (e) => { e.preventDefault(); goTelegram(); });
+    sheetEl.querySelector('#aboutTelegramLink').addEventListener('click', (e) => { e.preventDefault(); goTelegram(); });
+    sheetEl.querySelector('#aboutShopLink').addEventListener('click', (e) => { e.preventDefault(); openExternal('https://t.me/RwmShop'); });
+
+    sheetEl.querySelectorAll('[data-copy-value]').forEach((row) => {
+      row.addEventListener('click', async () => {
+        const ok = await copyToClipboard(row.dataset.copyValue);
+        Toast.show(ok ? 'Copied' : 'Couldn\u2019t copy \u2014 long-press to select manually');
+      });
+    });
   }
 
   function wireStoreFields(container, store) {

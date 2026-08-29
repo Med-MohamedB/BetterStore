@@ -25,8 +25,8 @@ const Router = (() => {
   // back always slides right, like one continuous strip of pages rather
   // than isolated screens.
   const ROUTE_ORDER = [
-    'dashboard', 'products', 'pos', 'inventory', 'more',
-    'sales', 'reports', 'customers', 'suppliers', 'backup', 'settings',
+    'dashboard', 'products', 'pos', 'sales', 'more',
+    'inventory', 'reports', 'customers', 'suppliers', 'backup', 'settings',
   ];
 
   function register(name, renderFn, opts = {}) {
@@ -69,13 +69,22 @@ const Router = (() => {
       return;
     }
 
-    view.innerHTML = skeletonLoadingHTML();
+    // Local IndexedDB reads are near-instant almost every time, so
+    // swapping to a skeleton placeholder unconditionally just flashes an
+    // empty frame between the outgoing and incoming screens and breaks
+    // the continuity of the slide. Only fall back to it if a render
+    // genuinely takes a moment (a big report calculation, a cold start).
+    let skeletonTimer = setTimeout(() => { view.innerHTML = skeletonLoadingHTML(); }, 120);
     try {
       await route.renderFn(view, params);
     } catch (err) {
       console.error(`Error rendering route "${name}":`, err);
+      clearTimeout(skeletonTimer);
       view.innerHTML = errorHTML();
+      applyEnterAnimation(view);
+      return;
     }
+    clearTimeout(skeletonTimer);
 
     applyEnterAnimation(view);
   }
@@ -157,7 +166,7 @@ const Router = (() => {
   }
 
   function updateNavHighlight(name) {
-    const topLevel = ['dashboard', 'products', 'pos', 'inventory'];
+    const topLevel = ['dashboard', 'products', 'pos', 'sales'];
     const activeKey = topLevel.includes(name) ? name : 'more';
     document.querySelectorAll('.nav-item').forEach((el) => {
       el.classList.toggle('active', el.dataset.route === activeKey);
@@ -197,7 +206,7 @@ const Router = (() => {
     });
     renderCurrent();
     window.addEventListener('resize', () => positionNavIndicator(
-      ['dashboard', 'products', 'pos', 'inventory'].includes(currentRoute) ? currentRoute : 'more'
+      ['dashboard', 'products', 'pos', 'sales'].includes(currentRoute) ? currentRoute : 'more'
     ));
   }
 
@@ -209,8 +218,12 @@ const Router = (() => {
 /* ---------------------------------------------------------------------- */
 
 document.addEventListener('pointerdown', (e) => {
-  const el = e.target.closest('.tappable, .icon-btn, .btn, .quick-action, .chip, .list-row');
+  const el = e.target.closest('.tappable, .icon-btn, .btn, .quick-action, .chip, .list-row, .stat-card--expand, .num-tap');
   if (!el) return;
+  // A subtle universal tap-tick, layered under the stronger, more
+  // deliberate haptics already fired for specific confirmed actions
+  // (completing a sale, a scan hit, etc.) elsewhere in the app.
+  if (navigator.vibrate) navigator.vibrate(8);
   const rect = el.getBoundingClientRect();
   const size = Math.max(rect.width, rect.height) * 1.4;
   const ripple = document.createElement('span');
@@ -220,6 +233,50 @@ document.addEventListener('pointerdown', (e) => {
   ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
   el.appendChild(ripple);
   ripple.addEventListener('animationend', () => ripple.remove());
+});
+
+// A light tick on any toggle switch / radio choice app-wide (settings
+// toggles, POS option switches, etc.) — distinct from the tap-tick above
+// since these fire on the resulting state change, not the touch itself.
+document.addEventListener('change', (e) => {
+  if (e.target.matches && e.target.matches('input[type="checkbox"], input[type="radio"]')) {
+    if (navigator.vibrate) navigator.vibrate(10);
+  }
+});
+
+/* ---------------------------------------------------------------------- */
+/* Expandable big numbers — tap a stat card or a ".num-tap" value to grow */
+/* it and reveal the full, un-abbreviated number. Auto-collapses after a  */
+/* few seconds, or tap again to collapse immediately.                     */
+/* ---------------------------------------------------------------------- */
+
+function toggleNumExpand(el) {
+  const expanding = !el.classList.contains('num-tap--expanded');
+  clearTimeout(el._collapseTimer);
+  if (expanding) {
+    el.textContent = el.dataset.full;
+    el.classList.add('num-tap--expanded');
+    el._collapseTimer = setTimeout(() => {
+      el.classList.remove('num-tap--expanded');
+      el.textContent = el.dataset.compact;
+      el.closest('.stat-card--expand')?.classList.remove('stat-card--expanded');
+    }, 2600);
+  } else {
+    el.classList.remove('num-tap--expanded');
+    el.textContent = el.dataset.compact;
+  }
+  return expanding;
+}
+
+document.addEventListener('click', (e) => {
+  const cardZone = e.target.closest('.stat-card--expand');
+  const bareNum = e.target.closest('.num-tap');
+  if (!cardZone && !bareNum) return;
+  const target = cardZone ? cardZone.querySelector('.num-tap') : bareNum;
+  if (!target) return;
+  if (bareNum && !cardZone) e.stopPropagation(); // don't also trigger a parent list-row's own tap
+  const expanded = toggleNumExpand(target);
+  if (cardZone) cardZone.classList.toggle('stat-card--expanded', expanded);
 });
 
 /* ---------------------------------------------------------------------- */
@@ -503,9 +560,107 @@ function printReceiptHTML(html) {
   if (!area) { window.print(); return; }
   area.innerHTML = html;
   // Let the browser paint the new content before invoking the print dialog.
-  requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const nativePrint = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()
+      ? window.Capacitor.Plugins && window.Capacitor.Plugins.NativePrint
+      : null;
+    if (nativePrint) {
+      nativePrint.printCurrent({ jobName: 'Better Store Receipt' }).catch((e) => {
+        console.warn('Native print failed:', e);
+        Toast.error && Toast.error('Could not open the print dialog');
+      });
+    } else {
+      window.print();
+    }
+  }));
 }
 window.printReceiptHTML = printReceiptHTML;
+
+/* ---------------------------------------------------------------------- */
+/* Sharing — navigator.share() doesn't work inside Capacitor's WebView    */
+/* (only real Chrome tabs implement it), so this routes through the       */
+/* native @capacitor/share plugin when running in the app.                */
+/* ---------------------------------------------------------------------- */
+
+async function shareText({ title, text }) {
+  const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+  if (isNative && window.Capacitor.Plugins && window.Capacitor.Plugins.Share) {
+    try {
+      await window.Capacitor.Plugins.Share.share({ title, text, dialogTitle: title });
+      return true;
+    } catch (e) {
+      // User cancelled the share sheet, or no share targets — not an error.
+      return false;
+    }
+  }
+  if (navigator.share) {
+    try { await navigator.share({ title, text }); return true; }
+    catch (e) { return false; }
+  }
+  return false;
+}
+window.shareText = shareText;
+
+/* Opens a URL in the system browser natively (external links inside a
+   Capacitor WebView would otherwise just navigate the app itself away
+   from the app, or silently fail depending on the WebView build). */
+async function openExternal(url) {
+  const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+  if (isNative && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
+    try { await window.Capacitor.Plugins.Browser.open({ url }); return; }
+    catch (e) { console.warn('Native browser open failed:', e); }
+  }
+  window.open(url, '_blank');
+}
+window.openExternal = openExternal;
+
+/* Copies text to the clipboard with a legacy execCommand fallback for
+   WebView builds where the async Clipboard API misbehaves. */
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (e) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      return true;
+    } catch (e2) {
+      return false;
+    }
+  }
+}
+window.copyToClipboard = copyToClipboard;
+
+/* Bump this alongside versionName/versionCode in android/app/build.gradle
+   every time a new build goes out — there's no native "build date" field
+   to read this from automatically, so it's tracked by hand here. */
+const APP_BUILD_DATE = '2026-08-30';
+window.APP_BUILD_DATE = APP_BUILD_DATE;
+
+/* Real installed app version, read from the native package itself via
+   @capacitor/app — not a hand-maintained JS string that can drift out of
+   sync with what's actually in build.gradle. Falls back to a fixed label
+   when running as a plain web page (no native package to ask). */
+async function getAppVersionLabel() {
+  const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+  if (isNative && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+    try {
+      const info = await window.Capacitor.Plugins.App.getInfo();
+      return `v${info.version} (build ${info.build}) · ${APP_BUILD_DATE}`;
+    } catch (e) {
+      console.warn('Could not read native app info:', e);
+    }
+  }
+  return `Web version · ${APP_BUILD_DATE}`;
+}
+window.getAppVersionLabel = getAppVersionLabel;
 
 /* ---------------------------------------------------------------------- */
 /* Cart badge on the POS nav icon                                          */
@@ -532,7 +687,7 @@ window.updateCartBadge = updateCartBadge;
 
 function initTabSwipeGesture() {
   const view = document.getElementById('view');
-  const tabOrder = ['dashboard', 'products', 'pos', 'inventory', 'more'];
+  const tabOrder = ['dashboard', 'products', 'pos', 'sales', 'more'];
   const EDGE = 28; // px from either screen edge that always starts a tab-swipe,
                     // even over a swipe-row or chip-row — otherwise a screen
                     // whose content is mostly swipe-rows (e.g. Products) would
@@ -558,7 +713,7 @@ function initTabSwipeGesture() {
     dy = e.touches[0].clientY - startY;
 
     if (!decided) {
-      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
         decided = true;
         horizontal = fromEdge || Math.abs(dx) > Math.abs(dy) * 1.3;
         if (horizontal) {
@@ -607,7 +762,7 @@ function initTabSwipeGesture() {
       // opposite edge at the same distance so the two halves read as one
       // continuous motion instead of a drag followed by a separate jump.
       const w = view.offsetWidth || window.innerWidth;
-      view.style.transition = 'transform 180ms var(--ease-out)';
+      view.style.transition = 'transform 150ms var(--ease-out)';
       view.style.transform = `translate3d(${dx < 0 ? -w : w}px, 0, 0)`;
 
       const proceed = () => {
@@ -617,7 +772,7 @@ function initTabSwipeGesture() {
         Router.goTo(tabOrder[nextIdx], { direction });
       };
       view.addEventListener('transitionend', proceed, { once: true });
-      setTimeout(proceed, 200); // fallback in case transitionend never fires
+      setTimeout(proceed, 170); // fallback in case transitionend never fires
     } else {
       view.style.transition = 'transform var(--dur-fast) var(--ease-spring)';
       view.style.transform = 'translate3d(0, 0, 0)';
@@ -742,6 +897,50 @@ const Fmt = {
     return `${formatted} ${Fmt._currency}`;
   },
 
+  /* Compact form of a plain number: 10,000+ -> "10k", 1,000,000+ -> "1.2M".
+     Numbers below 10,000 are left as full, normally-formatted numbers —
+     abbreviating e.g. "8,500" as "8.5k" saves almost no space and just
+     costs clarity, so the shortening only kicks in once it actually
+     starts to matter for layout. */
+  compactNumber(amount) {
+    const n = Number(amount) || 0;
+    const abs = Math.abs(n);
+    const trim = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace(/\.0$/, ''));
+    if (abs >= 1_000_000) return `${trim(n / 1_000_000)}M`;
+    if (abs >= 10_000) return `${trim(n / 1_000)}k`;
+    return n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  },
+
+  /* Compact money: same shortening as compactNumber, with the currency
+     code appended — used anywhere a running total could grow large
+     over time (inventory value, revenue, totals) but NOT for exact
+     transactional amounts like a POS charge/change, which always need
+     full precision on screen. */
+  moneyCompact(amount) {
+    return `${Fmt.compactNumber(amount)} ${Fmt._currency}`;
+  },
+
+  /* Renders a number/money value in its compact form, tappable to reveal
+     the full precise value with a little grow animation. Tap again (or
+     wait ~2.5s) to collapse back. Used for stat cards and other big
+     numbers that would otherwise eat a lot of layout space or overflow
+     their container as they grow. `full` should already be the fully
+     formatted string (e.g. from Fmt.money); `compact` likewise. */
+  expandable(compact, full) {
+    return `<span class="num-tap" data-full="${escapeHTML(String(full))}" data-compact="${escapeHTML(String(compact))}">${escapeHTML(String(compact))}</span>`;
+  },
+
+  /* Convenience: compact money now, full money on tap. */
+  moneyExpandable(amount) {
+    return Fmt.expandable(Fmt.moneyCompact(amount), Fmt.money(amount));
+  },
+
+  /* Convenience: compact count now, full count on tap. */
+  countExpandable(amount) {
+    const full = (Number(amount) || 0).toLocaleString();
+    return Fmt.expandable(Fmt.compactNumber(amount), full);
+  },
+
   date(d) {
     const date = d instanceof Date ? d : new Date(d);
     return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
@@ -781,10 +980,10 @@ async function renderDashboard(container) {
   `;
 
   const todayStart = Fmt.startOfToday().getTime();
-  const todaysSales = sales.filter((s) => new Date(s.date).getTime() >= todayStart && s.status !== 'refunded');
+  const todaysSales = sales.filter((s) => new Date(s.date).getTime() >= todayStart);
 
-  const todaysRevenue = todaysSales.reduce((sum, s) => sum + (s.total || 0), 0);
-  const transactionCount = todaysSales.length;
+  const todaysRevenue = todaysSales.reduce((sum, s) => sum + saleNetTotal(s), 0);
+  const transactionCount = todaysSales.filter((s) => s.status !== 'refunded').length;
   const productCount = products.length;
 
   const lowStock = products.filter((p) => p.quantity <= (p.minStock ?? 0));
@@ -801,17 +1000,17 @@ async function renderDashboard(container) {
         <div class="stat-card__label">Sales</div>
         <div class="stat-card__value num">${transactionCount}</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card stat-card--expand">
         <div class="stat-card__label">Revenue</div>
-        <div class="stat-card__value accent num">${Fmt.money(todaysRevenue)}</div>
+        <div class="stat-card__value accent num">${Fmt.moneyExpandable(todaysRevenue)}</div>
       </div>
       <div class="stat-card">
         <div class="stat-card__label">Products</div>
         <div class="stat-card__value num">${productCount}</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card stat-card--expand">
         <div class="stat-card__label">Inventory Value</div>
-        <div class="stat-card__value teal num">${Fmt.money(inventoryValue)}</div>
+        <div class="stat-card__value teal num">${Fmt.moneyExpandable(inventoryValue)}</div>
       </div>
     </div>
 
@@ -885,13 +1084,21 @@ function escapeHTML(str) {
   return div.innerHTML;
 }
 
+/* A sale's actual net revenue after any item-level returns are
+   subtracted — used everywhere revenue is totaled instead of raw
+   `sale.total`, so a partially-returned sale doesn't overstate income. */
+function saleNetTotal(sale) {
+  return (sale.total || 0) - (sale.totalRefunded || 0);
+}
+window.saleNetTotal = saleNetTotal;
+
 /* ---------------------------------------------------------------------- */
 /* More menu                                                                */
 /* ---------------------------------------------------------------------- */
 
 function renderMore(container) {
   const items = [
-    ['sales', '🧮', 'Sales History', 'Transactions, receipts, refunds'],
+    ['inventory', '📊', 'Inventory', 'Stock levels & adjustments'],
     ['reports', '📈', 'Reports & Statistics', 'Revenue, best sellers, profit'],
     ['customers', '👤', 'Customers', 'Customer directory & purchase history'],
     ['suppliers', '🚚', 'Suppliers', 'Supplier directory'],
@@ -911,7 +1118,12 @@ function renderMore(container) {
         </a>
       `).join('')}
     </div>
+    <div class="text-faint text-sm" style="text-align:center; margin-top:20px;" id="moreVersionFooter">Better Store</div>
   `;
+  getAppVersionLabel().then((label) => {
+    const el = container.querySelector('#moreVersionFooter');
+    if (el) el.textContent = `Better Store · ${label}`;
+  });
 }
 
 /* ---------------------------------------------------------------------- */

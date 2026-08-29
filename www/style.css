@@ -1,0 +1,1491 @@
+/* ==========================================================================
+   Store App — Design System
+   "Neon Orchid" palette: near-black charcoal base (#29262B), slate-plum
+   surface (#3C3541), vivid orchid accent (#AC5FDB), soft lilac highlight
+   (#E3A2EE). Every color token below is derived from these four — no
+   off-palette hues anywhere, including semantic danger/success, which are
+   distinguished by lightness/saturation within the same violet family
+   rather than by hue (e.g. no green/red), so the whole app reads as one
+   coherent surface.
+   Liquid-glass treatment throughout (Apple-style): strong blur+saturate,
+   a bright hairline top edge, a soft inset bottom edge for concavity, and
+   a faint diagonal sheen — layered translucency, not flat panels.
+   Numbers (prices, totals, quantities) use tabular figures throughout —
+   this is a cash-handling app and digits must never jitter or misalign.
+   ========================================================================== */
+
+:root {
+  /* --- Color tokens (dark, default) — Neon Orchid --- */
+  --bg: #29262B;
+  --surface: #322D35;
+  --surface-2: #3C3541;
+  --surface-3: #493F4E;
+  --border: #544A5C;
+
+  --text: #F3E9F7;
+  --text-dim: #B8A3C2;
+  --text-faint: #7E6D89;
+
+  --accent: #AC5FDB;
+  --accent-dim: #8A46B3;
+  --accent-ink: #1D1721;
+
+  --teal: #E3A2EE;
+  --coral: #D9527A;
+  --blue: #8A7AE0;
+
+  --danger: #D9527A;
+  --danger-bg: #3A1F2A;
+  --success: #E3A2EE;
+  --success-bg: #35223C;
+  --warn: #AC5FDB;
+  --warn-bg: #3A2A44;
+
+  --radius-sm: 10px;
+  --radius: 18px;
+  --radius-lg: 26px;
+
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-num: "SF Mono", "Roboto Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+
+  --shadow: 0 4px 18px rgba(10, 6, 12, 0.45);
+  --shadow-lg: 0 16px 40px rgba(10, 6, 12, 0.55);
+
+  --glass-highlight: rgba(243, 233, 247, 0.10);
+  --glass-edge: rgba(0, 0, 0, 0.18);
+  --glass-blur: 24px;
+  --glass-sat: 180%;
+  --glass-sheen: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 30%, transparent 55%, rgba(255,255,255,0.03) 100%);
+
+  --nav-h: 76px;
+  --topbar-h: 56px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+[data-theme="light"] {
+  --bg: #F8F0FB;
+  --surface: #FFFCFE;
+  --surface-2: #F1E2F6;
+  --surface-3: #E6CDEF;
+  --border: #D8B8E3;
+
+  --text: #29262B;
+  --text-dim: #6B5A73;
+  --text-faint: #9784A1;
+
+  --accent-ink: #1D1721;
+
+  --danger-bg: #FBE6ED;
+  --success-bg: #F6E9FA;
+  --warn-bg: #F3E4F9;
+
+  --glass-highlight: rgba(29, 23, 33, 0.05);
+  --glass-edge: rgba(29, 23, 33, 0.06);
+  --glass-sheen: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 30%, transparent 55%, rgba(255,255,255,0.15) 100%);
+
+  --shadow: 0 4px 18px rgba(80, 45, 100, 0.10);
+  --shadow-lg: 0 16px 40px rgba(80, 45, 100, 0.16);
+}
+
+* { box-sizing: border-box; }
+/* The document itself never scrolls — #view (below) is the ONLY
+   scrolling region in the whole app. This is a deliberate structural
+   choice, not just a style preference: position:fixed elements (topbar,
+   bottom-nav) anchored against a document that scrolls have a real bug on
+   several Android WebView builds where they silently stop tracking the
+   viewport after the content below them changes height — mid-navigation
+   is exactly when that happens — and don't recover until a scroll event
+   forces the browser to recompute them. Keeping html/body pinned to
+   exactly one viewport height and routing all scrolling through #view
+   sidesteps that whole bug class rather than working around it. */
+html, body {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+  font-size: 15px;
+  line-height: 1.4;
+  position: relative;
+  /* Feels like a native app, not a webpage: nothing is selectable by
+     default (no accidental text-select on a long-press or drag), except
+     the actual form fields below, which explicitly opt back in. */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none; /* also suppresses the iOS "copy/lookup" bubble on long-press */
+}
+
+input, textarea, select, [contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* Ambient background — two large, softly blurred color blobs drifting
+   slowly behind the whole app. This is what separates a "flat dark
+   screen" from something that reads as premium: real depth in the
+   background instead of a single solid color, without ever competing
+   with foreground content for attention (huge blur radius, low opacity,
+   fixed so it never scrolls, pointer-events disabled). */
+body::before, body::after {
+  content: '';
+  position: fixed;
+  z-index: 0;
+  width: 60vh;
+  height: 60vh;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.16;
+  pointer-events: none;
+}
+body::before {
+  top: -10%;
+  right: -15%;
+  background: var(--accent);
+  animation: ambientDrift1 22s ease-in-out infinite;
+}
+body::after {
+  bottom: -5%;
+  left: -20%;
+  background: var(--teal);
+  animation: ambientDrift2 26s ease-in-out infinite;
+}
+@keyframes ambientDrift1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-6%, 6%) scale(1.12); }
+}
+@keyframes ambientDrift2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(6%, -6%) scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body::before, body::after { animation: none; }
+}
+
+#app { position: relative; z-index: 1; }
+
+.num, .price, .money {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+button, input, select, textarea { font-family: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+
+::-webkit-scrollbar { display: none; }
+
+/* --- App shell layout --- */
+
+#app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.topbar {
+  position: relative;
+  flex: 0 0 auto;
+  z-index: 20;
+  height: calc(var(--topbar-h) + var(--safe-top));
+  padding-top: var(--safe-top);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 16px;
+  padding-right: 16px;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar__title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.topbar__title small {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
+.topbar__actions { display: flex; gap: 8px; align-items: center; }
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--surface-2);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.icon-btn:active { background: var(--surface-3); }
+
+main#view {
+  flex: 1;
+  min-height: 0; /* required for a flex child to actually be allowed to
+                    scroll internally instead of stretching to fit content */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding: 16px 16px calc(var(--nav-h) + var(--safe-bottom) + 24px);
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* --- Bottom navigation --- */
+
+.bottom-nav {
+  /* Anchored to #app (its nearest positioned ancestor) rather than
+     position:fixed to the viewport. #app never scrolls and always
+     exactly fills the viewport (see the html/body rule above), so this
+     lands in the same visual spot a fixed element would — without the
+     WebView bug where fixed elements lose track of the viewport after a
+     content-height change below them. */
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(10px + var(--safe-bottom));
+  height: 66px;
+  padding-bottom: 0;
+  display: flex;
+  z-index: 30;
+}
+
+/* The blur/border-radius/shadow live on a separate layer behind the nav
+   items. Putting backdrop-filter directly on .bottom-nav (the element that
+   also contains the absolutely-positioned floating FAB) causes several
+   browsers/webviews to clip overflowing children to that rounded box even
+   with no explicit overflow:hidden — this avoids that entirely. */
+.bottom-nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: color-mix(in srgb, var(--surface) 78%, transparent);
+  background-image: var(--glass-sheen);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge);
+  z-index: -1;
+}
+
+.nav-item {
+  flex: 1;
+  border: none;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--text-faint);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 8px 0;
+  position: relative;
+  z-index: 2;
+}
+
+.nav-item__icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  position: relative;
+}
+
+.nav-item.active { color: var(--accent); }
+.nav-item.active .nav-item__icon { transform: translateY(-1px) scale(1.08); }
+.nav-item span:last-child {
+  transition: opacity var(--dur) var(--ease-out), transform var(--dur) var(--ease-out);
+  opacity: 0.85;
+}
+.nav-item.active span:last-child { opacity: 1; transform: translateY(0); }
+
+.nav-item--fab {
+  position: relative;
+  overflow: visible;
+  justify-content: flex-end;
+}
+.nav-item--fab .nav-item__icon {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+  border-radius: 18px;
+  background: linear-gradient(155deg, var(--accent) 0%, var(--accent-dim) 100%);
+  color: var(--accent-ink);
+  box-shadow: 0 8px 20px -4px rgba(172, 95, 219, 0.55), 0 2px 8px rgba(0,0,0,0.3);
+  font-size: 23px;
+  z-index: 5;
+  transition: transform var(--dur) var(--ease-spring), box-shadow var(--dur) var(--ease-out);
+}
+.nav-item--fab span:last-child { margin-bottom: 2px; }
+.nav-item--fab:active .nav-item__icon,
+.nav-item.nav-item--fab:active .nav-item__icon {
+  transform: translateX(-50%) scale(0.9);
+}
+.nav-item--fab.active { color: var(--accent); }
+.nav-item--fab.active .nav-item__icon {
+  transform: translateX(-50%) scale(1.05);
+  box-shadow: 0 10px 26px -4px rgba(172, 95, 219, 0.7), 0 2px 10px rgba(0,0,0,0.35);
+}
+
+.nav-item--fab.has-items .nav-item__icon {
+  animation: fabGlow 2s ease-in-out infinite;
+}
+@keyframes fabGlow {
+  0%, 100% { box-shadow: 0 8px 20px -4px rgba(172, 95, 219, 0.55), 0 2px 8px rgba(0,0,0,0.3); }
+  50% { box-shadow: 0 8px 26px -2px rgba(172, 95, 219, 0.85), 0 2px 8px rgba(0,0,0,0.3); }
+}
+
+.nav-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--coral);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--surface);
+  animation: badgePop var(--dur) var(--ease-spring);
+}
+.nav-badge.show { display: flex; }
+@keyframes badgePop {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
+}
+
+/* --- Cards / sections --- */
+
+.card {
+  background-color: color-mix(in srgb, var(--surface) 82%, transparent);
+  background-image: var(--glass-sheen);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge), var(--shadow);
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  margin: 22px 0 10px;
+}
+.section-title:first-child { margin-top: 0; }
+
+/* --- Dashboard stat grid --- */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.stat-card {
+  background-color: color-mix(in srgb, var(--surface) 82%, transparent);
+  background-image: var(--glass-sheen);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge), var(--shadow);
+}
+
+.stat-card__label {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.stat-card__value {
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.stat-card__value.accent { color: var(--accent); }
+.stat-card__value.teal { color: var(--teal); }
+.stat-card__value.coral { color: var(--coral); }
+
+/* --- Quick actions grid --- */
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.quick-action {
+  background-color: color-mix(in srgb, var(--surface) 82%, transparent);
+  background-image: var(--glass-sheen);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge);
+  color: var(--text);
+  text-align: center;
+}
+.quick-action:active { background: var(--surface-2); }
+
+.quick-action__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+}
+
+/* --- Lists (recent sales, products, etc.) --- */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list-row {
+  background-color: color-mix(in srgb, var(--surface) 82%, transparent);
+  background-image: var(--glass-sheen);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge);
+}
+
+.list-row__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.list-row__icon img { width: 100%; height: 100%; object-fit: cover; }
+
+.list-row__body { flex: 1; min-width: 0; }
+.list-row__title {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-row__subtitle {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.list-row__trailing {
+  text-align: right;
+  flex-shrink: 0;
+}
+.list-row__amount { font-weight: 700; font-size: 14px; }
+
+/* --- Badges --- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.badge--warn { background: var(--warn-bg); color: var(--accent); }
+.badge--danger { background: var(--danger-bg); color: var(--coral); }
+.badge--success { background: var(--success-bg); color: var(--teal); }
+.badge--neutral { background: var(--surface-2); color: var(--text-dim); }
+
+/* --- Buttons --- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 20px;
+  border-radius: var(--radius);
+  border: none;
+  font-weight: 700;
+  font-size: 15px;
+  width: 100%;
+}
+.btn-primary {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 100%, white 18%) 0%, var(--accent) 55%, var(--accent-dim) 100%);
+  color: var(--accent-ink);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 14px -4px rgba(0,0,0,0.3);
+}
+.btn-primary:active { background: var(--accent-dim); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
+.btn-secondary {
+  background: color-mix(in srgb, var(--surface-2) 82%, transparent);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge);
+}
+.btn-danger { background: var(--danger-bg); color: var(--coral); }
+.btn-sm { height: 38px; font-size: 13px; padding: 0 14px; }
+
+/* --- Empty states --- */
+
+.empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-dim);
+}
+.empty-state__icon { font-size: 36px; margin-bottom: 10px; }
+.empty-state__title { font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.empty-state__hint { font-size: 13px; }
+
+/* --- Loading --- */
+
+.spinner {
+  width: 22px; height: 22px;
+  border: 3px solid var(--surface-3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.view-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+}
+
+/* --- Utility --- */
+
+.flex { display: flex; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.gap-8 { gap: 8px; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.text-dim { color: var(--text-dim); }
+.text-faint { color: var(--text-faint); }
+.text-sm { font-size: 12px; }
+
+/* ==========================================================================
+   Motion system
+   One motion language reused everywhere: views slide+fade in, sheets rise
+   from the bottom and can be dragged away, list rows reveal actions on
+   swipe, taps ripple. Respect prefers-reduced-motion throughout.
+   ========================================================================== */
+
+:root {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 140ms;
+  --dur: 220ms;
+  --dur-slow: 320ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* --- View / route transitions --- */
+
+#view.view-enter {
+  animation: viewIn var(--dur-slow) var(--ease-out) both;
+}
+@keyframes viewIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#view.view-enter-left {
+  animation: viewInLeft 240ms var(--ease-out) both;
+}
+#view.view-enter-right {
+  animation: viewInRight 240ms var(--ease-out) both;
+}
+@keyframes viewInLeft {
+  from { opacity: 0.4; transform: translate3d(100%, 0, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes viewInRight {
+  from { opacity: 0.4; transform: translate3d(-100%, 0, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+.stagger > * {
+  animation: rowIn var(--dur) var(--ease-out) both;
+}
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Tap feedback (ripple) --- */
+
+.tappable {
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.tappable:active { transform: scale(0.97); }
+
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.18;
+  transform: scale(0);
+  animation: rippleOut 520ms var(--ease-out);
+  pointer-events: none;
+}
+@keyframes rippleOut {
+  to { transform: scale(2.6); opacity: 0; }
+}
+
+/* Note: .nav-item is deliberately excluded here — ripples never target it
+   (see the pointerdown listener's selector list below), and giving it
+   overflow:hidden was clipping the floating FAB icon, which intentionally
+   pokes out above its own box. */
+.icon-btn, .btn, .quick-action, .list-row { position: relative; overflow: hidden; }
+.nav-item { position: relative; }
+.btn, .icon-btn, .quick-action { transition: transform var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out); }
+.btn:active, .icon-btn:active, .quick-action:active { transform: scale(0.96); }
+.nav-item__icon { transition: transform var(--dur) var(--ease-spring); }
+.nav-item:active .nav-item__icon { transform: scale(0.86); }
+
+/* --- Swipeable list rows (swipe left to reveal Edit / Delete) --- */
+
+.swipe-row {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.swipe-row__actions {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+.swipe-row__action {
+  width: 64px;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+}
+.swipe-row__action--edit { background: var(--blue); }
+.swipe-row__action--delete { background: var(--coral); }
+.swipe-row__action span:first-child { font-size: 17px; }
+
+.swipe-row__content {
+  position: relative;
+  z-index: 1;
+  background: var(--surface);
+  touch-action: pan-y;
+  will-change: transform;
+}
+.swipe-row__content.dragging { transition: none; }
+.swipe-row__content.settling { transition: transform var(--dur) var(--ease-spring); }
+
+.swipe-row__content .list-row {
+  border-radius: var(--radius);
+}
+
+/* --- Bottom sheet (draggable) --- */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  /* Above the scanner overlay (z-index 200) — Sheets (like the camera
+     picker) can be opened WHILE the scanner stays open, and need to sit
+     on top of the camera feed rather than hidden behind it. */
+  z-index: 220;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease-out);
+}
+.sheet-backdrop.open { opacity: 1; }
+
+.sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 221;
+  max-width: 640px;
+  margin: 0 auto;
+  background-color: color-mix(in srgb, var(--surface) 88%, transparent);
+  background-image: var(--glass-sheen);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform var(--dur-slow) var(--ease-out);
+  padding-bottom: var(--safe-bottom);
+}
+.sheet.open { transform: translateY(0); }
+.sheet.dragging { transition: none; }
+
+.sheet__handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border);
+  margin: 10px auto 4px;
+  flex-shrink: 0;
+}
+
+.sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 18px 14px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+.sheet__title { font-size: 16px; font-weight: 700; }
+
+.sheet__body {
+  padding: 16px 18px;
+  overflow-y: auto;
+}
+
+.sheet__footer {
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* --- Toasts --- */
+
+.toast-stack {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: calc(var(--nav-h) + var(--safe-bottom) + 14px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  /* Above every full-screen overlay in the app (including the scanner,
+     z-index 200) so a toast fired while the camera is open — e.g. "camera
+     switch failed" — is never silently hidden behind it. */
+  z-index: 400;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  animation: toastIn var(--dur) var(--ease-spring) both;
+  max-width: 88vw;
+}
+.toast.out { animation: toastOut var(--dur-fast) var(--ease-out) forwards; }
+.toast--success { border-color: var(--success); color: var(--teal); }
+.toast--danger { border-color: var(--danger); color: var(--coral); }
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toastOut {
+  to { opacity: 0; transform: translateY(6px) scale(0.96); }
+}
+
+/* --- Form controls (used by product forms etc.) --- */
+
+.field { margin-bottom: 14px; }
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.field input[type="text"],
+.field input[type="number"],
+.field input[type="tel"],
+.field textarea,
+.field select {
+  width: 100%;
+  height: 46px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 0 12px;
+  font-size: 15px;
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.field textarea { height: auto; padding: 10px 12px; resize: vertical; min-height: 70px; }
+.field input:focus, .field textarea:focus, .field select:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.field-row { display: flex; gap: 10px; }
+.field-row > .field { flex: 1; }
+
+.image-picker {
+  width: 100%;
+  height: 130px;
+  border-radius: var(--radius);
+  border: 1.5px dashed var(--border);
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  position: relative;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.image-picker img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+.image-picker__icon { font-size: 24px; }
+
+/* --- Search bar + filter chips --- */
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-2) 78%, transparent);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid var(--border);
+  margin-bottom: 12px;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.search-bar:focus-within { border-color: var(--accent); }
+.search-bar input {
+  border: none;
+  background: none;
+  flex: 1;
+  height: 100%;
+  font-size: 14px;
+  color: var(--text);
+}
+.search-bar input:focus { outline: none; }
+.search-bar__icon { color: var(--text-faint); font-size: 15px; }
+.search-bar__clear {
+  border: none;
+  background: var(--surface-3);
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  font-size: 11px;
+  color: var(--text-dim);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.chip-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+}
+.chip-row::-webkit-scrollbar { display: none; }
+
+.chip {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* --- FAB extra: pulse on first load of an empty list --- */
+
+.fab-hint {
+  animation: fabPulse 1.8s var(--ease-out) 3;
+}
+@keyframes fabPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+/* --- Skeleton loading --- */
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 37%, var(--surface-2) 63%);
+  background-size: 400% 100%;
+  animation: skeletonWave 1.4s ease infinite;
+  border-radius: var(--radius);
+}
+@keyframes skeletonWave {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* --- Stock stepper (used in product forms / inventory adjust) --- */
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.stepper__btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 18px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.stepper__btn:active { transform: scale(0.9); background: var(--surface-3); }
+.stepper__value {
+  min-width: 48px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   PIN lock — full-screen overlay for both setting and entering a PIN
+   ========================================================================== */
+
+.pin-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  animation: pinOverlayIn 220ms var(--ease-out) forwards;
+}
+@keyframes pinOverlayIn { to { opacity: 1; } }
+
+.pin-title { font-size: 19px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.pin-sub { font-size: 13px; color: var(--text-dim); margin-bottom: 28px; text-align: center; max-width: 260px; }
+
+.pin-dots {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 36px;
+}
+.pin-dots.shake { animation: pinShake 350ms ease; }
+@keyframes pinShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+
+.pin-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-spring), border-color var(--dur-fast) var(--ease-out);
+}
+.pin-dot.filled {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.15);
+}
+
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+  max-width: 280px;
+}
+.pin-key {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background-color: color-mix(in srgb, var(--surface) 82%, transparent);
+  background-image: var(--glass-sheen);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 600;
+  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge);
+}
+.pin-key:active { background-color: var(--surface-2); transform: scale(0.92); }
+
+/* ==========================================================================
+   Success check — brief full-screen confirmation after completing a sale
+   ========================================================================== */
+
+.success-check-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  opacity: 0;
+  animation: successFadeIn 200ms var(--ease-out) forwards;
+}
+.success-check-overlay.out { animation: successFadeOut 200ms var(--ease-out) forwards; }
+@keyframes successFadeIn { to { opacity: 1; } }
+@keyframes successFadeOut { to { opacity: 0; } }
+
+.success-check-circle svg { overflow: visible; }
+.success-check-ring {
+  stroke: var(--accent);
+  stroke-dasharray: 145;
+  stroke-dashoffset: 145;
+  animation: successRing 500ms var(--ease-out) forwards;
+}
+.success-check-mark {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: successMark 350ms var(--ease-out) 450ms forwards;
+}
+@keyframes successRing { to { stroke-dashoffset: 0; } }
+@keyframes successMark { to { stroke-dashoffset: 0; } }
+
+.success-check-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  opacity: 0;
+  animation: successLabelIn 300ms var(--ease-out) 550ms forwards;
+}
+@keyframes successLabelIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Receipt print --- */
+
+.receipt-print { font-size: 13px; }
+
+/* A dedicated, always-present top-level print target. The on-screen receipt
+   lives inside a fixed-position, max-height, overflow:auto Sheet — printing
+   that directly (as before) meant the print page inherited the Sheet's own
+   position/height constraints: content appeared shifted down the page and
+   got clipped instead of flowing across multiple pages. Populating this
+   plain block-level element (a direct child of <body>, no fixed/absolute
+   ancestors, no overflow:auto) and printing THAT instead fixes both. */
+#printArea { display: none; }
+
+@media print {
+  body > *:not(#printArea) { display: none !important; }
+  #printArea {
+    display: block !important;
+    position: static;
+    width: 100%;
+    color: #000;
+    background: #fff;
+    font-size: 13px;
+  }
+  #printArea .text-dim { color: #444; }
+}
+
+/* ==========================================================================
+   Scanner overlay
+   ========================================================================== */
+
+.scanner-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #000;
+  opacity: 0;
+  transform: scale(1.02);
+  transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out);
+  display: flex;
+  flex-direction: column;
+}
+.scanner-overlay.open { opacity: 1; transform: scale(1); }
+
+.scanner-overlay video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scanner-topbar {
+  position: relative;
+  z-index: 2;
+  padding-top: calc(var(--safe-top) + 10px);
+  padding-bottom: 10px;
+  padding-left: 14px;
+  padding-right: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.55), transparent);
+}
+.scanner-topbar__title { color: #fff; font-weight: 700; font-size: 15px; }
+.scanner-topbar__actions { display: flex; gap: 8px; align-items: center; }
+.scanner-topbar .icon-btn { background: rgba(255,255,255,0.14); color: #fff; }
+.scanner-topbar .icon-btn.active { background: var(--accent); color: var(--accent-ink); }
+
+.scanner-frame {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 78vw;
+  max-width: 340px;
+  height: 190px;
+  z-index: 1;
+}
+.scanner-frame__corner {
+  position: absolute;
+  width: 28px; height: 28px;
+  border: 3px solid var(--accent);
+}
+.scanner-frame__corner.tl { top: 0; left: 0; border-right: none; border-bottom: none; border-radius: 8px 0 0 0; }
+.scanner-frame__corner.tr { top: 0; right: 0; border-left: none; border-bottom: none; border-radius: 0 8px 0 0; }
+.scanner-frame__corner.bl { bottom: 0; left: 0; border-right: none; border-top: none; border-radius: 0 0 0 8px; }
+.scanner-frame__corner.br { bottom: 0; right: 0; border-left: none; border-top: none; border-radius: 0 0 8px 0; }
+
+.scanner-frame__laser {
+  position: absolute;
+  left: 4px; right: 4px;
+  height: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: laserSweep 1.8s ease-in-out infinite;
+}
+@keyframes laserSweep {
+  0%, 100% { top: 6px; opacity: 0.9; }
+  50% { top: calc(100% - 8px); opacity: 0.5; }
+}
+
+.scanner-hint {
+  position: absolute;
+  bottom: calc(var(--safe-bottom) + 40px);
+  left: 0; right: 0;
+  text-align: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 24px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  z-index: 2;
+}
+.scanner-hint .btn { display: inline-flex; }
+
+/* Result chip — sits ON the camera preview itself (not below the visible
+   frame), just under the scanning frame, so the confirmation is impossible
+   to miss and impossible to confuse with a separate area of the screen. */
+.scanner-result-chip {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 130px);
+  transform: translate(-50%, 0);
+  max-width: 86vw;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  color: #fff;
+  z-index: 3;
+  display: none;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+}
+.scanner-result-chip.show { display: block; }
+.scanner-result-chip--success { background: color-mix(in srgb, var(--accent) 70%, transparent); }
+.scanner-result-chip--warn { background: color-mix(in srgb, var(--coral) 75%, transparent); }
+.scanner-result-chip.pop { animation: scanChipPop 320ms var(--ease-spring); }
+@keyframes scanChipPop {
+  0% { transform: translate(-50%, 8px) scale(0.9); opacity: 0; }
+  100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+}
+
+/* ==========================================================================
+   Navigation gestures: sliding tab indicator, swipe-between-tabs, pull-to-refresh
+   ========================================================================== */
+
+.nav-indicator {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  width: 58px;
+  border-radius: 16px;
+  background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  transition: left var(--dur) var(--ease-spring), opacity var(--dur-fast) var(--ease-out);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.nav-indicator.show { opacity: 1; }
+
+#view {
+  transition: transform var(--dur-fast) var(--ease-out);
+  /* Without this, the browser spends time disambiguating whether a touch
+     is a vertical page-scroll before handing horizontal motion to our JS
+     at all — that disambiguation delay is what makes a swipe feel like it
+     "catches up after" instead of tracking the finger live. Declaring
+     vertical scrolling as the browser's job and leaving horizontal to us
+     removes that delay entirely. */
+  touch-action: pan-y;
+}
+#view.swipe-tracking { transition: none; will-change: transform; }
+
+/* Drop the expensive glass blur for the duration of an active drag — with
+   dozens of blurred cards on screen, recompositing all of them every frame
+   while the view translates is what causes swipe lag. Restored the instant
+   the finger lifts; the difference is imperceptible mid-motion. */
+body.swipe-active .card,
+body.swipe-active .stat-card,
+body.swipe-active .list-row,
+body.swipe-active .quick-action,
+body.swipe-active .search-bar,
+body.swipe-active .topbar {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.ptr-indicator {
+  position: fixed;
+  left: 0; right: 0;
+  top: calc(var(--topbar-h) + var(--safe-top));
+  display: flex;
+  justify-content: center;
+  height: 0;
+  overflow: visible;
+  z-index: 15;
+  pointer-events: none;
+}
+.ptr-indicator__spinner {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50px) rotate(0deg);
+  opacity: 0;
+  transition: transform var(--dur-fast) linear, opacity var(--dur-fast) ease-out;
+}
+.ptr-indicator__spinner.spin {
+  animation: ptrSpin 0.7s linear infinite;
+}
+@keyframes ptrSpin { to { transform: translateY(6px) rotate(360deg); } }
+
+/* ==========================================================================
+   Boot Gate — first-launch overlay
+   Shown once, ever, per device: either a blocking "connect to the internet"
+   screen (offline on first run) or a brief "setting up offline mode" splash
+   (online on first run). Hidden instantly and permanently after that via
+   localStorage flag — never flashes on later launches.
+   ========================================================================== */
+#bootGate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg);
+  background-image:
+    radial-gradient(circle at 20% 15%, rgba(172, 95, 219, 0.20), transparent 55%),
+    radial-gradient(circle at 85% 80%, rgba(227, 162, 238, 0.14), transparent 50%);
+}
+#bootGate.show { display: flex; }
+
+.boot-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 32px 26px 28px;
+  border-radius: var(--radius-lg);
+  text-align: center;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge);
+  background-image: var(--glass-sheen);
+  animation: bootCardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes bootCardIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.boot-icon {
+  width: 64px; height: 64px;
+  margin: 0 auto 18px;
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface-2));
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+.boot-icon.pulse { animation: bootPulse 1.6s ease-in-out infinite; }
+@keyframes bootPulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 35%, transparent), inset 0 1px 0 var(--glass-highlight); }
+  50% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 0%, transparent), inset 0 1px 0 var(--glass-highlight); }
+}
+
+.boot-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.boot-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  margin-bottom: 22px;
+}
+
+.boot-spinner {
+  width: 22px; height: 22px;
+  margin: 4px auto 0;
+  border-radius: 50%;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--accent);
+  animation: ptrSpin 0.8s linear infinite;
+}
+
+.boot-btn {
+  width: 100%;
+  padding: 13px 18px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--accent-ink);
+  background: linear-gradient(135deg, var(--teal), var(--accent));
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.boot-btn:active { transform: scale(0.97); opacity: 0.9; }
+
+.boot-status {
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--text-faint);
+  min-height: 16px;
+}

@@ -1125,13 +1125,35 @@ main#view {
 }
 @keyframes pinOverlayIn { to { opacity: 1; } }
 
-.pin-title { font-size: 19px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-.pin-sub { font-size: 13px; color: var(--text-dim); margin-bottom: 28px; text-align: center; max-width: 260px; }
+.pin-lock-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  margin-bottom: 22px;
+  background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 72%);
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
+  animation: pinLockPulse 2.4s ease-in-out infinite;
+}
+@keyframes pinLockPulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 22%, transparent); }
+  50% { box-shadow: 0 0 0 12px transparent; }
+}
+
+.pin-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; letter-spacing: 0.2px; }
+.pin-sub { font-size: 14px; color: var(--text-dim); margin-bottom: 30px; text-align: center; max-width: 280px; line-height: 1.5; }
 
 .pin-dots {
   display: flex;
-  gap: 14px;
-  margin-bottom: 36px;
+  gap: 16px;
+  margin-bottom: 40px;
+  padding: 12px 20px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  border: 1px solid var(--border);
 }
 .pin-dots.shake { animation: pinShake 350ms ease; }
 @keyframes pinShake {
@@ -1143,28 +1165,34 @@ main#view {
 }
 
 .pin-dot {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
   border: 1.5px solid var(--border);
   background: transparent;
-  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-spring), border-color var(--dur-fast) var(--ease-out);
+  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-spring), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 .pin-dot.filled {
   background: var(--accent);
   border-color: var(--accent);
-  transform: scale(1.15);
+  transform: scale(1.2);
+  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
 .pin-keypad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 18px;
   width: 100%;
-  max-width: 280px;
+  max-width: 300px;
 }
 .pin-key {
   aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
   border-radius: 50%;
   border: 1px solid var(--border);
   background-color: color-mix(in srgb, var(--surface) 82%, transparent);
@@ -1172,11 +1200,37 @@ main#view {
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
   color: var(--text);
-  font-size: 22px;
-  font-weight: 600;
-  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge), var(--shadow);
+  animation: pinKeyIn var(--dur) var(--ease-out) both;
+}
+.pin-key__num { font-size: 23px; font-weight: 600; line-height: 1; }
+.pin-key__letters { font-size: 9px; font-weight: 600; letter-spacing: 1.5px; color: var(--text-faint); }
+.pin-key--action {
+  background-color: transparent;
+  background-image: none;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: var(--text-dim);
+  font-size: 20px;
 }
 .pin-key:active { background-color: var(--surface-2); transform: scale(0.92); }
+@keyframes pinKeyIn {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.pin-key:nth-child(1) { animation-delay: 0ms; }
+.pin-key:nth-child(2) { animation-delay: 20ms; }
+.pin-key:nth-child(3) { animation-delay: 40ms; }
+.pin-key:nth-child(4) { animation-delay: 60ms; }
+.pin-key:nth-child(5) { animation-delay: 80ms; }
+.pin-key:nth-child(6) { animation-delay: 100ms; }
+.pin-key:nth-child(7) { animation-delay: 120ms; }
+.pin-key:nth-child(8) { animation-delay: 140ms; }
+.pin-key:nth-child(9) { animation-delay: 160ms; }
+.pin-key:nth-child(11) { animation-delay: 180ms; }
+.pin-key:nth-child(12) { animation-delay: 200ms; }
 
 /* ==========================================================================
    Success check — brief full-screen confirmation after completing a sale

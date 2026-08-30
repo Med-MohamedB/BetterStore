@@ -156,6 +156,8 @@ const Backup = (() => {
 
     const summary = STORE_NAMES.map((n) => `${n}: ${(parsed.data[n] || []).length}`).join(', ');
     if (!confirm(`Import this backup? This REPLACES all current data.\n\n${summary}`)) return;
+    const confirmed = await Security.requirePin('Confirm your PIN to restore this backup');
+    if (!confirmed) { Toast.show('Cancelled'); return; }
 
     try {
       // One atomic transaction across every store — either the whole
@@ -232,6 +234,8 @@ const Backup = (() => {
   async function clearAllData(container) {
     if (!confirm('Delete EVERYTHING — products, sales, customers, suppliers, history? This cannot be undone. Export a backup first if you\u2019re not sure.')) return;
     if (!confirm('Really clear all data? This is your last check.')) return;
+    const confirmed = await Security.requirePin('Confirm your PIN to clear all data');
+    if (!confirmed) { Toast.show('Cancelled'); return; }
     for (const name of STORE_NAMES) await DB.clear(name);
     Toast.success('All data cleared');
     render(container);

@@ -123,9 +123,8 @@ const Products = (() => {
       }
     });
     sheetEl.querySelector('#shareBarcodeBtn').addEventListener('click', async () => {
-      if (navigator.share) {
-        try { await navigator.share({ title: product.name, text: code }); } catch (e) {}
-      } else {
+      const shared = await shareText({ title: product.name, text: code });
+      if (!shared && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
         Toast.show('Sharing isn\u2019t supported on this browser');
       }
     });
@@ -137,7 +136,7 @@ const Products = (() => {
 
   async function render(container, params = []) {
     setProductsTopbar();
-    await renderList(container);
+    await renderShell(container);
     if (params[0] === 'new') {
       // Let the list paint first, then open the add-product sheet on top —
       // supports the dashboard's "Add Product" quick action deep link.
@@ -233,7 +232,7 @@ const Products = (() => {
         Toast.success(`Renamed to "${newName.trim()}" (${affected.length} product${affected.length !== 1 ? 's' : ''})`);
         Sheet.close();
         setTimeout(openCategoryManager, 260);
-        if (Router.current === 'products') renderList(document.getElementById('view'));
+        if (Router.current === 'products') renderShell(document.getElementById('view'));
       });
     });
     sheetEl.querySelectorAll('[data-delete-category]').forEach((btn) => {
@@ -248,7 +247,7 @@ const Products = (() => {
         Toast.success(`"${cat}" deleted — products moved to Uncategorized`);
         Sheet.close();
         setTimeout(openCategoryManager, 260);
-        if (Router.current === 'products') renderList(document.getElementById('view'));
+        if (Router.current === 'products') renderShell(document.getElementById('view'));
       });
     });
   }
@@ -258,12 +257,72 @@ const Products = (() => {
     sortMode = order[(order.indexOf(sortMode) + 1) % order.length];
     const labels = { name: 'Name (A–Z)', stock: 'Stock (low first)', price: 'Price (low first)' };
     Toast.show(`Sorted by ${labels[sortMode]}`);
-    renderList(document.getElementById('view'));
+    renderResults(document.getElementById('view'));
   }
 
-  async function renderList(container) {
-    const [products] = await Promise.all([DB.getAll('products')]);
+  let searchDebounceTimer = null;
+
+  async function renderShell(container) {
+    const products = await DB.getAll('products');
     const categories = ['All', ...uniqueCategories(products)];
+
+    container.innerHTML = `
+      <div class="search-bar">
+        <span class="search-bar__icon">🔍</span>
+        <input type="text" id="productSearch" placeholder="Search name, barcode, SKU..." value="${escapeHTML(searchQuery)}">
+        <button class="search-bar__clear tappable" id="clearSearch" style="${searchQuery ? '' : 'display:none;'}">✕</button>
+      </div>
+
+      <div class="chip-row" id="categoryChips">
+        ${categories.map((c) => `<button class="chip tappable${c === activeCategory ? ' active' : ''}" data-cat="${escapeHTML(c)}">${escapeHTML(c)}</button>`).join('')}
+      </div>
+
+      <div id="productListWrap"></div>
+    `;
+
+    const searchInput = container.querySelector('#productSearch');
+    const clearBtn = container.querySelector('#clearSearch');
+
+    // Belt-and-suspenders: explicitly defocus on mount. The input is
+    // never destroyed/recreated after this (see below), so this is the
+    // only point where anything (autofill heuristics, a leftover focus
+    // from whatever screen was open before) could sneak the keyboard
+    // open without the user actually tapping the field.
+    searchInput.blur();
+
+    // This input element is built exactly once per tab visit and never
+    // recreated afterward — typing filters the results below it without
+    // ever touching the input itself, so there's nothing to lose focus
+    // and nothing to manually refocus. A short debounce also avoids
+    // re-querying and re-rendering the list on every single keystroke.
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      clearBtn.style.display = searchQuery ? '' : 'none';
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => renderResults(container), 120);
+    });
+
+    clearBtn.addEventListener('click', () => {
+      searchQuery = '';
+      searchInput.value = '';
+      clearBtn.style.display = 'none';
+      renderResults(container);
+      searchInput.focus(); // a deliberate tap on a button — fine to focus here
+    });
+
+    container.querySelectorAll('#categoryChips .chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        activeCategory = chip.dataset.cat;
+        container.querySelectorAll('#categoryChips .chip').forEach((c) => c.classList.toggle('active', c === chip));
+        renderResults(container);
+      });
+    });
+
+    await renderResults(container);
+  }
+
+  async function renderResults(container) {
+    const products = await DB.getAll('products');
 
     let filtered = products.filter((p) => {
       const matchesSearch = !searchQuery || [p.name, p.barcode, p.sku, p.category]
@@ -275,55 +334,22 @@ const Products = (() => {
 
     filtered = sortProducts(filtered, sortMode);
 
-    container.innerHTML = `
-      <div class="search-bar">
-        <span class="search-bar__icon">🔍</span>
-        <input type="text" id="productSearch" placeholder="Search name, barcode, SKU..." value="${escapeHTML(searchQuery)}">
-        ${searchQuery ? `<button class="search-bar__clear tappable" id="clearSearch">✕</button>` : ''}
+    const wrap = container.querySelector('#productListWrap');
+    if (!wrap) return; // navigated away from Products before this resolved
+    wrap.innerHTML = filtered.length ? `
+      <div class="list stagger" id="productList">
+        ${filtered.map(productRowHTML).join('')}
       </div>
-
-      <div class="chip-row" id="categoryChips">
-        ${categories.map((c) => `<button class="chip tappable${c === activeCategory ? ' active' : ''}" data-cat="${escapeHTML(c)}">${escapeHTML(c)}</button>`).join('')}
-      </div>
-
-      <div id="productListWrap">
-        ${filtered.length ? `
-          <div class="list stagger" id="productList">
-            ${filtered.map(productRowHTML).join('')}
-          </div>
-        ` : `
-          <div class="empty-state">
-            <div class="empty-state__icon">📦</div>
-            <div class="empty-state__title">${products.length ? 'No products match' : 'No products yet'}</div>
-            <div class="empty-state__hint">${products.length ? 'Try a different search or category.' : 'Tap the + button above to add your first product.'}</div>
-          </div>
-        `}
+    ` : `
+      <div class="empty-state">
+        <div class="empty-state__icon">📦</div>
+        <div class="empty-state__title">${products.length ? 'No products match' : 'No products yet'}</div>
+        <div class="empty-state__hint">${products.length ? 'Try a different search or category.' : 'Tap the + button above to add your first product.'}</div>
       </div>
     `;
 
-    // Search
-    const searchInput = container.querySelector('#productSearch');
-    searchInput.addEventListener('input', (e) => {
-      searchQuery = e.target.value;
-      renderList(container);
-    });
-    // Keep caret at end after re-render
-    searchInput.focus();
-    searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
-
-    const clearBtn = container.querySelector('#clearSearch');
-    if (clearBtn) clearBtn.addEventListener('click', () => { searchQuery = ''; renderList(container); });
-
-    // Category chips
-    container.querySelectorAll('#categoryChips .chip').forEach((chip) => {
-      chip.addEventListener('click', () => {
-        activeCategory = chip.dataset.cat;
-        renderList(container);
-      });
-    });
-
     // Swipe actions + tap-to-view
-    const listEl = container.querySelector('#productList');
+    const listEl = wrap.querySelector('#productList');
     if (listEl) {
       enableSwipeRows(listEl, {
         onEdit: async (id) => openForm(await DB.get('products', Number(id))),
@@ -382,12 +408,12 @@ const Products = (() => {
     const p = await DB.get('products', id);
     if (!p) return;
     if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) {
-      renderList(container); // snap swiped row back
+      renderResults(container); // snap swiped row back
       return;
     }
     await DB.delete('products', id);
     Toast.success(`${p.name} deleted`);
-    renderList(container);
+    renderResults(container);
   }
 
   /* ---------------------------------------------------------------- */
@@ -584,7 +610,7 @@ const Products = (() => {
       }
 
       Sheet.close();
-      if (Router.current === 'products') renderList(document.getElementById('view'));
+      if (Router.current === 'products') renderShell(document.getElementById('view'));
       if (opts.onSaved) opts.onSaved(record);
     });
   }
@@ -652,7 +678,7 @@ const Products = (() => {
 
       <div class="section-title">Details</div>
       <div class="card">
-        <div class="flex-between mt-8" style="margin-top:0;"><span class="text-dim text-sm">Barcode</span><span class="num text-sm">${escapeHTML(p.barcode || '—')}</span></div>
+        <div class="flex-between mt-8" style="margin-top:0;"><span class="text-dim text-sm">Barcode</span><span class="num num-id text-sm">${escapeHTML(p.barcode || '—')}</span></div>
         <div class="flex-between mt-8"><span class="text-dim text-sm">Purchase price</span><span class="num text-sm">${Fmt.money(p.purchasePrice)}</span></div>
         <div class="flex-between mt-8"><span class="text-dim text-sm">Discount price</span><span class="num text-sm">${p.discountPrice ? Fmt.money(p.discountPrice) : '—'}</span></div>
         <div class="flex-between mt-8"><span class="text-dim text-sm">Minimum stock</span><span class="num text-sm">${p.minStock}</span></div>
@@ -695,7 +721,7 @@ const Products = (() => {
       });
       Toast.success(`Stock updated to ${pendingQty}`);
       Sheet.close();
-      if (Router.current === 'products') renderList(document.getElementById('view'));
+      if (Router.current === 'products') renderResults(document.getElementById('view'));
     });
 
     sheetEl.querySelector('#barcodeBtn').addEventListener('click', () => {
@@ -714,7 +740,7 @@ const Products = (() => {
       await DB.add('products', copy);
       Toast.success('Product duplicated');
       Sheet.close();
-      if (Router.current === 'products') renderList(document.getElementById('view'));
+      if (Router.current === 'products') renderShell(document.getElementById('view'));
     });
 
     sheetEl.querySelector('#editBtn').addEventListener('click', () => {
@@ -727,7 +753,7 @@ const Products = (() => {
       await DB.delete('products', p.id);
       Toast.success(`${p.name} deleted`);
       Sheet.close();
-      if (Router.current === 'products') renderList(document.getElementById('view'));
+      if (Router.current === 'products') renderResults(document.getElementById('view'));
     });
   }
 

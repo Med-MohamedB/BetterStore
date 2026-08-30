@@ -589,32 +589,35 @@ window.showSuccessCheck = showSuccessCheck;
 
 function printReceiptHTML(html) {
   const area = document.getElementById('printArea');
-  if (!area) { window.print(); return; }
-  area.innerHTML = html;
-  // Let the browser paint the new content before invoking the print dialog.
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    const cap = window.Capacitor;
-    if (!cap) {
-      Toast.error('Diagnostic: window.Capacitor is missing entirely');
-      window.print();
-      return;
-    }
-    const isNative = cap.isNativePlatform && cap.isNativePlatform();
-    if (!isNative) {
-      Toast.error('Diagnostic: Capacitor.isNativePlatform() is false');
-      window.print();
-      return;
-    }
-    if (!cap.Plugins || !cap.Plugins.NativePrint) {
-      Toast.error('Diagnostic: NativePrint plugin not registered');
-      window.print();
-      return;
-    }
-    cap.Plugins.NativePrint.printCurrent({ jobName: 'Better Store Receipt' }).catch((e) => {
-      const msg = (e && e.message) || String(e);
-      Toast.error(`Print failed: ${msg}`);
-    });
-  }));
+  if (area) area.innerHTML = html;
+
+  const cap = window.Capacitor;
+  const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
+
+  if (!isNative) {
+    // Real browser tab — the actual print dialog works here.
+    requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+    return;
+  }
+
+  // Inside the app, window.print() doesn't exist, and the custom native
+  // print plugin isn't reliably registering (still investigating why —
+  // see Diagnostics). Rather than leave printing broken while that's
+  // unresolved, route it through the Share plugin instead, which IS
+  // confirmed working: a plain-text version of the receipt goes to
+  // Android's share sheet, where Print is one of the standard options
+  // (along with saving as PDF, sending to a printer app, etc.).
+  const textVersion = html
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<(div|p|tr)[^>]*>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/[ \t]+/g, ' ')
+    .split('\n').map((l) => l.trim()).filter(Boolean).join('\n');
+
+  shareText({ title: 'Receipt', text: textVersion }).then((shared) => {
+    if (shared) Toast.show('Choose "Print" from the share menu if your device offers it');
+  });
 }
 window.printReceiptHTML = printReceiptHTML;
 
@@ -640,11 +643,8 @@ async function shareText({ title, text }) {
       await cap.Plugins.Share.share({ title, text, dialogTitle: title });
       return true;
     } catch (e) {
-      // "share canceled"/"no activities" style errors from the user
-      // dismissing the sheet are normal and not worth surfacing; anything
-      // else is a real failure worth showing.
       const msg = (e && e.message) || String(e);
-      if (!/cancel/i.test(msg)) Toast.error(`Share failed: ${msg}`);
+      Toast.error(`Share failed: ${msg}`);
       return false;
     }
   }
@@ -1143,7 +1143,7 @@ function renderMore(container) {
   container.innerHTML = `
     <div class="list stagger">
       <div class="list-row tappable" id="aboutAppRow">
-        <div class="list-row__icon"><img src="assets/about-me.jpg" alt="" style="width:32px; height:32px; border-radius:50%; object-fit:cover;" onerror="this.replaceWith('ℹ️')"></div>
+        <div class="list-row__icon"><img src="img/profile.jpg" alt="" style="width:32px; height:32px; border-radius:50%; object-fit:cover;" onerror="this.replaceWith('ℹ️'); Toast.error('Diagnostic: img/profile.jpg failed to load');"></div>
         <div class="list-row__body">
           <div class="list-row__title">About This App</div>
           <div class="list-row__subtitle">Credits, contact & support</div>
@@ -1175,7 +1175,7 @@ function aboutCopyRow(label, value) {
     <div class="list-row tappable" data-copy-value="${escapeHTML(value)}" style="margin-bottom:8px;">
       <div class="list-row__body">
         <div class="list-row__title">${escapeHTML(label)}</div>
-        <div class="list-row__subtitle num">${escapeHTML(value)}</div>
+        <div class="list-row__subtitle num num-id">${escapeHTML(value)}</div>
       </div>
       <div class="list-row__trailing text-faint">📋</div>
     </div>
@@ -1185,7 +1185,7 @@ function aboutCopyRow(label, value) {
 function openAboutSheet() {
   const bodyHTML = `
     <div style="text-align:center; padding: 8px 0 24px;">
-      <img src="assets/about-me.jpg" alt="" style="width:104px; height:104px; border-radius:50%; object-fit:cover; border:2px solid var(--border);" onerror="this.style.display='none';">
+      <img src="img/profile.jpg" alt="" style="width:104px; height:104px; border-radius:50%; object-fit:cover; border:2px solid var(--border);" onerror="this.style.display='none'; Toast.error('Diagnostic: img/profile.jpg failed to load');">
       <div style="font-weight:700; font-size:18px; margin-top:16px;">Better Store</div>
       <div class="text-dim text-sm" style="margin-top:8px;">Made by <a href="#" id="aboutOwnerLink" style="color:var(--accent);">@rwgmo</a> on Telegram</div>
     </div>

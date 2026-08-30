@@ -89,8 +89,11 @@ const SettingsScreen = (() => {
 
       <div class="section-title">About</div>
       <div class="list-row tappable" id="aboutAppRow">
-        <div class="list-row__icon">ℹ️</div>
-        <div class="list-row__body"><div class="list-row__title">About This App</div><div class="list-row__subtitle">Credits, contact & support</div></div>
+        <div class="list-row__icon"><img src="img/profile.jpg" alt="" style="width:32px; height:32px; border-radius:50%; object-fit:cover;" onerror="this.replaceWith('ℹ️');"></div>
+        <div class="list-row__body">
+          <div class="list-row__title">About This App</div>
+          <div class="list-row__subtitle">Credits, contact & support</div>
+        </div>
         <div class="list-row__trailing text-faint">›</div>
       </div>
     `;
@@ -101,77 +104,6 @@ const SettingsScreen = (() => {
     wireInventoryFields(container, inventory);
     wireSecurity(container, security);
     container.querySelector('#aboutAppRow').addEventListener('click', openAboutSheet);
-  }
-
-  function copyRow(label, value) {
-    return `
-      <div class="list-row tappable" data-copy-value="${escapeHTML(value)}">
-        <div class="list-row__body">
-          <div class="list-row__title">${escapeHTML(label)}</div>
-          <div class="list-row__subtitle num">${escapeHTML(value)}</div>
-        </div>
-        <div class="list-row__trailing text-faint">📋</div>
-      </div>
-    `;
-  }
-
-  function openAboutSheet() {
-    const bodyHTML = `
-      <div style="text-align:center;">
-        <img src="assets/about-me.jpg" alt="" style="width:96px; height:96px; border-radius:50%; object-fit:cover; border:2px solid var(--border);">
-        <div style="font-weight:700; font-size:17px; margin-top:10px;">Better Store</div>
-        <div class="text-dim text-sm mt-8">Made by <a href="#" id="aboutOwnerLink" style="color:var(--accent);">@rwgmo</a> on Telegram</div>
-      </div>
-
-      <div class="card mt-16">
-        <div class="text-sm">
-          © All rights reserved. This app may not be resold or redistributed.
-          Use is permitted only for parties explicitly approved by the owner.
-        </div>
-      </div>
-
-      <div class="section-title">Contact & Shop</div>
-      <a class="list-row tappable" id="aboutTelegramLink" href="#">
-        <div class="list-row__icon">💬</div>
-        <div class="list-row__body"><div class="list-row__title">Telegram</div><div class="list-row__subtitle">t.me/rwgmo</div></div>
-        <div class="list-row__trailing text-faint">›</div>
-      </a>
-      <a class="list-row tappable" id="aboutShopLink" href="#">
-        <div class="list-row__icon">🛍️</div>
-        <div class="list-row__body"><div class="list-row__title">Telegram Shop</div><div class="list-row__subtitle">t.me/RwmShop</div></div>
-        <div class="list-row__trailing text-faint">›</div>
-      </a>
-
-      <div class="card mt-16">
-        <div class="text-sm">Open for app development and custom projects at affordable rates — reach out on Telegram.</div>
-      </div>
-
-      <div class="section-title">Support / Donate</div>
-      <div class="list" id="aboutDonateList">
-        ${copyRow('CCP Account', '007 99999 0042725714 28')}
-        ${copyRow('Binance ID', '814491654')}
-      </div>
-
-      <div class="text-faint text-sm" style="text-align:center; margin-top:20px;" id="aboutVersionFooter">Better Store</div>
-    `;
-
-    const sheetEl = Sheet.open({ title: 'About This App', bodyHTML });
-    getAppVersionLabel().then((label) => {
-      const el = sheetEl.querySelector('#aboutVersionFooter');
-      if (el) el.textContent = `Better Store · ${label}`;
-    });
-
-    const goTelegram = () => openExternal('https://t.me/rwgmo');
-    sheetEl.querySelector('#aboutOwnerLink').addEventListener('click', (e) => { e.preventDefault(); goTelegram(); });
-    sheetEl.querySelector('#aboutTelegramLink').addEventListener('click', (e) => { e.preventDefault(); goTelegram(); });
-    sheetEl.querySelector('#aboutShopLink').addEventListener('click', (e) => { e.preventDefault(); openExternal('https://t.me/RwmShop'); });
-
-    sheetEl.querySelectorAll('[data-copy-value]').forEach((row) => {
-      row.addEventListener('click', async () => {
-        const ok = await copyToClipboard(row.dataset.copyValue);
-        Toast.show(ok ? 'Copied' : 'Couldn\u2019t copy \u2014 long-press to select manually');
-      });
-    });
   }
 
   function wireStoreFields(container, store) {
@@ -308,11 +240,16 @@ window.SettingsScreen = SettingsScreen;
 const Security = (() => {
   function keypadHTML(dotCount) {
     const dots = Array.from({ length: 6 }, (_, i) => `<span class="pin-dot${i < dotCount ? ' filled' : ''}"></span>`).join('');
+    const letters = { '2': 'ABC', '3': 'DEF', '4': 'GHI', '5': 'JKL', '6': 'MNO', '7': 'PQRS', '8': 'TUV', '9': 'WXYZ' };
     const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'];
     return `
       <div class="pin-dots">${dots}</div>
       <div class="pin-keypad">
-        ${keys.map((k) => (k === '' ? '<div></div>' : `<button class="pin-key tappable" data-key="${k}">${k}</button>`)).join('')}
+        ${keys.map((k) => {
+          if (k === '') return '<div></div>';
+          if (k === '⌫') return `<button class="pin-key pin-key--action tappable" data-key="${k}">${k}</button>`;
+          return `<button class="pin-key tappable" data-key="${k}"><span class="pin-key__num">${k}</span>${letters[k] ? `<span class="pin-key__letters">${letters[k]}</span>` : ''}</button>`;
+        }).join('')}
       </div>`;
   }
 
@@ -322,6 +259,7 @@ const Security = (() => {
     const overlay = document.createElement('div');
     overlay.className = 'pin-overlay open';
     overlay.innerHTML = `
+      <div class="pin-lock-icon">🔑</div>
       <div class="pin-title" id="pinTitle">Set a PIN</div>
       <div class="pin-sub">Choose a 4-6 digit PIN, then tap another key to confirm</div>
       ${keypadHTML(0)}
@@ -497,7 +435,8 @@ const Security = (() => {
       const overlay = document.createElement('div');
       overlay.className = 'pin-overlay open';
       overlay.innerHTML = `
-        <div class="pin-title">🔒 Enter PIN</div>
+        <div class="pin-lock-icon">🔒</div>
+        <div class="pin-title">Enter PIN</div>
         <div class="pin-sub" id="pinLockSub">Enter your PIN to unlock</div>
         ${keypadHTML(0)}
         ${canBiometric ? `<button class="btn btn-secondary mt-16 tappable" id="bioBtn" style="max-width:240px;">👆 Use Face/Fingerprint</button>` : ''}
@@ -561,6 +500,64 @@ const Security = (() => {
     }
   }
 
-  return { promptSetPin, checkLock, isBiometricAvailable, registerBiometric };
+  /** Gate for a critical/destructive action (clearing all data, restoring
+      a backup over existing data, etc.) — if PIN lock is enabled, this
+      blocks until the correct PIN is entered (or the user cancels).
+      If PIN lock isn't enabled, resolves true immediately with no gate,
+      since there's nothing to check against. */
+  function requirePin(reason) {
+    return new Promise(async (resolve) => {
+      const security = await Settings.get('security');
+      if (!security.pinEnabled || !security.pin) { resolve(true); return; }
+
+      let entered = '';
+      const overlay = document.createElement('div');
+      overlay.className = 'pin-overlay open';
+      overlay.innerHTML = `
+        <div class="pin-lock-icon">⚠️</div>
+        <div class="pin-title">Confirm PIN</div>
+        <div class="pin-sub" id="pinConfirmSub">${escapeHTML(reason || 'Enter your PIN to continue')}</div>
+        ${keypadHTML(0)}
+        <button class="btn btn-secondary mt-16 tappable" id="pinConfirmCancel" style="max-width:200px;">Cancel</button>
+      `;
+      document.body.appendChild(overlay);
+
+      function updateDots() {
+        overlay.querySelectorAll('.pin-dot').forEach((d, i) => d.classList.toggle('filled', i < entered.length));
+      }
+      function done(result) {
+        overlay.remove();
+        resolve(result);
+      }
+
+      overlay.querySelectorAll('[data-key]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const key = btn.dataset.key;
+          if (key === '⌫') { entered = entered.slice(0, -1); updateDots(); return; }
+          if (entered.length >= 6) return;
+          entered += key;
+          updateDots();
+          if (entered.length === security.pin.length) {
+            if (entered === security.pin) {
+              done(true);
+            } else {
+              if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
+              overlay.querySelector('#pinConfirmSub').textContent = 'Incorrect PIN \u2014 try again';
+              overlay.querySelector('.pin-dots').classList.add('shake');
+              setTimeout(() => {
+                entered = '';
+                updateDots();
+                overlay.querySelector('.pin-dots').classList.remove('shake');
+              }, 350);
+            }
+          }
+        });
+      });
+
+      overlay.querySelector('#pinConfirmCancel').addEventListener('click', () => done(false));
+    });
+  }
+
+  return { promptSetPin, checkLock, isBiometricAvailable, registerBiometric, requirePin };
 })();
 window.Security = Security;

@@ -46,25 +46,43 @@ class NativePrintPlugin : Plugin() {
             return
         }
 
+        val callingActivity = activity
+        if (callingActivity == null) {
+            call.reject("No activity available")
+            return
+        }
+
         try {
             val bytes = Base64.decode(base64, Base64.DEFAULT)
             val tempFile = File(context.cacheDir, "print_${System.currentTimeMillis()}.pdf")
             FileOutputStream(tempFile).use { it.write(bytes) }
 
-            val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
-            val adapter = ReceiptPrintAdapter(tempFile, jobName)
+            // PrintManager.print() ultimately starts a system UI activity to
+            // show the print dialog — that requires an Activity context and
+            // the main thread. Using the plain application context (as an
+            // earlier version of this plugin did) throws silently under the
+            // hood and never shows anything, which is why Print used to fall
+            // straight back to the Share sheet instead of opening a dialog.
+            callingActivity.runOnUiThread {
+                try {
+                    val printManager = callingActivity.getSystemService(Context.PRINT_SERVICE) as PrintManager
+                    val adapter = ReceiptPrintAdapter(tempFile, jobName)
 
-            val attrs = PrintAttributes.Builder()
-                .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
-                .setResolution(PrintAttributes.Resolution("pdf", "pdf", 300, 300))
-                .setMinMargins(PrintAttributes.Margins(0, 0, 0, 0))
-                .build()
+                    val attrs = PrintAttributes.Builder()
+                        .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+                        .setResolution(PrintAttributes.Resolution("pdf", "pdf", 300, 300))
+                        .setMinMargins(PrintAttributes.Margins(0, 0, 0, 0))
+                        .build()
 
-            printManager.print(jobName, adapter, attrs)
+                    printManager.print(jobName, adapter, attrs)
 
-            val result = JSObject()
-            result.put("opened", true)
-            call.resolve(result)
+                    val result = JSObject()
+                    result.put("opened", true)
+                    call.resolve(result)
+                } catch (e: Exception) {
+                    call.reject("Print failed: ${e.message}")
+                }
+            }
         } catch (e: Exception) {
             call.reject("Print failed: ${e.message}")
         }

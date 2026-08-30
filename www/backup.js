@@ -62,7 +62,43 @@ const Backup = (() => {
     container.querySelector('#clearDataBtn').addEventListener('click', () => clearAllData(container));
   }
 
-  function downloadBlob(content, filename, type) {
+  async function downloadBlob(content, filename, type, webSuccessMessage) {
+    const cap = window.Capacitor;
+    const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
+    const plugins = cap && cap.Plugins;
+
+    if (!cap) {
+      Toast.error('Diagnostic: window.Capacitor is missing entirely');
+    } else if (!isNative) {
+      Toast.error('Diagnostic: Capacitor.isNativePlatform() is false');
+    } else if (!plugins || !plugins.Filesystem) {
+      Toast.error('Diagnostic: Filesystem plugin not registered');
+    }
+
+    if (isNative && plugins && plugins.Filesystem) {
+      try {
+        const written = await plugins.Filesystem.writeFile({
+          path: filename,
+          data: content,
+          directory: 'DOCUMENTS', // Directory.Documents — public Documents folder on Android, no permission needed
+          encoding: 'utf8',
+        });
+        if (plugins.Share) {
+          // Let the user choose where it goes (save to device, Drive, email, etc.)
+          await plugins.Share.share({ title: filename, url: written.uri }).catch((e) => {
+            console.warn('Post-export share failed:', e);
+          });
+        }
+        Toast.success(`Saved to Documents/${filename}`);
+      } catch (e) {
+        const msg = (e && e.message) || String(e);
+        console.warn('Native file export failed:', e);
+        Toast.error(`Export failed: ${msg}`);
+      }
+      return;
+    }
+
+    // Web fallback (unchanged)
     const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -72,6 +108,7 @@ const Backup = (() => {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
+    if (webSuccessMessage) Toast.success(webSuccessMessage);
   }
 
   function dateStamp() {
@@ -85,8 +122,7 @@ const Backup = (() => {
     data.settings = await Settings.getAll();
 
     const backup = { app: 'store-app', version: 1, exportedAt: new Date().toISOString(), data };
-    downloadBlob(JSON.stringify(backup, null, 2), `store-backup-${dateStamp()}.json`, 'application/json');
-    Toast.success('Backup exported');
+    await downloadBlob(JSON.stringify(backup, null, 2), `store-backup-${dateStamp()}.json`, 'application/json', 'Backup exported');
   }
 
   async function importBackup(file, container) {
@@ -171,8 +207,7 @@ const Backup = (() => {
     // A UTF-8 BOM prefix is required for Excel (especially on Windows) to
     // correctly render non-Latin text — Arabic product names, for example —
     // instead of showing mojibake. Most other spreadsheet apps ignore it.
-    downloadBlob('\uFEFF' + toCSV(products, headers), `products-${dateStamp()}.csv`, 'text/csv;charset=utf-8');
-    Toast.success('Products CSV exported');
+    await downloadBlob('\uFEFF' + toCSV(products, headers), `products-${dateStamp()}.csv`, 'text/csv;charset=utf-8', 'Products CSV exported');
   }
 
   async function exportSalesCSV() {
@@ -191,8 +226,7 @@ const Backup = (() => {
       status: s.status,
     }));
     const headers = ['id', 'receiptNumber', 'date', 'itemCount', 'subtotal', 'discount', 'tax', 'total', 'paymentMethod', 'customerName', 'status'];
-    downloadBlob('\uFEFF' + toCSV(rows, headers), `sales-${dateStamp()}.csv`, 'text/csv;charset=utf-8');
-    Toast.success('Sales CSV exported');
+    await downloadBlob('\uFEFF' + toCSV(rows, headers), `sales-${dateStamp()}.csv`, 'text/csv;charset=utf-8', 'Sales CSV exported');
   }
 
   async function clearAllData(container) {

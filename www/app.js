@@ -86,6 +86,7 @@ const Router = (() => {
     }
     clearTimeout(skeletonTimer);
 
+    compactifyNumbers(view);
     applyEnterAnimation(view);
   }
 
@@ -218,7 +219,7 @@ const Router = (() => {
 /* ---------------------------------------------------------------------- */
 
 document.addEventListener('pointerdown', (e) => {
-  const el = e.target.closest('.tappable, .icon-btn, .btn, .quick-action, .chip, .list-row, .stat-card--expand, .num-tap');
+  const el = e.target.closest('.tappable, .icon-btn, .btn, .quick-action, .chip, .list-row, .num-auto');
   if (!el) return;
   // A subtle universal tap-tick, layered under the stronger, more
   // deliberate haptics already fired for specific confirmed actions
@@ -245,39 +246,69 @@ document.addEventListener('change', (e) => {
 });
 
 /* ---------------------------------------------------------------------- */
-/* Expandable big numbers — tap a stat card or a ".num-tap" value to grow */
-/* it and reveal the full, un-abbreviated number. Auto-collapses after a  */
-/* few seconds, or tap again to collapse immediately.                     */
+/* Big numbers — auto-detected, everywhere, no per-screen wiring needed.   */
+/* Any element carrying the existing ".num" class (already used app-wide  */
+/* for prices/totals/quantities) gets scanned after every render. If its  */
+/* value is more than 4 digits, the display is shortened (12,450 -> 12k,  */
+/* 2,300,000 -> 2.3M) and becomes tappable — tapping opens a small popup  */
+/* with the exact full number, rather than growing/wrapping in place.     */
+/* Identifiers that happen to look numeric (barcodes) opt out via         */
+/* ".num-id" so they're never mistaken for a quantity or amount.          */
 /* ---------------------------------------------------------------------- */
 
-function toggleNumExpand(el) {
-  const expanding = !el.classList.contains('num-tap--expanded');
-  clearTimeout(el._collapseTimer);
-  if (expanding) {
-    el.textContent = el.dataset.full;
-    el.classList.add('num-tap--expanded');
-    el._collapseTimer = setTimeout(() => {
-      el.classList.remove('num-tap--expanded');
-      el.textContent = el.dataset.compact;
-      el.closest('.stat-card--expand')?.classList.remove('stat-card--expanded');
-    }, 2600);
-  } else {
-    el.classList.remove('num-tap--expanded');
-    el.textContent = el.dataset.compact;
-  }
-  return expanding;
+function compactifyNumbers(root) {
+  if (!root) return;
+  const candidates = root.querySelectorAll('.num:not(.num-id)');
+  candidates.forEach((el) => {
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return;
+    if (el.dataset.numFull) return; // already processed
+    const raw = el.textContent;
+    const match = raw.match(/^(-?[\d][\d,]*(?:\.\d+)?)/);
+    if (!match) return;
+    const numeric = parseFloat(match[1].replace(/,/g, ''));
+    if (!isFinite(numeric) || Math.abs(numeric) < 10000) return;
+
+    const prefix = match[1];
+    const suffix = raw.slice(match[1].length); // e.g. " DZD"
+    const compact = Fmt.compactNumber(numeric) + suffix;
+
+    el.dataset.numFull = raw;
+    el.textContent = compact;
+    el.classList.add('num-auto');
+  });
 }
+window.compactifyNumbers = compactifyNumbers;
 
 document.addEventListener('click', (e) => {
-  const cardZone = e.target.closest('.stat-card--expand');
-  const bareNum = e.target.closest('.num-tap');
-  if (!cardZone && !bareNum) return;
-  const target = cardZone ? cardZone.querySelector('.num-tap') : bareNum;
-  if (!target) return;
-  if (bareNum && !cardZone) e.stopPropagation(); // don't also trigger a parent list-row's own tap
-  const expanded = toggleNumExpand(target);
-  if (cardZone) cardZone.classList.toggle('stat-card--expanded', expanded);
+  const el = e.target.closest('.num-auto');
+  if (!el) return;
+  e.stopPropagation(); // don't also trigger a parent row's own tap
+  NumberPopup.show(el.dataset.numFull);
 });
+
+const NumberPopup = (() => {
+  function show(fullText, opts = {}) {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'num-popup-backdrop';
+    const style = opts.small ? ' style="font-size:14px; font-weight:500; text-align:left;"' : '';
+    backdrop.innerHTML = `
+      <div class="num-popup-card">
+        <div class="num-popup-value num"${style}>${escapeHTML(fullText)}</div>
+        <button class="btn btn-secondary tappable num-popup-close">Close</button>
+      </div>
+    `;
+    document.body.appendChild(backdrop);
+    if (navigator.vibrate) navigator.vibrate(10);
+
+    const close = () => {
+      backdrop.classList.add('out');
+      setTimeout(() => backdrop.remove(), 160);
+    };
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+    backdrop.querySelector('.num-popup-close').addEventListener('click', close);
+  }
+  return { show };
+})();
 
 /* ---------------------------------------------------------------------- */
 /* Toast                                                                    */
@@ -347,6 +378,7 @@ const Sheet = (() => {
 
     document.body.appendChild(backdropEl);
     document.body.appendChild(sheetEl);
+    compactifyNumbers(sheetEl);
 
     requestAnimationFrame(() => {
       backdropEl.classList.add('open');
@@ -561,17 +593,27 @@ function printReceiptHTML(html) {
   area.innerHTML = html;
   // Let the browser paint the new content before invoking the print dialog.
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    const nativePrint = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()
-      ? window.Capacitor.Plugins && window.Capacitor.Plugins.NativePrint
-      : null;
-    if (nativePrint) {
-      nativePrint.printCurrent({ jobName: 'Better Store Receipt' }).catch((e) => {
-        console.warn('Native print failed:', e);
-        Toast.error && Toast.error('Could not open the print dialog');
-      });
-    } else {
+    const cap = window.Capacitor;
+    if (!cap) {
+      Toast.error('Diagnostic: window.Capacitor is missing entirely');
       window.print();
+      return;
     }
+    const isNative = cap.isNativePlatform && cap.isNativePlatform();
+    if (!isNative) {
+      Toast.error('Diagnostic: Capacitor.isNativePlatform() is false');
+      window.print();
+      return;
+    }
+    if (!cap.Plugins || !cap.Plugins.NativePrint) {
+      Toast.error('Diagnostic: NativePrint plugin not registered');
+      window.print();
+      return;
+    }
+    cap.Plugins.NativePrint.printCurrent({ jobName: 'Better Store Receipt' }).catch((e) => {
+      const msg = (e && e.message) || String(e);
+      Toast.error(`Print failed: ${msg}`);
+    });
   }));
 }
 window.printReceiptHTML = printReceiptHTML;
@@ -583,13 +625,26 @@ window.printReceiptHTML = printReceiptHTML;
 /* ---------------------------------------------------------------------- */
 
 async function shareText({ title, text }) {
-  const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
-  if (isNative && window.Capacitor.Plugins && window.Capacitor.Plugins.Share) {
+  const cap = window.Capacitor;
+  if (!cap) {
+    Toast.error('Diagnostic: window.Capacitor is missing entirely');
+    return false;
+  }
+  const isNative = cap.isNativePlatform && cap.isNativePlatform();
+  if (isNative) {
+    if (!cap.Plugins || !cap.Plugins.Share) {
+      Toast.error('Diagnostic: Share plugin not registered');
+      return false;
+    }
     try {
-      await window.Capacitor.Plugins.Share.share({ title, text, dialogTitle: title });
+      await cap.Plugins.Share.share({ title, text, dialogTitle: title });
       return true;
     } catch (e) {
-      // User cancelled the share sheet, or no share targets — not an error.
+      // "share canceled"/"no activities" style errors from the user
+      // dismissing the sheet are normal and not worth surfacing; anything
+      // else is a real failure worth showing.
+      const msg = (e && e.message) || String(e);
+      if (!/cancel/i.test(msg)) Toast.error(`Share failed: ${msg}`);
       return false;
     }
   }
@@ -597,6 +652,7 @@ async function shareText({ title, text }) {
     try { await navigator.share({ title, text }); return true; }
     catch (e) { return false; }
   }
+  Toast.error('Diagnostic: not native and no navigator.share available');
   return false;
 }
 window.shareText = shareText;
@@ -920,27 +976,6 @@ const Fmt = {
     return `${Fmt.compactNumber(amount)} ${Fmt._currency}`;
   },
 
-  /* Renders a number/money value in its compact form, tappable to reveal
-     the full precise value with a little grow animation. Tap again (or
-     wait ~2.5s) to collapse back. Used for stat cards and other big
-     numbers that would otherwise eat a lot of layout space or overflow
-     their container as they grow. `full` should already be the fully
-     formatted string (e.g. from Fmt.money); `compact` likewise. */
-  expandable(compact, full) {
-    return `<span class="num-tap" data-full="${escapeHTML(String(full))}" data-compact="${escapeHTML(String(compact))}">${escapeHTML(String(compact))}</span>`;
-  },
-
-  /* Convenience: compact money now, full money on tap. */
-  moneyExpandable(amount) {
-    return Fmt.expandable(Fmt.moneyCompact(amount), Fmt.money(amount));
-  },
-
-  /* Convenience: compact count now, full count on tap. */
-  countExpandable(amount) {
-    const full = (Number(amount) || 0).toLocaleString();
-    return Fmt.expandable(Fmt.compactNumber(amount), full);
-  },
-
   date(d) {
     const date = d instanceof Date ? d : new Date(d);
     return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
@@ -1000,17 +1035,17 @@ async function renderDashboard(container) {
         <div class="stat-card__label">Sales</div>
         <div class="stat-card__value num">${transactionCount}</div>
       </div>
-      <div class="stat-card stat-card--expand">
+      <div class="stat-card">
         <div class="stat-card__label">Revenue</div>
-        <div class="stat-card__value accent num">${Fmt.moneyExpandable(todaysRevenue)}</div>
+        <div class="stat-card__value accent num">${Fmt.money(todaysRevenue)}</div>
       </div>
       <div class="stat-card">
         <div class="stat-card__label">Products</div>
         <div class="stat-card__value num">${productCount}</div>
       </div>
-      <div class="stat-card stat-card--expand">
+      <div class="stat-card">
         <div class="stat-card__label">Inventory Value</div>
-        <div class="stat-card__value teal num">${Fmt.moneyExpandable(inventoryValue)}</div>
+        <div class="stat-card__value teal num">${Fmt.money(inventoryValue)}</div>
       </div>
     </div>
 
@@ -1107,6 +1142,14 @@ function renderMore(container) {
   ];
   container.innerHTML = `
     <div class="list stagger">
+      <div class="list-row tappable" id="aboutAppRow">
+        <div class="list-row__icon"><img src="assets/about-me.jpg" alt="" style="width:32px; height:32px; border-radius:50%; object-fit:cover;" onerror="this.replaceWith('ℹ️')"></div>
+        <div class="list-row__body">
+          <div class="list-row__title">About This App</div>
+          <div class="list-row__subtitle">Credits, contact & support</div>
+        </div>
+        <div class="list-row__trailing text-faint">›</div>
+      </div>
       ${items.map(([route, icon, title, subtitle]) => `
         <a class="list-row tappable" href="#${route}">
           <div class="list-row__icon">${icon}</div>
@@ -1120,11 +1163,118 @@ function renderMore(container) {
     </div>
     <div class="text-faint text-sm" style="text-align:center; margin-top:20px;" id="moreVersionFooter">Better Store</div>
   `;
+  container.querySelector('#aboutAppRow').addEventListener('click', openAboutSheet);
   getAppVersionLabel().then((label) => {
     const el = container.querySelector('#moreVersionFooter');
     if (el) el.textContent = `Better Store · ${label}`;
   });
 }
+
+function aboutCopyRow(label, value) {
+  return `
+    <div class="list-row tappable" data-copy-value="${escapeHTML(value)}" style="margin-bottom:8px;">
+      <div class="list-row__body">
+        <div class="list-row__title">${escapeHTML(label)}</div>
+        <div class="list-row__subtitle num">${escapeHTML(value)}</div>
+      </div>
+      <div class="list-row__trailing text-faint">📋</div>
+    </div>
+  `;
+}
+
+function openAboutSheet() {
+  const bodyHTML = `
+    <div style="text-align:center; padding: 8px 0 24px;">
+      <img src="assets/about-me.jpg" alt="" style="width:104px; height:104px; border-radius:50%; object-fit:cover; border:2px solid var(--border);" onerror="this.style.display='none';">
+      <div style="font-weight:700; font-size:18px; margin-top:16px;">Better Store</div>
+      <div class="text-dim text-sm" style="margin-top:8px;">Made by <a href="#" id="aboutOwnerLink" style="color:var(--accent);">@rwgmo</a> on Telegram</div>
+    </div>
+
+    <div class="card" style="margin-bottom:24px;">
+      <div class="text-sm" style="line-height:1.6;">
+        © All rights reserved. This app may not be resold or redistributed.
+        Use is permitted only for parties explicitly approved by the owner.
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-bottom:12px;">Contact & Shop</div>
+    <a class="list-row tappable" id="aboutTelegramLink" href="#" style="margin-bottom:8px;">
+      <div class="list-row__icon">💬</div>
+      <div class="list-row__body"><div class="list-row__title">Telegram</div><div class="list-row__subtitle">t.me/rwgmo</div></div>
+      <div class="list-row__trailing text-faint">›</div>
+    </a>
+    <a class="list-row tappable" id="aboutShopLink" href="#" style="margin-bottom:24px;">
+      <div class="list-row__icon">🛍️</div>
+      <div class="list-row__body"><div class="list-row__title">Telegram Shop</div><div class="list-row__subtitle">t.me/RwmShop</div></div>
+      <div class="list-row__trailing text-faint">›</div>
+    </a>
+
+    <div class="card" style="margin-bottom:24px;">
+      <div class="text-sm" style="line-height:1.6;">Open for app development and custom projects at affordable rates — reach out on Telegram.</div>
+    </div>
+
+    <div class="section-title" style="margin-bottom:12px;">Support / Donate</div>
+    <div class="list" id="aboutDonateList" style="margin-bottom:8px;">
+      ${aboutCopyRow('CCP Account', '007 99999 0042725714 28')}
+      ${aboutCopyRow('Binance ID', '814491654')}
+    </div>
+
+    <div class="section-title" style="margin-bottom:12px;">Troubleshooting</div>
+    <div class="list-row tappable" id="aboutDiagnosticsRow" style="margin-bottom:24px;">
+      <div class="list-row__icon">🩺</div>
+      <div class="list-row__body">
+        <div class="list-row__title">Run Diagnostics</div>
+        <div class="list-row__subtitle">Check native features are working</div>
+      </div>
+      <div class="list-row__trailing text-faint">›</div>
+    </div>
+
+    <div class="text-faint text-sm" style="text-align:center; margin-top:28px;" id="aboutVersionFooter">Better Store</div>
+  `;
+
+  const sheetEl = Sheet.open({ title: 'About This App', bodyHTML });
+  sheetEl.querySelector('#aboutDiagnosticsRow').addEventListener('click', showDiagnostics);
+  getAppVersionLabel().then((label) => {
+    const el = sheetEl.querySelector('#aboutVersionFooter');
+    if (el) el.textContent = `Better Store · ${label}`;
+  });
+
+  const goTelegram = () => openExternal('https://t.me/rwgmo');
+  sheetEl.querySelector('#aboutOwnerLink').addEventListener('click', (e) => { e.preventDefault(); goTelegram(); });
+  sheetEl.querySelector('#aboutTelegramLink').addEventListener('click', (e) => { e.preventDefault(); goTelegram(); });
+  sheetEl.querySelector('#aboutShopLink').addEventListener('click', (e) => { e.preventDefault(); openExternal('https://t.me/RwmShop'); });
+
+  sheetEl.querySelectorAll('[data-copy-value]').forEach((row) => {
+    row.addEventListener('click', async () => {
+      const ok = await copyToClipboard(row.dataset.copyValue);
+      Toast.show(ok ? 'Copied' : 'Couldn\u2019t copy \u2014 long-press to select manually');
+    });
+  });
+}
+
+/* Dumps the exact state of the native bridge and each plugin this app
+   relies on (Share, Filesystem, Print, Biometric) straight into a popup.
+   Point of this: when a native feature silently does nothing, there's no
+   way to see why without a PC/chrome://inspect — this makes the failure
+   visible on the phone itself, in one tap. */
+async function showDiagnostics() {
+  const lines = [];
+  const cap = window.Capacitor;
+  lines.push(`Capacitor bridge: ${cap ? 'present' : 'MISSING'}`);
+  if (cap) {
+    lines.push(`Platform: ${cap.getPlatform ? cap.getPlatform() : 'unknown'}`);
+    lines.push(`isNativePlatform(): ${cap.isNativePlatform ? cap.isNativePlatform() : 'no such method'}`);
+    const plugins = cap.Plugins || {};
+    lines.push(`Plugins.Share: ${plugins.Share ? 'yes' : 'MISSING'}`);
+    lines.push(`Plugins.Filesystem: ${plugins.Filesystem ? 'yes' : 'MISSING'}`);
+    lines.push(`Plugins.NativePrint: ${plugins.NativePrint ? 'yes' : 'MISSING'}`);
+    lines.push(`Plugins.BiometricAuth: ${plugins.BiometricAuth ? 'yes' : 'MISSING'}`);
+    lines.push(`Plugins.App: ${plugins.App ? 'yes' : 'MISSING'}`);
+    lines.push(`Plugins.Browser: ${plugins.Browser ? 'yes' : 'MISSING'}`);
+  }
+  NumberPopup.show(lines.join('\n'), { small: true });
+}
+window.showDiagnostics = showDiagnostics;
 
 /* ---------------------------------------------------------------------- */
 /* Boot                                                                     */

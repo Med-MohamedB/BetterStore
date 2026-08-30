@@ -48,14 +48,15 @@
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-num: "SF Mono", "Roboto Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
 
-  --shadow: 0 4px 18px rgba(10, 6, 12, 0.45);
-  --shadow-lg: 0 16px 40px rgba(10, 6, 12, 0.55);
+  --shadow: 0 1px 2px rgba(10, 6, 12, 0.35), 0 6px 20px rgba(10, 6, 12, 0.4);
+  --shadow-lg: 0 2px 4px rgba(10, 6, 12, 0.4), 0 20px 44px rgba(10, 6, 12, 0.5);
+  --shadow-glow: 0 8px 22px -6px rgba(172, 95, 219, 0.55);
 
-  --glass-highlight: rgba(243, 233, 247, 0.10);
-  --glass-edge: rgba(0, 0, 0, 0.18);
+  --glass-highlight: rgba(243, 233, 247, 0.14);
+  --glass-edge: rgba(0, 0, 0, 0.2);
   --glass-blur: 24px;
   --glass-sat: 180%;
-  --glass-sheen: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 30%, transparent 55%, rgba(255,255,255,0.03) 100%);
+  --glass-sheen: linear-gradient(135deg, rgba(227,162,238,0.10) 0%, rgba(172,95,219,0.03) 30%, transparent 55%, rgba(227,162,238,0.05) 100%);
 
   --nav-h: 76px;
   --topbar-h: 56px;
@@ -80,12 +81,13 @@
   --success-bg: #F6E9FA;
   --warn-bg: #F3E4F9;
 
-  --glass-highlight: rgba(29, 23, 33, 0.05);
-  --glass-edge: rgba(29, 23, 33, 0.06);
-  --glass-sheen: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 30%, transparent 55%, rgba(255,255,255,0.15) 100%);
+  --glass-highlight: rgba(29, 23, 33, 0.07);
+  --glass-edge: rgba(29, 23, 33, 0.08);
+  --glass-sheen: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(227,162,238,0.12) 30%, transparent 55%, rgba(255,255,255,0.2) 100%);
 
-  --shadow: 0 4px 18px rgba(80, 45, 100, 0.10);
-  --shadow-lg: 0 16px 40px rgba(80, 45, 100, 0.16);
+  --shadow: 0 1px 2px rgba(80, 45, 100, 0.08), 0 6px 20px rgba(80, 45, 100, 0.12);
+  --shadow-lg: 0 2px 4px rgba(80, 45, 100, 0.1), 0 20px 44px rgba(80, 45, 100, 0.18);
+  --shadow-glow: 0 8px 20px -6px rgba(172, 95, 219, 0.4);
 }
 
 * { box-sizing: border-box; }
@@ -450,6 +452,63 @@ main#view {
 .stat-card__value.teal { color: var(--teal); }
 .stat-card__value.coral { color: var(--coral); }
 
+/* --- Big numbers: tap for a popup with the exact value --- */
+/* Any ".num" element gets auto-shortened past 4 digits by JS and marked
+   ".num-auto" — this just gives it a visible affordance that it's
+   tappable. The popup itself is a small centered card, consistent with
+   the rest of the glass design language, not the bottom Sheet (which is
+   for full screens/forms, overkill for one number). */
+
+.num-auto {
+  cursor: pointer;
+  text-decoration: underline dotted color-mix(in srgb, var(--text) 35%, transparent);
+  text-underline-offset: 3px;
+}
+.num-auto:active { opacity: 0.7; }
+
+.num-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 24px;
+  opacity: 0;
+  animation: numPopupFadeIn var(--dur-fast) var(--ease-out) forwards;
+}
+.num-popup-backdrop.out { animation: numPopupFadeOut 160ms var(--ease-out) forwards; }
+@keyframes numPopupFadeIn { to { opacity: 1; } }
+@keyframes numPopupFadeOut { to { opacity: 0; } }
+
+.num-popup-card {
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-lg);
+  padding: 28px 24px 20px;
+  max-width: 320px;
+  width: 100%;
+  text-align: center;
+  transform: scale(0.9);
+  animation: numPopupPop var(--dur-fast) var(--ease-spring) forwards;
+}
+@keyframes numPopupPop { to { transform: scale(1); } }
+
+.num-popup-value {
+  font-size: 22px;
+  font-weight: 700;
+  word-break: break-word;
+  white-space: pre-line;
+  margin-bottom: 20px;
+}
+.num-popup-close { width: auto; padding: 0 28px; margin: 0 auto; }
+
 /* --- Quick actions grid --- */
 
 .quick-actions {
@@ -577,7 +636,7 @@ main#view {
 .btn-primary {
   background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 100%, white 18%) 0%, var(--accent) 55%, var(--accent-dim) 100%);
   color: var(--accent-ink);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 14px -4px rgba(0,0,0,0.3);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), var(--shadow-glow);
 }
 .btn-primary:active { background: var(--accent-dim); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
 .btn-secondary {
@@ -664,18 +723,18 @@ main#view {
 }
 
 #view.view-enter-left {
-  animation: viewInLeft 240ms var(--ease-out) both;
+  animation: viewInLeft 190ms var(--ease-out) both;
 }
 #view.view-enter-right {
-  animation: viewInRight 240ms var(--ease-out) both;
+  animation: viewInRight 190ms var(--ease-out) both;
 }
 @keyframes viewInLeft {
-  from { opacity: 0.4; transform: translate3d(100%, 0, 0); }
-  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+  from { transform: translate3d(100%, 0, 0); }
+  to   { transform: translate3d(0, 0, 0); }
 }
 @keyframes viewInRight {
-  from { opacity: 0.4; transform: translate3d(-100%, 0, 0); }
-  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+  from { transform: translate3d(-100%, 0, 0); }
+  to   { transform: translate3d(0, 0, 0); }
 }
 
 .stagger > * {

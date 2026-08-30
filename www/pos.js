@@ -461,47 +461,9 @@ const POS = (() => {
   /* Receipt                                                            */
   /* ---------------------------------------------------------------- */
 
-  function receiptHTML(sale, store) {
-    return `
-      <div class="receipt-print">
-        <div style="text-align:center;">
-          ${store.logo ? `<img src="${store.logo}" style="width:56px;height:56px;object-fit:cover;border-radius:12px;margin-bottom:8px;">` : ''}
-          <div style="font-weight:700; font-size:16px;">${escapeHTML(store.name || 'My Store')}</div>
-          ${store.address ? `<div class="text-dim text-sm">${escapeHTML(store.address)}</div>` : ''}
-          ${store.phone ? `<div class="text-dim text-sm">${escapeHTML(store.phone)}</div>` : ''}
-        </div>
-        <div class="flex-between mt-16 text-sm">
-          <span class="text-dim">Receipt</span><span class="num">${sale.receiptNumber}</span>
-        </div>
-        <div class="flex-between text-sm">
-          <span class="text-dim">Date</span><span class="num">${Fmt.dateTime(sale.date)}</span>
-        </div>
-        <div style="border-top:1px dashed var(--border); margin:12px 0;"></div>
-        ${sale.items.map((it) => `
-          <div class="flex-between text-sm" style="margin-bottom:4px;">
-            <span>${it.qty}× ${escapeHTML(it.name)} <span class="text-dim">@ ${Fmt.money(it.price)}</span></span>
-            <span class="num">${Fmt.money(it.price * it.qty - (it.discount || 0))}</span>
-          </div>
-          ${it.discount ? `<div class="flex-between text-sm text-dim" style="margin-bottom:4px; margin-top:-2px;"><span>&nbsp;&nbsp;Item discount</span><span class="num">− ${Fmt.money(it.discount)}</span></div>` : ''}
-        `).join('')}
-        <div style="border-top:1px dashed var(--border); margin:12px 0;"></div>
-        <div class="flex-between text-sm"><span class="text-dim">Subtotal</span><span class="num">${Fmt.money(sale.subtotal)}</span></div>
-        <div class="flex-between text-sm"><span class="text-dim">Discount</span><span class="num">− ${Fmt.money((sale.itemDiscounts || 0) + (sale.discount || 0))}</span></div>
-        ${sale.tax ? `<div class="flex-between text-sm"><span class="text-dim">Tax</span><span class="num">${Fmt.money(sale.tax)}</span></div>` : ''}
-        <div class="flex-between mt-8" style="font-weight:700;"><span>Total</span><span class="num">${Fmt.money(sale.total)}</span></div>
-        <div class="flex-between text-sm mt-8"><span class="text-dim">Payment</span><span>${sale.paymentMethod}</span></div>
-        ${sale.paymentMethod === 'cash' ? `
-          <div class="flex-between text-sm"><span class="text-dim">Received</span><span class="num">${Fmt.money(sale.amountReceived)}</span></div>
-          <div class="flex-between text-sm"><span class="text-dim">Change</span><span class="num">${Fmt.money(sale.change)}</span></div>
-        ` : ''}
-        ${store.receiptFooter !== '' ? `<div class="text-center text-dim text-sm mt-16" style="text-align:center;">Thank you for your purchase!</div>` : ''}
-      </div>
-    `;
-  }
-
   async function openReceipt(sale) {
     const store = await Settings.get('store');
-    const bodyHTML = receiptHTML(sale, store);
+    const bodyHTML = Receipt.html(sale, store);
     const footerHTML = `
       <div class="flex gap-8">
         <button class="btn btn-secondary tappable" id="printReceiptBtn">🖨️ Print</button>
@@ -514,15 +476,8 @@ const POS = (() => {
       if (Router.current === 'pos') renderCart(document.getElementById('view'));
     }});
 
-    sheetEl.querySelector('#printReceiptBtn').addEventListener('click', () => printReceiptHTML(bodyHTML));
-    sheetEl.querySelector('#shareReceiptBtn').addEventListener('click', async () => {
-      const text = `Receipt ${sale.receiptNumber}\n${sale.items.map((i) => `${i.qty}x ${i.name}`).join('\n')}\nTotal: ${Fmt.money(sale.total)}`;
-      if (navigator.share) {
-        try { await navigator.share({ title: 'Receipt', text }); } catch (e) {}
-      } else {
-        Toast.show('Sharing isn\u2019t supported on this browser');
-      }
-    });
+    sheetEl.querySelector('#printReceiptBtn').addEventListener('click', () => printReceipt(sale, store));
+    sheetEl.querySelector('#shareReceiptBtn').addEventListener('click', () => shareReceipt(sale, store));
     sheetEl.querySelector('#newSaleBtn').addEventListener('click', () => Sheet.close());
   }
 

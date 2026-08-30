@@ -114,7 +114,7 @@ const Products = (() => {
         </div>`;
       // Canvas pixel data doesn't survive outerHTML on some browsers when
       // detached from the DOM — redraw once the print node is attached.
-      printReceiptHTML(printHTML);
+      printGenericHTML(printHTML);
       if (compatible) {
         setTimeout(() => {
           const printedCanvas = document.querySelector('#printArea canvas');

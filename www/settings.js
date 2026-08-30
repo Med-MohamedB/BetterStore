@@ -7,8 +7,6 @@
  * at boot from app.js before the router renders anything.
  */
 
-const ACCENT_SWATCHES = ['#AC5FDB', '#E3A2EE', '#8A7AE0', '#D9527A', '#7FC49A', '#4FA3F7'];
-
 const SettingsScreen = (() => {
   async function render(container) {
     document.getElementById('topbarActions').innerHTML = '';
@@ -37,10 +35,15 @@ const SettingsScreen = (() => {
           <button class="chip tappable${appearance.theme === k ? ' active' : ''}" data-theme-choice="${k}">${label}</button>
         `).join('')}
       </div>
-      <div class="text-dim text-sm mt-8" style="margin-bottom:8px;">Accent color</div>
-      <div class="flex gap-8" id="accentSwatches">
-        ${ACCENT_SWATCHES.map((c) => `
-          <button class="tappable" data-accent="${c}" style="width:34px; height:34px; border-radius:50%; background:${c}; border:2px solid ${c === appearance.accentColor ? 'var(--text)' : 'transparent'};"></button>
+      <div class="text-dim text-sm mt-16" style="margin-bottom:10px;">Theme</div>
+      <div class="theme-pack-grid" id="themePackGrid">
+        ${Object.entries(THEME_PACKS).map(([key, pack]) => `
+          <button class="theme-pack-card tappable${appearance.themePack === key ? ' active' : ''}" data-theme-pack="${key}">
+            <span class="theme-pack-card__swatch" style="background:linear-gradient(135deg, ${pack.accent} 0%, ${pack.blue} 55%, ${pack.teal} 100%);">
+              ${appearance.themePack === key ? '<span class="theme-pack-card__check">✓</span>' : ''}
+            </span>
+            <span class="theme-pack-card__label">${pack.name}</span>
+          </button>
         `).join('')}
       </div>
 
@@ -156,14 +159,22 @@ const SettingsScreen = (() => {
         Toast.success('Theme updated');
       });
     });
-    container.querySelectorAll('[data-accent]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const color = btn.dataset.accent;
-        await Settings.set('appearance', { accentColor: color });
+    container.querySelectorAll('[data-theme-pack]').forEach((card) => {
+      card.addEventListener('click', async () => {
+        const key = card.dataset.themePack;
+        await Settings.set('appearance', { themePack: key });
         await applyTheme();
-        container.querySelectorAll('[data-accent]').forEach((b) => {
-          b.style.border = `2px solid ${b.dataset.accent === color ? 'var(--text)' : 'transparent'}`;
+        if (navigator.vibrate) navigator.vibrate(15);
+        container.querySelectorAll('[data-theme-pack]').forEach((c) => {
+          c.classList.toggle('active', c === card);
+          const check = c.querySelector('.theme-pack-card__check');
+          if (c === card && !check) {
+            c.querySelector('.theme-pack-card__swatch').insertAdjacentHTML('beforeend', '<span class="theme-pack-card__check">✓</span>');
+          } else if (c !== card && check) {
+            check.remove();
+          }
         });
+        Toast.success(`${THEME_PACKS[key].name} theme applied`);
       });
     });
   }

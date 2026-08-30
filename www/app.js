@@ -556,6 +556,240 @@ window.swipeRowHTML = swipeRowHTML;
 window.enableSwipeRows = enableSwipeRows;
 
 /* ---------------------------------------------------------------------- */
+/* Receipt — single source of truth for what a receipt looks like. Used   */
+/* by both the POS post-sale screen and the Sales history detail sheet,   */
+/* so the on-screen HTML, the shared plain-text, and the printed PDF can  */
+/* never drift out of sync with each other or with the store's info.      */
+/* ---------------------------------------------------------------------- */
+
+const Receipt = (() => {
+  /* On-screen / on-paper HTML block, rendered inside a Sheet and also    */
+  /* dropped into #printArea for the browser fallback print path.         */
+  function html(sale, store) {
+    const refunded = sale.status === 'refunded';
+    const footerText = store.receiptFooter !== '' ? (store.receiptFooter || 'Thank you for your purchase!') : '';
+    return `
+      <div class="receipt-print">
+        <div style="text-align:center;">
+          ${store.logo ? `<img src="${store.logo}" style="width:56px;height:56px;object-fit:cover;border-radius:12px;margin-bottom:8px;">` : ''}
+          <div style="font-weight:700; font-size:16px;">${escapeHTML(store.name || 'My Store')}</div>
+          ${store.address ? `<div class="text-dim text-sm">${escapeHTML(store.address)}</div>` : ''}
+          ${store.phone ? `<div class="text-dim text-sm">${escapeHTML(store.phone)}</div>` : ''}
+        </div>
+        <div class="flex-between mt-16 text-sm"><span class="text-dim">Receipt</span><span class="num">${sale.receiptNumber}</span></div>
+        <div class="flex-between text-sm"><span class="text-dim">Date</span><span class="num">${Fmt.dateTime(sale.date)}</span></div>
+        ${refunded ? `<div class="mt-8"><span class="badge badge--danger">Refunded</span></div>` : ''}
+        <div style="border-top:1px dashed var(--border); margin:12px 0;"></div>
+        ${sale.items.map((it) => `
+          <div class="flex-between text-sm" style="margin-bottom:4px;">
+            <span>${it.qty}× ${escapeHTML(it.name)} <span class="text-dim">@ ${Fmt.money(it.price)}</span></span>
+            <span class="num">${Fmt.money(it.price * it.qty - (it.discount || 0))}</span>
+          </div>
+          ${it.discount ? `<div class="flex-between text-sm text-dim" style="margin-bottom:4px; margin-top:-2px;"><span>&nbsp;&nbsp;Item discount</span><span class="num">− ${Fmt.money(it.discount)}</span></div>` : ''}
+        `).join('')}
+        <div style="border-top:1px dashed var(--border); margin:12px 0;"></div>
+        <div class="flex-between text-sm"><span class="text-dim">Subtotal</span><span class="num">${Fmt.money(sale.subtotal)}</span></div>
+        ${(sale.itemDiscounts || sale.discount) ? `<div class="flex-between text-sm"><span class="text-dim">Discount</span><span class="num">− ${Fmt.money((sale.itemDiscounts || 0) + (sale.discount || 0))}</span></div>` : ''}
+        ${sale.tax ? `<div class="flex-between text-sm"><span class="text-dim">Tax</span><span class="num">${Fmt.money(sale.tax)}</span></div>` : ''}
+        <div class="flex-between mt-8" style="font-weight:700;"><span>Total</span><span class="num">${Fmt.money(sale.total)}</span></div>
+        <div class="flex-between text-sm mt-8"><span class="text-dim">Payment</span><span>${sale.paymentMethod}</span></div>
+        ${sale.paymentMethod === 'cash' && sale.amountReceived != null ? `
+          <div class="flex-between text-sm"><span class="text-dim">Received</span><span class="num">${Fmt.money(sale.amountReceived)}</span></div>
+          <div class="flex-between text-sm"><span class="text-dim">Change</span><span class="num">${Fmt.money(sale.change)}</span></div>
+        ` : ''}
+        ${footerText ? `<div class="text-center text-dim text-sm mt-16" style="text-align:center;">${escapeHTML(footerText)}</div>` : ''}
+      </div>
+    `;
+  }
+
+  /* Plain-text version for the Share button — a real formatted receipt,   */
+  /* not just an item list, so it reads fine dropped into WhatsApp/SMS.    */
+  function text(sale, store) {
+    const lines = [];
+    lines.push(store.name || 'My Store');
+    if (store.address) lines.push(store.address);
+    if (store.phone) lines.push(store.phone);
+    lines.push('');
+    lines.push(`Receipt: ${sale.receiptNumber}`);
+    lines.push(`Date: ${Fmt.dateTime(sale.date)}`);
+    if (sale.status === 'refunded') lines.push('*** REFUNDED ***');
+    lines.push('--------------------------------');
+    sale.items.forEach((it) => {
+      const lineTotal = it.price * it.qty - (it.discount || 0);
+      lines.push(`${it.qty}x ${it.name} @ ${Fmt.money(it.price)}  =  ${Fmt.money(lineTotal)}`);
+    });
+    lines.push('--------------------------------');
+    lines.push(`Subtotal: ${Fmt.money(sale.subtotal)}`);
+    const discountTotal = (sale.itemDiscounts || 0) + (sale.discount || 0);
+    if (discountTotal) lines.push(`Discount: -${Fmt.money(discountTotal)}`);
+    if (sale.tax) lines.push(`Tax: ${Fmt.money(sale.tax)}`);
+    lines.push(`Total: ${Fmt.money(sale.total)}`);
+    lines.push(`Payment: ${sale.paymentMethod}`);
+    if (sale.paymentMethod === 'cash' && sale.amountReceived != null) {
+      lines.push(`Received: ${Fmt.money(sale.amountReceived)}`);
+      lines.push(`Change: ${Fmt.money(sale.change)}`);
+    }
+    const footerText = store.receiptFooter !== '' ? (store.receiptFooter || 'Thank you for your purchase!') : '';
+    if (footerText) { lines.push(''); lines.push(footerText); }
+    return lines.join('\n');
+  }
+
+  return { html, text };
+})();
+window.Receipt = Receipt;
+
+/* Builds a clean, professional 80mm-roll-style receipt PDF straight from  */
+/* sale + store data (not scraped from the on-screen HTML), so spacing,    */
+/* wrapping, and the logo all come out crisp instead of dumped monospace.  */
+/* Page height is computed with a throwaway measuring doc first, so the    */
+/* real PDF is trimmed tight to its content — no blank trailing space.     */
+async function buildReceiptPDF(sale, store) {
+  const { jsPDF } = window.jspdf;
+  const pageWidth = 80;
+  const margin = 5;
+  const contentWidth = pageWidth - margin * 2;
+  const lineH = 5;
+  const footerText = store.receiptFooter !== '' ? (store.receiptFooter || 'Thank you for your purchase!') : '';
+  const discountTotal = (sale.itemDiscounts || 0) + (sale.discount || 0);
+  const logoFormat = (dataUrl) => {
+    if (/^data:image\/png/i.test(dataUrl)) return 'PNG';
+    if (/^data:image\/webp/i.test(dataUrl)) return 'WEBP';
+    return 'JPEG';
+  };
+
+  // --- Pass 1: measure. A throwaway doc just for splitTextToSize, whose
+  // wrapping depends only on font metrics, not on final page height. ---
+  const measure = new jsPDF({ unit: 'mm', format: [pageWidth, 200] });
+  const wrap = (txt, size, font = 'normal') => {
+    measure.setFont('helvetica', font);
+    measure.setFontSize(size);
+    return measure.splitTextToSize(String(txt), contentWidth);
+  };
+
+  let h = margin;
+  if (store.logo) h += 22;
+  h += 6.5;
+  const addrLines = store.address ? wrap(store.address, 8.5) : [];
+  const phoneLines = store.phone ? wrap(store.phone, 8.5) : [];
+  h += (addrLines.length + phoneLines.length) * 4;
+  h += 9 + lineH; // spacing + receipt# row
+  h += lineH; // date row
+  if (sale.status === 'refunded') h += lineH;
+  h += 5; // divider
+
+  const itemLines = sale.items.map((it) => {
+    const left = wrap(`${it.qty}\u00d7 ${it.name}  @ ${Fmt.money(it.price)}`, 9);
+    return { rows: left.length, hasDiscount: !!it.discount };
+  });
+  itemLines.forEach((it) => { h += it.rows * lineH; if (it.hasDiscount) h += lineH; });
+
+  h += 5; // divider
+  h += lineH; // subtotal
+  if (discountTotal) h += lineH;
+  if (sale.tax) h += lineH;
+  h += lineH + 2; // total
+  h += lineH; // payment
+  if (sale.paymentMethod === 'cash' && sale.amountReceived != null) h += lineH * 2;
+  if (footerText) { h += 6; h += wrap(footerText, 8).length * 4; }
+  h += margin;
+
+  // --- Pass 2: draw for real, on a doc sized exactly to fit. ---
+  const doc = new jsPDF({ unit: 'mm', format: [pageWidth, Math.max(60, h)] });
+  const cx = pageWidth / 2;
+  let y = margin;
+
+  const row = (left, right, opts = {}) => {
+    const { size = 9, bold = false, dim = false, indent = 0 } = opts;
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setFontSize(size);
+    doc.setTextColor(dim ? 140 : 25);
+    if (left !== undefined) doc.text(String(left), margin + indent, y);
+    if (right !== undefined) doc.text(String(right), pageWidth - margin, y, { align: 'right' });
+    doc.setTextColor(25);
+  };
+  const divider = () => {
+    doc.setDrawColor(190);
+    doc.setLineDashPattern([1, 1], 0);
+    doc.line(margin, y, pageWidth - margin, y);
+    doc.setLineDashPattern([], 0);
+    y += 5;
+  };
+
+  if (store.logo) {
+    try {
+      const size = 18;
+      doc.addImage(store.logo, logoFormat(store.logo), cx - size / 2, y, size, size, undefined, 'FAST');
+      y += size + 4;
+    } catch (e) { /* bad image data — skip the logo rather than fail the whole receipt */ }
+  }
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13.5);
+  doc.setTextColor(20);
+  doc.text(store.name || 'My Store', cx, y, { align: 'center' });
+  y += 6.5;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(120);
+  [...addrLines, ...phoneLines].forEach((l) => { doc.text(l, cx, y, { align: 'center' }); y += 4; });
+  doc.setTextColor(25);
+  y += 5;
+
+  row('Receipt', sale.receiptNumber, { dim: true });
+  y += lineH;
+  row('Date', Fmt.dateTime(sale.date), { dim: true });
+  y += lineH;
+  if (sale.status === 'refunded') {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(200, 60, 90);
+    doc.text('REFUNDED', margin, y);
+    doc.setTextColor(25);
+    y += lineH;
+  }
+  divider();
+
+  sale.items.forEach((it) => {
+    const left = wrap(`${it.qty}\u00d7 ${it.name}  @ ${Fmt.money(it.price)}`, 9);
+    const lineTotal = it.price * it.qty - (it.discount || 0);
+    left.forEach((l, i) => {
+      row(l, i === 0 ? Fmt.money(lineTotal) : undefined, { size: 9 });
+      y += lineH;
+    });
+    if (it.discount) {
+      row('  Item discount', `\u2212 ${Fmt.money(it.discount)}`, { size: 8, dim: true });
+      y += lineH;
+    }
+  });
+  divider();
+
+  row('Subtotal', Fmt.money(sale.subtotal), { dim: true });
+  y += lineH;
+  if (discountTotal) { row('Discount', `\u2212 ${Fmt.money(discountTotal)}`, { dim: true }); y += lineH; }
+  if (sale.tax) { row('Tax', Fmt.money(sale.tax), { dim: true }); y += lineH; }
+  y += 1;
+  row('Total', Fmt.money(sale.total), { size: 11, bold: true });
+  y += lineH + 1;
+  row('Payment', sale.paymentMethod, { dim: true });
+  y += lineH;
+  if (sale.paymentMethod === 'cash' && sale.amountReceived != null) {
+    row('Received', Fmt.money(sale.amountReceived), { dim: true }); y += lineH;
+    row('Change', Fmt.money(sale.change), { dim: true }); y += lineH;
+  }
+
+  if (footerText) {
+    y += 4;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(140);
+    wrap(footerText, 8).forEach((l) => { doc.text(l, cx, y, { align: 'center' }); y += 4; });
+  }
+
+  return doc;
+}
+window.buildReceiptPDF = buildReceiptPDF;
+
+/* ---------------------------------------------------------------------- */
 /* Printing — routes receipt HTML through the top-level #printArea so the  */
 /* browser's print pagination isn't fighting a Sheet's own positioning.    */
 /* ---------------------------------------------------------------------- */
@@ -587,7 +821,106 @@ function showSuccessCheck(message = 'Sale Complete') {
 }
 window.showSuccessCheck = showSuccessCheck;
 
-function printReceiptHTML(html) {
+/** Print a receipt. Three tiers, best available wins:
+ *  1. Native platform + a registered NativePrint plugin -> hands the PDF
+ *     straight to Android's system Print framework (PrintManager), which
+ *     opens the real print picker — any paired roll/receipt printer whose
+ *     manufacturer app installs a Print Service shows up there directly,
+ *     no Share-sheet detour needed.
+ *  2. Native platform, no NativePrint plugin (e.g. plugin not synced into
+ *     this build yet) -> falls back to generating the PDF and handing it
+ *     to the Share sheet, where Print still shows up as a real option.
+ *  3. Not native (a real browser tab) -> the actual window.print() dialog.
+ */
+async function printReceipt(sale, store) {
+  const cap = window.Capacitor;
+  const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
+
+  if (!isNative) {
+    const area = document.getElementById('printArea');
+    if (area) area.innerHTML = Receipt.html(sale, store);
+    requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+    return;
+  }
+
+  if (!window.jspdf) {
+    Toast.error('Diagnostic: jsPDF not loaded');
+    return;
+  }
+
+  let doc;
+  try {
+    doc = await buildReceiptPDF(sale, store);
+  } catch (e) {
+    Toast.error(`Receipt PDF failed: ${(e && e.message) || e}`);
+    return;
+  }
+  const base64 = doc.output('datauristring').split(',')[1];
+  const plugins = cap.Plugins || {};
+
+  if (plugins.NativePrint) {
+    try {
+      await plugins.NativePrint.printPdf({ base64, jobName: `Receipt ${sale.receiptNumber}` });
+      return;
+    } catch (e) {
+      // Fall through to the Share-based fallback below rather than dead-end.
+      Toast.show('Couldn\u2019t open the print dialog directly \u2014 sharing the PDF instead');
+    }
+  }
+
+  if (!plugins.Filesystem || !plugins.Share) {
+    Toast.error('Diagnostic: Filesystem/Share plugin missing, can\u2019t print');
+    return;
+  }
+  try {
+    const filename = `receipt-${sale.receiptNumber}-${Date.now()}.pdf`;
+    const written = await plugins.Filesystem.writeFile({ path: filename, data: base64, directory: 'CACHE' });
+    await plugins.Share.share({ title: 'Print Receipt', url: written.uri, dialogTitle: 'Print Receipt' });
+  } catch (e) {
+    Toast.error(`Print failed: ${(e && e.message) || e}`);
+  }
+}
+window.printReceipt = printReceipt;
+
+/** Share a receipt as plain text — via the native @capacitor/share plugin
+ *  when running in the app (navigator.share doesn't exist in Capacitor's
+ *  WebView, only in real Chrome tabs, which is why this was silently
+ *  doing nothing before). */
+async function shareReceipt(sale, store) {
+  const body = Receipt.text(sale, store);
+  const title = `Receipt ${sale.receiptNumber}`;
+  const cap = window.Capacitor;
+  const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
+
+  if (isNative) {
+    if (!cap.Plugins || !cap.Plugins.Share) {
+      Toast.error('Diagnostic: Share plugin not registered');
+      return;
+    }
+    try {
+      await cap.Plugins.Share.share({ title, text: body, dialogTitle: title });
+    } catch (e) {
+      const msg = (e && e.message) || String(e);
+      if (!/cancel/i.test(msg)) Toast.error(`Share failed: ${msg}`);
+    }
+    return;
+  }
+  if (navigator.share) {
+    try { await navigator.share({ title, text: body }); return; }
+    catch (e) { return; }
+  }
+  const copied = await copyToClipboard(body);
+  Toast.show(copied ? 'Sharing isn\u2019t available here \u2014 copied the receipt instead' : 'Sharing isn\u2019t supported on this browser');
+}
+window.shareReceipt = shareReceipt;
+
+/* ---------------------------------------------------------------------- */
+/* Generic HTML print / plain-text share — used for non-receipt content   */
+/* like barcode labels, where there's no structured sale/store data to    */
+/* build a real PDF from, just an HTML snippet to print as-is.            */
+/* ---------------------------------------------------------------------- */
+
+async function printGenericHTML(html) {
   const area = document.getElementById('printArea');
   if (area) area.innerHTML = html;
 
@@ -595,19 +928,15 @@ function printReceiptHTML(html) {
   const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
 
   if (!isNative) {
-    // Real browser tab — the actual print dialog works here.
     requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
     return;
   }
 
-  // Inside the app, window.print() doesn't exist, and the custom native
-  // print plugin isn't reliably registering (still investigating why).
-  // Sharing plain text didn't give Android anything worth printing —
-  // Print only shows up as a real option for an actual document. So
-  // this generates a real PDF (via jsPDF) and shares THAT instead —
-  // Android's share sheet treats a PDF as a real document, so Print
-  // shows up properly, alongside save/send options.
-  const textVersion = html
+  if (!window.jspdf) {
+    Toast.error('Diagnostic: jsPDF not loaded');
+    return;
+  }
+  const textLines = html
     .replace(/<style[\s\S]*?<\/style>/gi, '')
     .replace(/<(div|p|tr)[^>]*>/gi, '\n')
     .replace(/<br\s*\/?>/gi, '\n')
@@ -615,53 +944,38 @@ function printReceiptHTML(html) {
     .replace(/[ \t]+/g, ' ')
     .split('\n').map((l) => l.trim()).filter(Boolean);
 
-  generateAndShareReceiptPDF(textVersion);
-}
-window.printReceiptHTML = printReceiptHTML;
-
-async function generateAndShareReceiptPDF(lines) {
-  const plugins = window.Capacitor && window.Capacitor.Plugins;
-  if (!window.jspdf || !plugins || !plugins.Filesystem || !plugins.Share) {
-    Toast.error('Diagnostic: PDF/Filesystem/Share not all available');
-    return;
-  }
+  const plugins = cap.Plugins || {};
   try {
     const { jsPDF } = window.jspdf;
     const lineHeight = 5;
-    const pageHeight = Math.max(120, lines.length * lineHeight + 24);
+    const pageHeight = Math.max(60, textLines.length * lineHeight + 24);
     const doc = new jsPDF({ unit: 'mm', format: [80, pageHeight] });
-
     let y = 10;
-    lines.forEach((line, i) => {
-      doc.setFont('courier', i === 0 ? 'bold' : 'normal');
+    textLines.forEach((line, i) => {
+      doc.setFont('helvetica', i === 0 ? 'bold' : 'normal');
       doc.setFontSize(i === 0 ? 13 : 9);
-      const wrapped = doc.splitTextToSize(line, 72);
-      wrapped.forEach((wl) => {
-        doc.text(wl, 4, y);
-        y += lineHeight;
-      });
+      doc.splitTextToSize(line, 72).forEach((wl) => { doc.text(wl, 4, y); y += lineHeight; });
     });
-
     const base64 = doc.output('datauristring').split(',')[1];
-    const filename = `receipt-${Date.now()}.pdf`;
-    const written = await window.Capacitor.Plugins.Filesystem.writeFile({
-      path: filename,
-      data: base64,
-      directory: 'CACHE',
-    });
-    await window.Capacitor.Plugins.Share.share({ title: 'Receipt', url: written.uri });
+
+    if (plugins.NativePrint) {
+      try {
+        await plugins.NativePrint.printPdf({ base64, jobName: 'Print' });
+        return;
+      } catch (e) { /* fall through to Share below */ }
+    }
+    if (!plugins.Filesystem || !plugins.Share) {
+      Toast.error('Diagnostic: Filesystem/Share plugin missing');
+      return;
+    }
+    const filename = `print-${Date.now()}.pdf`;
+    const written = await plugins.Filesystem.writeFile({ path: filename, data: base64, directory: 'CACHE' });
+    await plugins.Share.share({ title: 'Print', url: written.uri });
   } catch (e) {
-    const msg = (e && e.message) || String(e);
-    Toast.error(`PDF generation failed: ${msg}`);
+    Toast.error(`PDF generation failed: ${(e && e.message) || e}`);
   }
 }
-window.generateAndShareReceiptPDF = generateAndShareReceiptPDF;
-
-/* ---------------------------------------------------------------------- */
-/* Sharing — navigator.share() doesn't work inside Capacitor's WebView    */
-/* (only real Chrome tabs implement it), so this routes through the       */
-/* native @capacitor/share plugin when running in the app.                */
-/* ---------------------------------------------------------------------- */
+window.printGenericHTML = printGenericHTML;
 
 async function shareText({ title, text }) {
   const cap = window.Capacitor;
@@ -680,7 +994,7 @@ async function shareText({ title, text }) {
       return true;
     } catch (e) {
       const msg = (e && e.message) || String(e);
-      Toast.error(`Share failed: ${msg}`);
+      if (!/cancel/i.test(msg)) Toast.error(`Share failed: ${msg}`);
       return false;
     }
   }
@@ -957,6 +1271,24 @@ function initPullToRefresh() {
 /* Theming                                                                 */
 /* ---------------------------------------------------------------------- */
 
+/* Curated theme packs — each swaps the whole accent family (accent, its
+   dim/pressed variant, and the three semantic hues teal/coral/blue) as a
+   coordinated set, not just a single dot color, so switching actually
+   reskins the app instead of just recoloring one button. Base surfaces
+   (bg/surface/border/text) stay put — see the "Neon Orchid" note at the
+   top of style.css for why that foundation is deliberately fixed. */
+const THEME_PACKS = {
+  orchid:   { name: 'Orchid',    accent: '#AC5FDB', accentDim: '#8A46B3', teal: '#E3A2EE', coral: '#D9527A', blue: '#8A7AE0' },
+  ocean:    { name: 'Ocean',     accent: '#22B8CF', accentDim: '#1A8FA3', teal: '#7FE0D6', coral: '#FF6B81', blue: '#5B8DEF' },
+  sunset:   { name: 'Sunset',    accent: '#FF8A3D', accentDim: '#E06A1F', teal: '#FFC46B', coral: '#FF4D6D', blue: '#A66BFF' },
+  forest:   { name: 'Forest',    accent: '#43B274', accentDim: '#2E8A57', teal: '#8FE3B0', coral: '#E8A33D', blue: '#4C8DFF' },
+  rosegold: { name: 'Rose Gold', accent: '#E38FA0', accentDim: '#C1667A', teal: '#F4C7A1', coral: '#D9527A', blue: '#9A7AE0' },
+  midnight: { name: 'Midnight',  accent: '#5B7FFF', accentDim: '#3E5CD1', teal: '#7FA8FF', coral: '#FF6B81', blue: '#7C6BFF' },
+  amber:    { name: 'Amber',     accent: '#F2A93B', accentDim: '#C7841F', teal: '#FFD98A', coral: '#E4574F', blue: '#7C7CE0' },
+  cherry:   { name: 'Cherry',    accent: '#E84368', accentDim: '#B92E4E', teal: '#FF9EB3', coral: '#FF6B81', blue: '#7A6BE0' },
+};
+window.THEME_PACKS = THEME_PACKS;
+
 async function applyTheme() {
   const appearance = await Settings.get('appearance');
   let theme = appearance.theme;
@@ -964,7 +1296,15 @@ async function applyTheme() {
     theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   }
   document.documentElement.setAttribute('data-theme', theme);
-  document.documentElement.style.setProperty('--accent', appearance.accentColor);
+
+  const pack = THEME_PACKS[appearance.themePack] || THEME_PACKS.orchid;
+  const root = document.documentElement.style;
+  root.setProperty('--accent', pack.accent);
+  root.setProperty('--accent-dim', pack.accentDim);
+  root.setProperty('--teal', pack.teal);
+  root.setProperty('--coral', pack.coral);
+  root.setProperty('--blue', pack.blue);
+
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
     meta.content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#12161A';

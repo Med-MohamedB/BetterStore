@@ -125,28 +125,7 @@ const Sales = (() => {
     const store = await Settings.get('store');
     const refunded = sale.status === 'refunded';
 
-    const bodyHTML = `
-      <div class="receipt-print">
-        <div style="text-align:center;">
-          <div style="font-weight:700; font-size:16px;">${escapeHTML(store.name || 'My Store')}</div>
-        </div>
-        <div class="flex-between mt-16 text-sm"><span class="text-dim">Receipt</span><span class="num">${sale.receiptNumber}</span></div>
-        <div class="flex-between text-sm"><span class="text-dim">Date</span><span class="num">${Fmt.dateTime(sale.date)}</span></div>
-        ${refunded ? `<div class="mt-8"><span class="badge badge--danger">Refunded</span></div>` : ''}
-        <div style="border-top:1px dashed var(--border); margin:12px 0;"></div>
-        ${sale.items.map((it) => `
-          <div class="flex-between text-sm" style="margin-bottom:4px;">
-            <span>${it.qty}× ${escapeHTML(it.name)} <span class="text-dim">@ ${Fmt.money(it.price)}</span></span>
-            <span class="num">${Fmt.money(it.price * it.qty - (it.discount || 0))}</span>
-          </div>
-        `).join('')}
-        <div style="border-top:1px dashed var(--border); margin:12px 0;"></div>
-        <div class="flex-between text-sm"><span class="text-dim">Subtotal</span><span class="num">${Fmt.money(sale.subtotal)}</span></div>
-        ${sale.tax ? `<div class="flex-between text-sm"><span class="text-dim">Tax</span><span class="num">${Fmt.money(sale.tax)}</span></div>` : ''}
-        <div class="flex-between mt-8" style="font-weight:700;"><span>Total</span><span class="num">${Fmt.money(sale.total)}</span></div>
-        <div class="flex-between text-sm mt-8"><span class="text-dim">Payment</span><span>${sale.paymentMethod}</span></div>
-      </div>
-    `;
+    const bodyHTML = Receipt.html(sale, store);
 
     const footerHTML = `
       <div class="flex gap-8">
@@ -158,12 +137,8 @@ const Sales = (() => {
 
     const sheetEl = Sheet.open({ title: 'Sale Detail', bodyHTML, footerHTML });
 
-    sheetEl.querySelector('#reprintBtn').addEventListener('click', () => printReceiptHTML(bodyHTML));
-    sheetEl.querySelector('#shareSaleBtn').addEventListener('click', async () => {
-      const text = `Receipt ${sale.receiptNumber}\n${sale.items.map((i) => `${i.qty}x ${i.name}`).join('\n')}\nTotal: ${Fmt.money(sale.total)}`;
-      if (navigator.share) { try { await navigator.share({ title: 'Receipt', text }); } catch (e) {} }
-      else Toast.show('Sharing isn\u2019t supported on this browser');
-    });
+    sheetEl.querySelector('#reprintBtn').addEventListener('click', () => printReceipt(sale, store));
+    sheetEl.querySelector('#shareSaleBtn').addEventListener('click', () => shareReceipt(sale, store));
 
     const refundBtn = sheetEl.querySelector('#refundBtn');
     if (refundBtn) {

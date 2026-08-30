@@ -220,7 +220,8 @@ const DEFAULT_SETTINGS = {
   },
   appearance: {
     theme: 'system', // 'light' | 'dark' | 'system'
-    accentColor: '#AC5FDB',
+    accentColor: '#AC5FDB', // kept only so older saved settings don't break; superseded by themePack
+    themePack: 'orchid', // key into THEME_PACKS in app.js
   },
   pos: {
     defaultPaymentMethod: 'cash',

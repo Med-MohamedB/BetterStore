@@ -16,6 +16,7 @@ class MainActivity : BridgeActivity() {
 
     init {
         registerPlugin(BiometricAuthPlugin::class.java)
+        registerPlugin(NativePrintPlugin::class.java)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

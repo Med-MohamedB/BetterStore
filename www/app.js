@@ -601,25 +601,61 @@ function printReceiptHTML(html) {
   }
 
   // Inside the app, window.print() doesn't exist, and the custom native
-  // print plugin isn't reliably registering (still investigating why —
-  // see Diagnostics). Rather than leave printing broken while that's
-  // unresolved, route it through the Share plugin instead, which IS
-  // confirmed working: a plain-text version of the receipt goes to
-  // Android's share sheet, where Print is one of the standard options
-  // (along with saving as PDF, sending to a printer app, etc.).
+  // print plugin isn't reliably registering (still investigating why).
+  // Sharing plain text didn't give Android anything worth printing —
+  // Print only shows up as a real option for an actual document. So
+  // this generates a real PDF (via jsPDF) and shares THAT instead —
+  // Android's share sheet treats a PDF as a real document, so Print
+  // shows up properly, alongside save/send options.
   const textVersion = html
     .replace(/<style[\s\S]*?<\/style>/gi, '')
     .replace(/<(div|p|tr)[^>]*>/gi, '\n')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<[^>]+>/g, '')
     .replace(/[ \t]+/g, ' ')
-    .split('\n').map((l) => l.trim()).filter(Boolean).join('\n');
+    .split('\n').map((l) => l.trim()).filter(Boolean);
 
-  shareText({ title: 'Receipt', text: textVersion }).then((shared) => {
-    if (shared) Toast.show('Choose "Print" from the share menu if your device offers it');
-  });
+  generateAndShareReceiptPDF(textVersion);
 }
 window.printReceiptHTML = printReceiptHTML;
+
+async function generateAndShareReceiptPDF(lines) {
+  const plugins = window.Capacitor && window.Capacitor.Plugins;
+  if (!window.jspdf || !plugins || !plugins.Filesystem || !plugins.Share) {
+    Toast.error('Diagnostic: PDF/Filesystem/Share not all available');
+    return;
+  }
+  try {
+    const { jsPDF } = window.jspdf;
+    const lineHeight = 5;
+    const pageHeight = Math.max(120, lines.length * lineHeight + 24);
+    const doc = new jsPDF({ unit: 'mm', format: [80, pageHeight] });
+
+    let y = 10;
+    lines.forEach((line, i) => {
+      doc.setFont('courier', i === 0 ? 'bold' : 'normal');
+      doc.setFontSize(i === 0 ? 13 : 9);
+      const wrapped = doc.splitTextToSize(line, 72);
+      wrapped.forEach((wl) => {
+        doc.text(wl, 4, y);
+        y += lineHeight;
+      });
+    });
+
+    const base64 = doc.output('datauristring').split(',')[1];
+    const filename = `receipt-${Date.now()}.pdf`;
+    const written = await window.Capacitor.Plugins.Filesystem.writeFile({
+      path: filename,
+      data: base64,
+      directory: 'CACHE',
+    });
+    await window.Capacitor.Plugins.Share.share({ title: 'Receipt', url: written.uri });
+  } catch (e) {
+    const msg = (e && e.message) || String(e);
+    Toast.error(`PDF generation failed: ${msg}`);
+  }
+}
+window.generateAndShareReceiptPDF = generateAndShareReceiptPDF;
 
 /* ---------------------------------------------------------------------- */
 /* Sharing — navigator.share() doesn't work inside Capacitor's WebView    */

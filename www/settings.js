@@ -238,16 +238,17 @@ window.SettingsScreen = SettingsScreen;
 /* ---------------------------------------------------------------------- */
 
 const Security = (() => {
-  function keypadHTML(dotCount) {
+  function keypadHTML(dotCount, showConfirm) {
     const dots = Array.from({ length: 6 }, (_, i) => `<span class="pin-dot${i < dotCount ? ' filled' : ''}"></span>`).join('');
     const letters = { '2': 'ABC', '3': 'DEF', '4': 'GHI', '5': 'JKL', '6': 'MNO', '7': 'PQRS', '8': 'TUV', '9': 'WXYZ' };
-    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'];
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', showConfirm ? '\u2713' : '', '0', '⌫'];
     return `
       <div class="pin-dots">${dots}</div>
       <div class="pin-keypad">
         ${keys.map((k) => {
           if (k === '') return '<div></div>';
           if (k === '⌫') return `<button class="pin-key pin-key--action tappable" data-key="${k}">${k}</button>`;
+          if (k === '\u2713') return `<button class="pin-key pin-key--action pin-key--confirm tappable" data-key="${k}" disabled>${k}</button>`;
           return `<button class="pin-key tappable" data-key="${k}"><span class="pin-key__num">${k}</span>${letters[k] ? `<span class="pin-key__letters">${letters[k]}</span>` : ''}</button>`;
         }).join('')}
       </div>`;
@@ -261,32 +262,35 @@ const Security = (() => {
     overlay.innerHTML = `
       <div class="pin-lock-icon">🔑</div>
       <div class="pin-title" id="pinTitle">Set a PIN</div>
-      <div class="pin-sub">Choose a 4-6 digit PIN, then tap another key to confirm</div>
-      ${keypadHTML(0)}
+      <div class="pin-sub">Choose a 4-6 digit PIN, then tap ✓ to confirm</div>
+      ${keypadHTML(0, true)}
       <button class="btn btn-secondary mt-16 tappable" id="pinCancel" style="max-width:200px;">Cancel</button>
     `;
     document.body.appendChild(overlay);
 
     let stage = 'first';
     let firstPin = '';
-    let debounce;
 
     function updateDots() {
       overlay.querySelectorAll('.pin-dot').forEach((d, i) => d.classList.toggle('filled', i < entered.length));
     }
+    function updateConfirmKey() {
+      const btn = overlay.querySelector('.pin-key--confirm');
+      if (btn) btn.disabled = entered.length < 4;
+    }
     function reset(msg) {
       entered = '';
       updateDots();
+      updateConfirmKey();
       if (msg) overlay.querySelector('.pin-sub').textContent = msg;
     }
 
     async function finishEntry() {
-      clearTimeout(debounce);
       if (entered.length < 4) return;
       if (stage === 'first') {
         firstPin = entered;
         stage = 'confirm';
-        reset('Confirm your PIN');
+        reset('Confirm your PIN, then tap ✓');
         overlay.querySelector('#pinTitle').textContent = 'Confirm PIN';
       } else if (entered === firstPin) {
         await Settings.set('security', { pinEnabled: true, pin: firstPin });
@@ -302,13 +306,12 @@ const Security = (() => {
     overlay.querySelectorAll('[data-key]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const key = btn.dataset.key;
-        if (key === '⌫') { entered = entered.slice(0, -1); updateDots(); return; }
+        if (key === '⌫') { entered = entered.slice(0, -1); updateDots(); updateConfirmKey(); return; }
+        if (key === '\u2713') { finishEntry(); return; }
         if (entered.length >= 6) return;
         entered += key;
         updateDots();
-        clearTimeout(debounce);
-        if (entered.length === 6) finishEntry();
-        else if (entered.length >= 4) debounce = setTimeout(finishEntry, 600);
+        updateConfirmKey();
       });
     });
 

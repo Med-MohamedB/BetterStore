@@ -41,7 +41,7 @@ const Sales = (() => {
       return matchesSearch && matchesPayment && inDateRange(s);
     });
 
-    const totalRevenue = filtered.filter((s) => s.status !== 'refunded').reduce((sum, s) => sum + s.total, 0);
+    const totalRevenue = filtered.reduce((sum, s) => sum + saleNetTotal(s), 0);
 
     container.innerHTML = `
       <div class="stat-grid">
@@ -107,9 +107,10 @@ const Sales = (() => {
 
   function saleRowHTML(s) {
     const refunded = s.status === 'refunded';
+    const partial = s.status === 'partially_refunded';
     return `
       <div class="list-row tappable" data-sale-row="${s.id}" style="${refunded ? 'opacity:0.55;' : ''}">
-        <div class="list-row__icon">${refunded ? '↩️' : '🧾'}</div>
+        <div class="list-row__icon">${refunded ? '↩️' : partial ? '↩️' : '🧾'}</div>
         <div class="list-row__body">
           <div class="list-row__title">${s.receiptNumber}</div>
           <div class="list-row__subtitle">${Fmt.dateTime(s.date)} · ${s.paymentMethod}</div>
@@ -117,6 +118,7 @@ const Sales = (() => {
         <div class="list-row__trailing">
           <div class="list-row__amount num">${Fmt.money(s.total)}</div>
           ${refunded ? `<div class="mt-8"><span class="badge badge--danger">Refunded</span></div>` : ''}
+          ${partial ? `<div class="mt-8"><span class="badge badge--warn">Partially Refunded</span></div>` : ''}
         </div>
       </div>`;
   }
@@ -124,6 +126,7 @@ const Sales = (() => {
   async function openDetail(sale, listContainer) {
     const store = await Settings.get('store');
     const refunded = sale.status === 'refunded';
+    const partial = sale.status === 'partially_refunded';
 
     const bodyHTML = Receipt.html(sale, store);
 
@@ -132,7 +135,7 @@ const Sales = (() => {
         <button class="btn btn-secondary tappable" id="reprintBtn">🖨️ Reprint</button>
         <button class="btn btn-secondary tappable" id="shareSaleBtn">📤 Share</button>
       </div>
-      ${!refunded ? `<button class="btn btn-danger mt-8 tappable" id="refundBtn">Refund This Sale</button>` : ''}
+      ${!refunded ? `<button class="btn btn-danger mt-8 tappable" id="refundBtn">${partial ? 'Refund More Items' : 'Refund Items'}</button>` : ''}
     `;
 
     const sheetEl = Sheet.open({ title: 'Sale Detail', bodyHTML, footerHTML });
@@ -142,52 +145,190 @@ const Sales = (() => {
 
     const refundBtn = sheetEl.querySelector('#refundBtn');
     if (refundBtn) {
-      refundBtn.addEventListener('click', async (e) => {
-        const btn = e.currentTarget;
-        if (btn.disabled) return;
-        if (!confirm(`Refund sale ${sale.receiptNumber} for ${Fmt.money(sale.total)}? This restores the sold stock.`)) return;
-        btn.disabled = true;
-        btn.textContent = 'Refunding\u2026';
-        try {
-          await refundSale(sale);
-        } catch (err) {
-          console.error('Refund failed:', err);
-          Toast.error('Something went wrong \u2014 the refund was not applied');
-          btn.disabled = false;
-          btn.textContent = 'Refund This Sale';
-          return;
-        }
-        Sheet.close();
-        Toast.success('Sale refunded and stock restored');
-        renderList(listContainer);
-      });
+      refundBtn.addEventListener('click', () => openRefundSheet(sale, listContainer));
     }
   }
 
-  async function refundSale(sale) {
-    // Same atomicity guarantee as completing a sale: restoring stock,
-    // logging the restoration, and flipping the sale to 'refunded' either
-    // all commit together or none do.
+  /** Lets the cashier pick exactly which items — and how many of each —
+   *  to refund, rather than forcing an all-or-nothing return. Supports
+   *  refunding a sale across more than one visit: each item tracks its
+   *  own `refundedQty` so a second partial refund can't over-return it. */
+  async function openRefundSheet(sale, listContainer) {
+    const remaining = (item) => item.qty - (item.refundedQty || 0);
+    const refundableItems = sale.items.filter((item) => remaining(item) > 0);
+
+    const rowHTML = (item, idx) => {
+      const max = remaining(item);
+      const unitNet = (item.price * item.qty - (item.discount || 0)) / item.qty;
+      return `
+        <div class="list-row" data-refund-row="${idx}" style="padding:10px 0;">
+          <div class="list-row__body">
+            <div class="list-row__title">${escapeHTML(item.name)}</div>
+            <div class="list-row__subtitle">${Fmt.money(unitNet)} each${item.refundedQty ? ` · ${item.refundedQty} already refunded` : ''} · ${max} refundable</div>
+          </div>
+          <div class="flex gap-8" style="align-items:center;">
+            <button class="stepper__btn tappable" style="width:30px;height:30px;font-size:16px;" data-refund-minus="${idx}">−</button>
+            <span class="num" style="min-width:22px; text-align:center;" data-refund-qty="${idx}">${max}</span>
+            <button class="stepper__btn tappable" style="width:30px;height:30px;font-size:16px;" data-refund-plus="${idx}">+</button>
+          </div>
+        </div>
+      `;
+    };
+
+    const bodyHTML = `
+      <div class="flex-between" style="margin-bottom:6px;">
+        <span class="text-dim text-sm">Select items to refund</span>
+        <button class="chip tappable" id="refundToggleAllBtn">Deselect all</button>
+      </div>
+      ${refundableItems.map((item, idx) => rowHTML(item, idx)).join('<div style="border-top:1px solid var(--border);"></div>')}
+    `;
+
+    const footerHTML = `
+      <div class="flex-between mt-8" style="font-weight:700;">
+        <span>Refund total</span><span class="num" id="refundTotalAmount">${Fmt.money(0)}</span>
+      </div>
+      <button class="btn btn-danger mt-8 tappable" id="confirmRefundBtn" disabled>Select items to refund</button>
+    `;
+
+    let onCloseSkip = false;
+    const sheetEl = Sheet.open({
+      title: 'Refund Items',
+      bodyHTML,
+      footerHTML,
+      onClose: () => { if (!onCloseSkip) openDetail(sale, listContainer); },
+    });
+
+    // qtyByIdx starts fully selected (max refundable) for every item — the
+    // common case is refunding everything; partial is an adjustment down.
+    const qtyByIdx = refundableItems.map((item) => remaining(item));
+
+    const updateTotals = () => {
+      let total = 0;
+      refundableItems.forEach((item, idx) => {
+        const unitNet = (item.price * item.qty - (item.discount || 0)) / item.qty;
+        total += unitNet * qtyByIdx[idx];
+      });
+      sheetEl.querySelector('#refundTotalAmount').textContent = Fmt.money(total);
+      const confirmBtn = sheetEl.querySelector('#confirmRefundBtn');
+      const anySelected = qtyByIdx.some((q) => q > 0);
+      confirmBtn.disabled = !anySelected;
+      confirmBtn.textContent = anySelected ? `Refund ${Fmt.money(total)}` : 'Select items to refund';
+      sheetEl.querySelector('#refundToggleAllBtn').textContent = anySelected ? 'Deselect all' : 'Select all';
+      compactifyNumbers(sheetEl);
+    };
+
+    refundableItems.forEach((item, idx) => {
+      const max = remaining(item);
+      sheetEl.querySelector(`[data-refund-minus="${idx}"]`).addEventListener('click', () => {
+        qtyByIdx[idx] = Math.max(0, qtyByIdx[idx] - 1);
+        sheetEl.querySelector(`[data-refund-qty="${idx}"]`).textContent = qtyByIdx[idx];
+        updateTotals();
+      });
+      sheetEl.querySelector(`[data-refund-plus="${idx}"]`).addEventListener('click', () => {
+        qtyByIdx[idx] = Math.min(max, qtyByIdx[idx] + 1);
+        sheetEl.querySelector(`[data-refund-qty="${idx}"]`).textContent = qtyByIdx[idx];
+        updateTotals();
+      });
+    });
+
+    sheetEl.querySelector('#refundToggleAllBtn').addEventListener('click', () => {
+      const anySelected = qtyByIdx.some((q) => q > 0);
+      refundableItems.forEach((item, idx) => {
+        qtyByIdx[idx] = anySelected ? 0 : remaining(item);
+        sheetEl.querySelector(`[data-refund-qty="${idx}"]`).textContent = qtyByIdx[idx];
+      });
+      updateTotals();
+    });
+
+    sheetEl.querySelector('#confirmRefundBtn').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return;
+      const selections = refundableItems
+        .map((item, idx) => ({ productId: item.productId, qty: qtyByIdx[idx] }))
+        .filter((s) => s.qty > 0);
+      const totalAmount = sheetEl.querySelector('#refundTotalAmount').textContent;
+      if (!confirm(`Refund ${totalAmount} and restore stock for the selected items?`)) return;
+      btn.disabled = true;
+      btn.textContent = 'Refunding\u2026';
+      try {
+        await refundSaleItems(sale, selections);
+      } catch (err) {
+        console.error('Refund failed:', err);
+        Toast.error('Something went wrong \u2014 the refund was not applied');
+        btn.disabled = false;
+        updateTotals();
+        return;
+      }
+      onCloseSkip = true;
+      Sheet.close();
+      Toast.success('Refund applied and stock restored');
+      renderList(listContainer);
+    });
+
+    updateTotals();
+  }
+
+  /** Refunds a chosen subset of a sale's items (any quantity up to what's
+   *  still refundable), restores exactly that stock, and prorates the
+   *  sale's item-level discount plus any sale-level discount/tax across
+   *  just the portion being refunded — so `sale.totalRefunded` (and thus
+   *  `saleNetTotal`, used everywhere revenue is reported) stays accurate
+   *  whether this is the first refund on the sale or a follow-up one. */
+  async function refundSaleItems(sale, selections) {
     await DB.runTx(['sales', 'products', 'inventoryLog'], 'readwrite', async (tx) => {
       const productsStore = tx.objectStore('products');
       const logStore = tx.objectStore('inventoryLog');
       const salesStore = tx.objectStore('sales');
 
-      for (const item of sale.items) {
+      const items = sale.items.map((item) => ({ ...item }));
+      let subtotalRefundedNow = 0;
+
+      for (const sel of selections) {
+        const item = items.find((it) => it.productId === sel.productId);
+        if (!item || sel.qty <= 0) continue;
+        const already = item.refundedQty || 0;
+        const refundQty = Math.min(sel.qty, item.qty - already);
+        if (refundQty <= 0) continue;
+
         const product = await DB.reqToPromise(productsStore.get(item.productId));
-        if (!product) continue;
-        const newQty = product.quantity + item.qty;
-        await DB.reqToPromise(productsStore.put({ ...product, quantity: newQty, lastUpdated: new Date() }));
-        await DB.reqToPromise(logStore.add({
-          productId: product.id,
-          productName: product.name,
-          change: item.qty,
-          newQuantity: newQty,
-          reason: `Refund ${sale.receiptNumber}`,
-          date: new Date(),
-        }));
+        if (product) {
+          const newQty = product.quantity + refundQty;
+          await DB.reqToPromise(productsStore.put({ ...product, quantity: newQty, lastUpdated: new Date() }));
+          await DB.reqToPromise(logStore.add({
+            productId: product.id,
+            productName: product.name,
+            change: refundQty,
+            newQuantity: newQty,
+            reason: `Refund ${sale.receiptNumber}`,
+            date: new Date(),
+          }));
+        }
+
+        item.refundedQty = already + refundQty;
+        const unitNet = (item.price * item.qty - (item.discount || 0)) / item.qty;
+        subtotalRefundedNow += unitNet * refundQty;
       }
-      await DB.reqToPromise(salesStore.put({ ...sale, status: 'refunded', refundedAt: new Date() }));
+
+      // Prorate the sale-level discount/tax across the fraction of the
+      // pre-tax subtotal being refunded this operation, so a sale with a
+      // storewide discount or tax doesn't have its refund under/overstated.
+      const saleDiscount = sale.discount || 0;
+      const saleTax = sale.tax || 0;
+      const fraction = sale.subtotal > 0 ? subtotalRefundedNow / sale.subtotal : 0;
+      const totalRefundedNow = subtotalRefundedNow - saleDiscount * fraction + saleTax * fraction;
+
+      const totalRefunded = (sale.totalRefunded || 0) + totalRefundedNow;
+      const fullyRefunded = items.every((it) => (it.refundedQty || 0) >= it.qty);
+      const anyRefunded = items.some((it) => (it.refundedQty || 0) > 0);
+      const status = fullyRefunded ? 'refunded' : anyRefunded ? 'partially_refunded' : sale.status;
+
+      await DB.reqToPromise(salesStore.put({
+        ...sale,
+        items,
+        totalRefunded,
+        status,
+        refundedAt: new Date(),
+      }));
     });
   }
 

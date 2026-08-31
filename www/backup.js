@@ -77,19 +77,23 @@ const Backup = (() => {
 
     if (isNative && plugins && plugins.Filesystem) {
       try {
+        // Directory.Documents needs broad storage permissions that modern
+        // Android (10+) no longer grants apps by default — that's the
+        // EACCES. The app's own Cache dir needs no permission at all, and
+        // handing it straight to Share lets the person pick exactly where
+        // it goes (Downloads, Drive, email, etc.) via the system sheet.
         const written = await plugins.Filesystem.writeFile({
           path: filename,
           data: content,
-          directory: 'DOCUMENTS', // Directory.Documents — public Documents folder on Android, no permission needed
+          directory: 'CACHE',
           encoding: 'utf8',
         });
         if (plugins.Share) {
-          // Let the user choose where it goes (save to device, Drive, email, etc.)
-          await plugins.Share.share({ title: filename, url: written.uri }).catch((e) => {
-            console.warn('Post-export share failed:', e);
-          });
+          await plugins.Share.share({ title: filename, url: written.uri, dialogTitle: `Save ${filename}` });
+          Toast.success(`${filename} ready \u2014 choose where to save it`);
+        } else {
+          Toast.error('Diagnostic: Share plugin missing, can\u2019t hand off the file');
         }
-        Toast.success(`Saved to Documents/${filename}`);
       } catch (e) {
         const msg = (e && e.message) || String(e);
         console.warn('Native file export failed:', e);

@@ -51,7 +51,7 @@ const Reports = (() => {
       return d >= start && d <= end && s.status !== 'refunded';
     });
 
-    const revenue = sales.reduce((s, sale) => s + sale.total, 0);
+    const revenue = sales.reduce((s, sale) => s + saleNetTotal(sale), 0);
     const discounts = sales.reduce((s, sale) => s + (sale.itemDiscounts || 0) + (sale.discount || 0), 0);
     const txCount = sales.length;
     const avgTx = txCount ? revenue / txCount : 0;
@@ -64,22 +64,27 @@ const Reports = (() => {
     for (const sale of sales) {
       const method = sale.paymentMethod || 'other';
       const pm = paymentTotals.get(method) || { count: 0, revenue: 0 };
-      pm.count += 1; pm.revenue += sale.total;
+      pm.count += 1; pm.revenue += saleNetTotal(sale);
       paymentTotals.set(method, pm);
 
       for (const item of sale.items) {
-        const lineRevenue = item.price * item.qty - (item.discount || 0);
+        // Net out any refunded units on this line — a partially refunded
+        // sale still counts, but not for the units that came back.
+        const effectiveQty = item.qty - (item.refundedQty || 0);
+        if (effectiveQty <= 0) continue;
+        const unitDiscount = (item.discount || 0) / item.qty;
+        const lineRevenue = item.price * effectiveQty - unitDiscount * effectiveQty;
         const product = productMap.get(item.productId);
         // Use the purchase price FROZEN on the sale item at checkout time —
         // never the product's current cost, which may have changed since.
         // Older sales recorded before this field existed fall back to the
         // live product cost as the closest available estimate.
         const purchasePrice = item.purchasePrice != null ? item.purchasePrice : (product ? product.purchasePrice : 0);
-        cogs += purchasePrice * item.qty;
-        profit += lineRevenue - purchasePrice * item.qty;
+        cogs += purchasePrice * effectiveQty;
+        profit += lineRevenue - purchasePrice * effectiveQty;
 
         const pt = productTotals.get(item.productId) || { name: item.name, qty: 0, revenue: 0 };
-        pt.qty += item.qty; pt.revenue += lineRevenue;
+        pt.qty += effectiveQty; pt.revenue += lineRevenue;
         productTotals.set(item.productId, pt);
 
         const cat = (product && product.category) || 'Uncategorized';
@@ -197,7 +202,7 @@ const Reports = (() => {
     for (const sale of sales) {
       const d = new Date(sale.date);
       const bucket = days.find((day) => day.date.toDateString() === d.toDateString());
-      if (bucket) bucket.total += sale.total;
+      if (bucket) bucket.total += saleNetTotal(sale);
     }
     return days;
   }

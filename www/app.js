@@ -798,7 +798,59 @@ window.buildReceiptPDF = buildReceiptPDF;
  * sale, where a toast alone under-communicates "this money is now
  * recorded." Resolves once the animation finishes so callers can chain
  * into it (e.g. opening the receipt right after). */
-function showSuccessCheck(message = 'Sale Complete') {
+/** Shared visual-effects helpers built on Motion (motion.dev) — kept in
+ *  one place so onboarding, sale completion, and anywhere else that wants
+ *  a moment of delight all share the same physics instead of each
+ *  reinventing it slightly differently. */
+const Fx = (() => {
+  function animate(el, keyframes, opts) {
+    if (window.Motion && window.Motion.animate) {
+      return window.Motion.animate(el, keyframes, opts);
+    }
+    const end = {};
+    Object.keys(keyframes).forEach((k) => {
+      const v = keyframes[k];
+      end[k] = Array.isArray(v) ? v[v.length - 1] : v;
+    });
+    Object.assign(el.style, end);
+    return { finished: Promise.resolve() };
+  }
+
+  /** A confetti burst from roughly the upper-middle of the screen —
+   *  spring-flung outward and slightly upward before falling, rather than
+   *  a plain straight drop, so it reads as a little celebratory pop. */
+  function confetti(originY = window.innerHeight * 0.35) {
+    const colors = ['--accent', '--teal', '--coral', '--blue'];
+    const cx = window.innerWidth / 2;
+    for (let i = 0; i < 26; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'onboard-confetti-piece';
+      piece.style.background = `var(${colors[i % colors.length]})`;
+      piece.style.left = `${cx}px`;
+      piece.style.top = `${originY}px`;
+      document.body.appendChild(piece);
+
+      const angle = (Math.PI * 2 * i) / 26 + (Math.random() - 0.5);
+      const dist = 90 + Math.random() * 140;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist - 60;
+      const rot = (Math.random() - 0.5) * 720;
+
+      animate(piece, {
+        x: [0, dx * 0.4, dx],
+        y: [0, dy, dy + 180],
+        rotate: [0, rot],
+        opacity: [1, 1, 0],
+      }, { duration: 1.1 + Math.random() * 0.4, ease: 'easeOut' })
+        .finished.then(() => piece.remove());
+    }
+  }
+
+  return { animate, confetti };
+})();
+window.Fx = Fx;
+
+function showSuccessCheck(message = 'Sale Complete', celebrate = false) {
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
     overlay.className = 'success-check-overlay';
@@ -813,6 +865,7 @@ function showSuccessCheck(message = 'Sale Complete') {
     `;
     document.body.appendChild(overlay);
     if (navigator.vibrate) navigator.vibrate(25);
+    if (celebrate && window.Fx) Fx.confetti(window.innerHeight * 0.4);
     setTimeout(() => {
       overlay.classList.add('out');
       setTimeout(() => { overlay.remove(); resolve(); }, 200);
@@ -1526,6 +1579,14 @@ function renderMore(container) {
         </div>
         <div class="list-row__trailing text-faint">›</div>
       </div>
+      <div class="list-row tappable" id="replayTourRow">
+        <div class="list-row__icon">🎬</div>
+        <div class="list-row__body">
+          <div class="list-row__title">Replay Interactive Tour</div>
+          <div class="list-row__subtitle">See the welcome walkthrough again</div>
+        </div>
+        <div class="list-row__trailing text-faint">›</div>
+      </div>
       ${items.map(([route, icon, title, subtitle]) => `
         <a class="list-row tappable" href="#${route}">
           <div class="list-row__icon">${icon}</div>
@@ -1540,6 +1601,9 @@ function renderMore(container) {
     <div class="text-faint text-sm" style="text-align:center; margin-top:20px;" id="moreVersionFooter">Better Store</div>
   `;
   container.querySelector('#aboutAppRow').addEventListener('click', openAboutSheet);
+  container.querySelector('#replayTourRow').addEventListener('click', () => {
+    if (window.Onboarding) Onboarding.replay();
+  });
   getAppVersionLabel().then((label) => {
     const el = container.querySelector('#moreVersionFooter');
     if (el) el.textContent = `Better Store · ${label}`;
@@ -1681,6 +1745,8 @@ window.showDiagnostics = showDiagnostics;
   Router.init();
   initTabSwipeGesture();
   initPullToRefresh();
+
+  if (window.Onboarding) Onboarding.maybeStart();
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

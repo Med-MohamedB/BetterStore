@@ -764,11 +764,27 @@ main#view {
 }
 
 .stagger > * {
-  animation: rowIn var(--dur) var(--ease-out) both;
+  animation: rowIn 420ms var(--ease-spring) both;
 }
+/* Real per-item stagger via nth-child — CSS-only so it applies to every
+   list already marked .stagger across the app with no JS changes needed.
+   Capped at 12 items; anything past that shares the same small delay
+   rather than making a long list feel sluggish to finish appearing. */
+.stagger > *:nth-child(1)  { animation-delay: 0ms;  }
+.stagger > *:nth-child(2)  { animation-delay: 30ms; }
+.stagger > *:nth-child(3)  { animation-delay: 60ms; }
+.stagger > *:nth-child(4)  { animation-delay: 90ms; }
+.stagger > *:nth-child(5)  { animation-delay: 120ms; }
+.stagger > *:nth-child(6)  { animation-delay: 150ms; }
+.stagger > *:nth-child(7)  { animation-delay: 180ms; }
+.stagger > *:nth-child(8)  { animation-delay: 210ms; }
+.stagger > *:nth-child(9)  { animation-delay: 240ms; }
+.stagger > *:nth-child(10) { animation-delay: 270ms; }
+.stagger > *:nth-child(11) { animation-delay: 300ms; }
+.stagger > *:nth-child(n+12) { animation-delay: 320ms; }
 @keyframes rowIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* --- Tap feedback (ripple) --- */
@@ -776,7 +792,13 @@ main#view {
 .tappable {
   position: relative;
   overflow: hidden;
-  transition: transform var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+  transition: transform 90ms cubic-bezier(0.2, 0, 0.4, 1), background var(--dur-fast) var(--ease-out);
+}
+/* Press-down stays fast and immediate (matches the finger); release gets
+   the spring overshoot — that asymmetry is what makes a tap feel snappy
+   AND alive instead of just mushy both ways. */
+.tappable:not(:active) {
+  transition: transform 340ms var(--ease-spring), background var(--dur-fast) var(--ease-out);
 }
 .tappable:active { transform: scale(0.97); }
 
@@ -1705,4 +1727,173 @@ body.swipe-active .topbar {
   font-size: 12px;
   color: var(--text-faint);
   min-height: 16px;
+}
+
+/* ==========================================================================
+   Onboarding — interactive first-launch walkthrough. No XP/points/progress
+   bars anywhere; the "game" feel comes from real physics-y motion and a
+   tiny hands-on toy (coins-into-register), not a scoring system.
+   ========================================================================== */
+
+.onboard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  /* Transparent to taps by default so the spotlighted real nav button
+     underneath stays genuinely tappable — only the pieces that need to
+     catch a tap (caption buttons, skip corner, welcome card) opt back in
+     with pointer-events:auto below. */
+  pointer-events: none;
+}
+
+/* The "hole": a small circle whose absurdly large box-shadow spread fills
+   the rest of the viewport, so growing/moving/resizing this one element
+   is all that's needed to animate the scrim + cutout together. */
+.onboard-spotlight {
+  position: fixed;
+  border-radius: 50%;
+  box-shadow: 0 0 0 9999px rgba(8, 6, 10, 0.8);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.onboard-pulse-ring {
+  position: fixed;
+  border-radius: 50%;
+  border: 2.5px solid var(--teal);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.onboard-caption {
+  position: fixed;
+  left: 20px;
+  right: 20px;
+  z-index: 3;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  pointer-events: auto;
+}
+.onboard-caption__title { font-size: 17px; font-weight: 800; margin-bottom: 4px; }
+.onboard-caption__sub { font-size: 13.5px; color: var(--text-dim); line-height: 1.5; }
+.onboard-caption__row { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; gap: 10px; }
+.onboard-dots { display: flex; gap: 6px; }
+.onboard-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); transition: background 0.2s, transform 0.2s; }
+.onboard-dot.active { background: var(--accent); transform: scale(1.3); }
+.onboard-next-btn {
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, var(--teal), var(--accent));
+  color: var(--accent-ink);
+  font-weight: 700;
+  font-size: 13.5px;
+}
+.onboard-skip-btn { color: var(--text-faint); font-size: 13px; font-weight: 600; padding: 8px; }
+
+.onboard-skip-corner {
+  position: fixed;
+  top: calc(16px + var(--safe-top));
+  right: 16px;
+  z-index: 4;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: auto;
+}
+
+/* --- Welcome step: tap-the-coins-into-the-register mini interaction --- */
+
+.onboard-welcome {
+  position: relative;
+  z-index: 3;
+  width: min(340px, 100%);
+  margin: 0 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px 26px;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  pointer-events: auto;
+}
+.onboard-welcome__title { font-size: 21px; font-weight: 800; margin-bottom: 6px; }
+.onboard-welcome__sub { font-size: 13.5px; color: var(--text-dim); line-height: 1.5; margin-bottom: 22px; }
+
+.onboard-scene {
+  position: relative;
+  height: 140px;
+  margin-bottom: 16px;
+}
+.onboard-register {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 52px;
+  filter: drop-shadow(0 8px 16px color-mix(in srgb, var(--accent) 35%, transparent));
+}
+.onboard-coin {
+  position: absolute;
+  font-size: 30px;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25));
+}
+.onboard-sparkle {
+  position: absolute;
+  font-size: 20px;
+  pointer-events: none;
+}
+.onboard-welcome__hint { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+
+.onboard-start-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: linear-gradient(135deg, var(--teal), var(--accent));
+  color: var(--accent-ink);
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: var(--shadow-glow);
+}
+
+/* --- Finale --- */
+
+.onboard-finale {
+  position: relative;
+  z-index: 3;
+  width: min(320px, 100%);
+  margin: 0 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 30px 24px;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  pointer-events: auto;
+}
+.onboard-finale__icon { font-size: 44px; margin-bottom: 10px; }
+.onboard-finale__title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+.onboard-finale__sub { font-size: 13.5px; color: var(--text-dim); line-height: 1.5; margin-bottom: 20px; }
+
+.onboard-confetti-piece {
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 5;
+  width: 8px; height: 14px;
+  border-radius: 2px;
+  pointer-events: none;
 }

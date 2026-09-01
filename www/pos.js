@@ -372,7 +372,7 @@ const POS = (() => {
         return;
       }
 
-      await showSuccessCheck('Sale Complete');
+      await showSuccessCheck('Sale Complete', true);
       Sheet.close();
       setTimeout(() => openReceipt(sale), 100);
     });

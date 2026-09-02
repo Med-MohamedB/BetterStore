@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Better Store — Promo Control Panel</title>
+<style>
+  :root {
+    --bg: #262024; --surface: #2e2830; --surface-2: #383039; --border: #4a414f;
+    --text: #f2eef4; --text-dim: #a89ab0; --text-faint: #7a6f80;
+    --accent: #AC5FDB; --accent-dim: #8A46B3; --accent-ink: #1D1721;
+    --teal: #E3A2EE; --danger: #D9527A; --success: #6fcf97;
+    --radius: 16px; --radius-sm: 10px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    padding: 20px 16px 60px; max-width: 480px; margin: 0 auto;
+  }
+  h1 { font-size: 19px; margin: 4px 0 2px; }
+  .sub { color: var(--text-dim); font-size: 12.5px; margin-bottom: 22px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); margin: 0 0 12px; }
+  label { display: block; font-size: 12.5px; color: var(--text-dim); margin: 12px 0 5px; }
+  label:first-of-type { margin-top: 0; }
+  input[type="text"], input[type="url"], input[type="date"], textarea {
+    width: 100%; padding: 10px 12px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+    font-size: 14px; font-family: inherit;
+  }
+  input[type="password"] { width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-size: 14px; font-family: monospace; }
+  textarea { resize: vertical; min-height: 50px; }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
+  .toggle-row label { margin: 0; color: var(--text); font-size: 14px; }
+  input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
+  button {
+    cursor: pointer; border: none; font-family: inherit; font-weight: 700; font-size: 14px;
+  }
+  .btn-primary {
+    width: 100%; padding: 13px; border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--teal), var(--accent)); color: var(--accent-ink);
+    margin-top: 4px;
+  }
+  .btn-secondary {
+    width: 100%; padding: 11px; border-radius: var(--radius-sm);
+    background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+    margin-top: 8px; font-size: 13px;
+  }
+  .btn-row { display: flex; gap: 8px; }
+  .btn-row button { flex: 1; }
+  #status {
+    margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-sm);
+    font-size: 12.5px; display: none; white-space: pre-wrap; word-break: break-word;
+  }
+  #status.ok { display: block; background: rgba(111,207,151,0.12); color: var(--success); border: 1px solid rgba(111,207,151,0.3); }
+  #status.err { display: block; background: rgba(217,82,122,0.12); color: var(--danger); border: 1px solid rgba(217,82,122,0.3); }
+  #status.loading { display: block; background: var(--surface-2); color: var(--text-dim); }
+
+  /* --- live preview, mirrors .feature-spotlight in the real app --- */
+  .preview-frame { background: #29262B; border-radius: var(--radius); padding: 16px 10px; }
+  .feature-spotlight {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+    background: linear-gradient(135deg, rgba(172,95,219,0.22), rgba(227,162,238,0.14));
+    border: 1px solid rgba(172,95,219,0.4); border-radius: 18px;
+  }
+  .feature-spotlight__icon { font-size: 22px; flex-shrink: 0; }
+  .feature-spotlight__body { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .feature-spotlight__title { font-size: 13.5px; font-weight: 700; color: #F3E9F7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .feature-spotlight__sub { font-size: 12px; color: #B8A3C2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .feature-spotlight__dismiss {
+    flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(0,0,0,0.2); color: #B8A3C2; font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  details summary { cursor: pointer; font-size: 12.5px; color: var(--text-dim); }
+  .hint { font-size: 11px; color: var(--text-faint); margin-top: 4px; line-height: 1.5; }
+  a { color: var(--teal); }
+</style>
+</head>
+<body>
+
+  <h1>🎯 Promo Control Panel</h1>
+  <div class="sub">Edit the banner shown in Better Store. Publishing pushes straight to your GitHub repo — no app update needed.</div>
+
+  <div class="card">
+    <h2>Live Preview</h2>
+    <div class="preview-frame">
+      <a href="#" class="feature-spotlight" id="previewCard" style="text-decoration:none;">
+        <span class="feature-spotlight__icon" id="pIcon">🎯</span>
+        <span class="feature-spotlight__body">
+          <span class="feature-spotlight__title" id="pTitle">Title goes here</span>
+          <span class="feature-spotlight__sub" id="pSub">Subtitle goes here</span>
+        </span>
+        <span class="feature-spotlight__dismiss">✕</span>
+      </a>
+    </div>
+    <div class="hint" id="previewNote"></div>
+  </div>
+
+  <div class="card">
+    <h2>Ad Content</h2>
+
+    <div class="toggle-row">
+      <label for="fActive">Show this ad (off = fall back to Telegram Shop)</label>
+      <input type="checkbox" id="fActive" checked>
+    </div>
+
+    <label for="fIcon">Icon (one emoji)</label>
+    <input type="text" id="fIcon" maxlength="8" value="🎯" placeholder="🎯">
+
+    <label for="fTitle">Title</label>
+    <input type="text" id="fTitle" maxlength="80" placeholder="Short, punchy title">
+
+    <label for="fSub">Subtitle</label>
+    <input type="text" id="fSub" maxlength="120" placeholder="One short line">
+
+    <label for="fUrl">Link (must start with https://)</label>
+    <input type="url" id="fUrl" placeholder="https://t.me/RwmShop">
+
+    <label for="fExpires">Auto-expire on (optional)</label>
+    <input type="date" id="fExpires">
+    <div class="hint">Leave blank to run indefinitely. After this date, it automatically falls back to the Telegram Shop card — no need to come back and turn it off.</div>
+  </div>
+
+  <div class="card">
+    <details id="ghSettings">
+      <summary>⚙️ GitHub connection settings</summary>
+      <div style="margin-top:12px;">
+        <label for="ghOwner">GitHub username</label>
+        <input type="text" id="ghOwner" placeholder="e.g. rwgmo">
+
+        <label for="ghRepo">Repository name</label>
+        <input type="text" id="ghRepo" value="BetterStore">
+
+        <label for="ghBranch">Branch</label>
+        <input type="text" id="ghBranch" value="main">
+
+        <label for="ghPath">File path in repo</label>
+        <input type="text" id="ghPath" value="ad-config.json">
+
+        <label for="ghToken">Personal Access Token</label>
+        <input type="password" id="ghToken" placeholder="github_pat_...">
+        <div class="hint">
+          Generate one at github.com → Settings → Developer settings → Personal access tokens → Fine-grained tokens.
+          Scope it to <b>only this repository</b>, with <b>Contents: Read and write</b> permission — nothing else.
+          This is saved only in this browser's local storage and is sent only to api.github.com.
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-secondary" id="loadBtn">↓ Load Current</button>
+    <button class="btn-secondary" id="resetBtn">↺ Reset to Shop</button>
+  </div>
+  <button class="btn-primary" id="publishBtn">Publish to App</button>
+
+  <div id="status"></div>
+
+  <script>
+    const LS_KEY = 'promoControlSettings';
+
+    const els = {
+      active: document.getElementById('fActive'),
+      icon: document.getElementById('fIcon'),
+      title: document.getElementById('fTitle'),
+      sub: document.getElementById('fSub'),
+      url: document.getElementById('fUrl'),
+      expires: document.getElementById('fExpires'),
+      ghOwner: document.getElementById('ghOwner'),
+      ghRepo: document.getElementById('ghRepo'),
+      ghBranch: document.getElementById('ghBranch'),
+      ghPath: document.getElementById('ghPath'),
+      ghToken: document.getElementById('ghToken'),
+    };
+
+    // --- persist GitHub connection settings locally (not the ad content itself) ---
+    function loadSettings() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+        if (saved.owner) els.ghOwner.value = saved.owner;
+        if (saved.repo) els.ghRepo.value = saved.repo;
+        if (saved.branch) els.ghBranch.value = saved.branch;
+        if (saved.path) els.ghPath.value = saved.path;
+        if (saved.token) els.ghToken.value = saved.token;
+      } catch (e) {}
+    }
+    function saveSettings() {
+      localStorage.setItem(LS_KEY, JSON.stringify({
+        owner: els.ghOwner.value.trim(),
+        repo: els.ghRepo.value.trim(),
+        branch: els.ghBranch.value.trim() || 'main',
+        path: els.ghPath.value.trim() || 'ad-config.json',
+        token: els.ghToken.value.trim(),
+      }));
+    }
+    loadSettings();
+    if (els.ghOwner.value) document.getElementById('ghSettings').open = false;
+    else document.getElementById('ghSettings').open = true;
+
+    // --- live preview ---
+    function updatePreview() {
+      document.getElementById('pIcon').textContent = els.icon.value || '🎯';
+      document.getElementById('pTitle').textContent = els.title.value || 'Title goes here';
+      document.getElementById('pSub').textContent = els.sub.value || 'Subtitle goes here';
+      const note = document.getElementById('previewNote');
+      if (!els.active.checked) {
+        note.textContent = '"Show this ad" is off — the app will display the default Telegram Shop card instead of this.';
+      } else if (els.expires.value && new Date(els.expires.value) < new Date()) {
+        note.textContent = '⚠️ This expiry date is in the past — the app will already be showing the default Telegram Shop card.';
+      } else if (els.url.value && !/^https:\/\//i.test(els.url.value)) {
+        note.textContent = '⚠️ Link must start with https:// or the app will ignore it (the card just won\u2019t be tappable).';
+      } else {
+        note.textContent = '';
+      }
+    }
+    Object.values(els).forEach((el) => el.addEventListener('input', updatePreview));
+    updatePreview();
+
+    function setStatus(kind, msg) {
+      const el = document.getElementById('status');
+      el.className = kind;
+      el.textContent = msg;
+    }
+
+    function apiUrl() {
+      const owner = els.ghOwner.value.trim();
+      const repo = els.ghRepo.value.trim();
+      const path = els.ghPath.value.trim();
+      return `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+    }
+
+    function currentConfigObject() {
+      return {
+        active: els.active.checked,
+        icon: els.icon.value.trim() || '🎯',
+        title: els.title.value.trim(),
+        subtitle: els.sub.value.trim(),
+        url: els.url.value.trim(),
+        expiresAt: els.expires.value ? new Date(els.expires.value + 'T23:59:59Z').toISOString() : null,
+      };
+    }
+
+    function applyConfigToForm(cfg) {
+      els.active.checked = cfg.active !== false;
+      els.icon.value = cfg.icon || '🎯';
+      els.title.value = cfg.title || '';
+      els.sub.value = cfg.subtitle || '';
+      els.url.value = cfg.url || '';
+      els.expires.value = cfg.expiresAt ? new Date(cfg.expiresAt).toISOString().slice(0, 10) : '';
+      updatePreview();
+    }
+
+    function b64EncodeUnicode(str) {
+      return btoa(unescape(encodeURIComponent(str)));
+    }
+    function b64DecodeUnicode(str) {
+      return decodeURIComponent(escape(atob(str)));
+    }
+
+    document.getElementById('loadBtn').addEventListener('click', async () => {
+      saveSettings();
+      const token = els.ghToken.value.trim();
+      if (!els.ghOwner.value.trim() || !token) { setStatus('err', 'Fill in GitHub username and token first.'); return; }
+      setStatus('loading', 'Loading current config\u2026');
+      try {
+        const res = await fetch(`${apiUrl()}?ref=${encodeURIComponent(els.ghBranch.value.trim() || 'main')}`, {
+          headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' },
+        });
+        if (res.status === 404) {
+          setStatus('ok', 'No ad-config.json exists yet in the repo — fill in the form and hit Publish to create it.');
+          return;
+        }
+        if (!res.ok) { setStatus('err', `GitHub error ${res.status}: ${await res.text()}`); return; }
+        const data = await res.json();
+        const cfg = JSON.parse(b64DecodeUnicode(data.content.replace(/\n/g, '')));
+        applyConfigToForm(cfg);
+        setStatus('ok', 'Loaded the currently-live config.');
+      } catch (e) {
+        setStatus('err', 'Failed to load: ' + e.message);
+      }
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      applyConfigToForm({ active: false, icon: '🛍️', title: 'Check out our Telegram Shop', subtitle: 't.me/RwmShop', url: 'https://t.me/RwmShop', expiresAt: null });
+      setStatus('ok', 'Form reset to the Telegram Shop default (inactive custom ad). Hit Publish to push this live.');
+    });
+
+    document.getElementById('publishBtn').addEventListener('click', async () => {
+      saveSettings();
+      const token = els.ghToken.value.trim();
+      if (!els.ghOwner.value.trim() || !token) { setStatus('err', 'Fill in GitHub username and token first.'); return; }
+      if (els.active.checked && !/^https:\/\//i.test(els.url.value.trim())) {
+        setStatus('err', 'Link must start with https:// before you can publish an active ad.');
+        return;
+      }
+
+      setStatus('loading', 'Publishing\u2026');
+      try {
+        const branch = els.ghBranch.value.trim() || 'main';
+        // Need the current file's sha to update it (GitHub requires this to
+        // avoid accidentally overwriting someone else's newer change).
+        let sha;
+        const existing = await fetch(`${apiUrl()}?ref=${encodeURIComponent(branch)}`, {
+          headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' },
+        });
+        if (existing.ok) sha = (await existing.json()).sha;
+
+        const content = JSON.stringify(currentConfigObject(), null, 2);
+        const res = await fetch(apiUrl(), {
+          method: 'PUT',
+          headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Update promo banner (${new Date().toISOString()})`,
+            content: b64EncodeUnicode(content),
+            branch,
+            ...(sha ? { sha } : {}),
+          }),
+        });
+        if (!res.ok) { setStatus('err', `Publish failed (${res.status}): ${await res.text()}`); return; }
+        setStatus('ok', '✅ Published! Open the app and pull-to-refresh the Dashboard to see it live within seconds.');
+      } catch (e) {
+        setStatus('err', 'Failed to publish: ' + e.message);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1916,3 +1916,78 @@ body.swipe-active .topbar {
 }
 .whatsnew-row__icon { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
 .whatsnew-row__text { font-size: 13.5px; line-height: 1.45; color: var(--text); }
+
+/* --- Terms of Use gate --- */
+
+.terms-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+.terms-gate__header {
+  padding: 22px 22px 14px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.terms-gate__title { font-size: 20px; font-weight: 800; }
+.terms-gate__sub { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+.terms-gate__body {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0 16px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+}
+.terms-gate__footer {
+  flex-shrink: 0;
+  padding: 16px 20px calc(16px + var(--safe-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.terms-gate__check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+.terms-gate__check input { width: 19px; height: 19px; flex-shrink: 0; }
+.onboard-start-btn:disabled { opacity: 0.4; }
+
+/* --- Dashboard Telegram Shop promo banner --- */
+
+.shop-promo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, var(--surface)), color-mix(in srgb, var(--teal) 10%, var(--surface)));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius: var(--radius);
+}
+.shop-promo__icon { font-size: 22px; flex-shrink: 0; }
+.shop-promo__body { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.shop-promo__title { font-size: 13.5px; font-weight: 700; color: var(--text); }
+.shop-promo__sub { font-size: 12px; color: var(--text-dim); }
+.shop-promo__dismiss {
+  flex-shrink: 0;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  color: var(--text-faint);
+  font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+}

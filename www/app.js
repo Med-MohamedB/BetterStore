@@ -1106,7 +1106,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // every release — used by WhatsNew to detect "this device just updated"
 // without depending on the native App plugin (which isn't available on
 // every platform this runs on).
-const CURRENT_VERSION = '1.7.0';
+const CURRENT_VERSION = '1.7.1';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -1495,6 +1495,8 @@ async function renderDashboard(container) {
       </div>
     </div>
 
+    <div id="shopPromoSlot"></div>
+
     ${lowStock.length ? `
       <div class="section-title">Low Stock</div>
       <div class="list stagger">
@@ -1549,6 +1551,8 @@ async function renderDashboard(container) {
       </div>
     `}
   `;
+
+  if (window.ShopPromo) ShopPromo.renderInto(container.querySelector('#shopPromoSlot'));
 }
 
 function quickAction(route, icon, label) {
@@ -1604,6 +1608,14 @@ function renderMore(container) {
         </div>
         <div class="list-row__trailing text-faint">›</div>
       </div>
+      <div class="list-row tappable" id="viewTermsRow">
+        <div class="list-row__icon">📜</div>
+        <div class="list-row__body">
+          <div class="list-row__title">Terms of Use</div>
+          <div class="list-row__subtitle">What you agreed to when you started using the app</div>
+        </div>
+        <div class="list-row__trailing text-faint">›</div>
+      </div>
       ${items.map(([route, icon, title, subtitle]) => `
         <a class="list-row tappable" href="#${route}">
           <div class="list-row__icon">${icon}</div>
@@ -1620,6 +1632,9 @@ function renderMore(container) {
   container.querySelector('#aboutAppRow').addEventListener('click', openAboutSheet);
   container.querySelector('#replayTourRow').addEventListener('click', () => {
     if (window.Onboarding) Onboarding.replay();
+  });
+  container.querySelector('#viewTermsRow').addEventListener('click', () => {
+    if (window.Terms) Terms.show();
   });
   getAppVersionLabel().then((label) => {
     const el = container.querySelector('#moreVersionFooter');
@@ -1741,6 +1756,8 @@ window.showDiagnostics = showDiagnostics;
   await DB.openDB();
   await applyTheme();
   await Fmt.init();
+
+  if (window.Terms) await Terms.requireAcceptance();
 
   // Reflect the store's own logo in the browser tab / "add to home screen"
   // icon prompt where the platform allows updating it after page load.

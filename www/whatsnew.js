@@ -17,6 +17,8 @@ const WhatsNew = (() => {
     { icon: '\u21a9\ufe0f', text: 'Partial refunds \u2014 pick exactly which items, and how many, to return.' },
     { icon: '\ud83d\udcbe', text: 'Fixed backup export crashing on newer Android versions.' },
     { icon: '\u2728', text: 'A friendlier first-run tour and noticeably smoother motion everywhere.' },
+    { icon: '📜', text: 'Added Terms of Use \u2014 readable any time from More.' },
+    { icon: '🛍️', text: 'A quick link to our Telegram Shop right on your Dashboard.' },
   ];
 
   function markSeen() {

@@ -741,26 +741,26 @@ main#view {
 /* --- View / route transitions --- */
 
 #view.view-enter {
-  animation: viewIn var(--dur-slow) var(--ease-out) both;
+  animation: viewIn 320ms var(--ease-spring) both;
 }
 @keyframes viewIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 #view.view-enter-left {
-  animation: viewInLeft 190ms var(--ease-out) both;
+  animation: viewInLeft 320ms var(--ease-spring) both;
 }
 #view.view-enter-right {
-  animation: viewInRight 190ms var(--ease-out) both;
+  animation: viewInRight 320ms var(--ease-spring) both;
 }
 @keyframes viewInLeft {
-  from { transform: translate3d(100%, 0, 0); }
-  to   { transform: translate3d(0, 0, 0); }
+  from { opacity: 0; transform: translate3d(60%, 0, 0) scale(0.97); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 @keyframes viewInRight {
-  from { transform: translate3d(-100%, 0, 0); }
-  to   { transform: translate3d(0, 0, 0); }
+  from { opacity: 0; transform: translate3d(-60%, 0, 0) scale(0.97); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 
 .stagger > * {
@@ -904,10 +904,10 @@ main#view {
   display: flex;
   flex-direction: column;
   transform: translateY(100%);
-  transition: transform var(--dur-slow) var(--ease-out);
+  transition: transform 240ms cubic-bezier(0.32, 0, 0.67, 0);
   padding-bottom: var(--safe-bottom);
 }
-.sheet.open { transform: translateY(0); }
+.sheet.open { transform: translateY(0); transition: transform 460ms var(--ease-spring); }
 .sheet.dragging { transition: none; }
 
 .sheet__handle {
@@ -1897,3 +1897,22 @@ body.swipe-active .topbar {
   border-radius: 2px;
   pointer-events: none;
 }
+
+/* --- What's New changelog --- */
+
+.whatsnew-card { width: min(360px, 100%); text-align: center; }
+.whatsnew-list {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+.whatsnew-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.whatsnew-row__icon { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
+.whatsnew-row__text { font-size: 13.5px; line-height: 1.45; color: var(--text); }

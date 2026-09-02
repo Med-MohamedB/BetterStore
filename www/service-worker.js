@@ -10,7 +10,7 @@
  * Android will keep serving the old version from cache.
  */
 
-const CACHE_NAME = 'store-app-shell-v21';
+const CACHE_NAME = 'store-app-shell-v22';
 
 const APP_SHELL_FILES = [
   './',
@@ -31,6 +31,8 @@ const APP_SHELL_FILES = [
   './backup.js',
   './settings.js',
   './onboarding.js',
+  './whatsnew.js',
+  './donate.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',

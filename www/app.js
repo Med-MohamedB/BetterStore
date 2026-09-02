@@ -1100,8 +1100,14 @@ window.copyToClipboard = copyToClipboard;
 /* Bump this alongside versionName/versionCode in android/app/build.gradle
    every time a new build goes out — there's no native "build date" field
    to read this from automatically, so it's tracked by hand here. */
-const APP_BUILD_DATE = '2026-08-30';
+const APP_BUILD_DATE = '2026-09-02';
 window.APP_BUILD_DATE = APP_BUILD_DATE;
+// Kept in sync by hand with android/app/build.gradle's versionName on
+// every release — used by WhatsNew to detect "this device just updated"
+// without depending on the native App plugin (which isn't available on
+// every platform this runs on).
+const CURRENT_VERSION = '1.7.0';
+window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
    @capacitor/app — not a hand-maintained JS string that can drift out of
@@ -1130,9 +1136,15 @@ function updateCartBadge(count) {
   const fab = document.querySelector('.nav-item--fab');
   if (!badge || !fab) return;
   if (count > 0) {
+    const wasVisible = badge.classList.contains('show');
     badge.textContent = count > 99 ? '99+' : String(count);
     badge.classList.add('show');
     fab.classList.add('has-items');
+    // The badge already pops in via CSS the first time it appears
+    // (display:none -> flex retriggers its animation); this covers every
+    // *subsequent* quantity change too, so each add-to-cart still gets a
+    // little tick of feedback instead of only the very first item.
+    if (wasVisible) Fx.animate(badge, { scale: [1, 1.35, 1] }, { type: 'spring', stiffness: 500, damping: 12 });
   } else {
     badge.classList.remove('show');
     fab.classList.remove('has-items');
@@ -1270,6 +1282,9 @@ function initPullToRefresh() {
     if (pageScrollTop() > 0) return;
     startY = e.touches[0].clientY;
     dy = 0; tracking = true; armed = false;
+    // No transition while actively dragging — the spinner should track
+    // the finger with zero lag. The spring only kicks in on release.
+    spinner.style.transition = 'none';
   }, { passive: true });
 
   view.addEventListener('touchmove', (e) => {
@@ -1293,6 +1308,7 @@ function initPullToRefresh() {
   view.addEventListener('touchend', async () => {
     if (!tracking) return;
     tracking = false;
+    spinner.style.transition = 'transform 340ms var(--ease-spring), opacity 180ms ease-out';
     if (armed) {
       if (navigator.vibrate) navigator.vibrate(15);
       spinner.classList.add('spin');
@@ -1315,6 +1331,7 @@ function initPullToRefresh() {
     tracking = false;
     armed = false;
     spinner.classList.remove('spin');
+    spinner.style.transition = 'transform 260ms var(--ease-spring), opacity 180ms ease-out';
     spinner.style.opacity = '0';
     spinner.style.transform = 'translateY(-50px)';
   });
@@ -1746,7 +1763,29 @@ window.showDiagnostics = showDiagnostics;
   initTabSwipeGesture();
   initPullToRefresh();
 
-  if (window.Onboarding) Onboarding.maybeStart();
+  // Onboarding is for a genuinely empty, fresh install only — gating on
+  // the flag alone would wrongly trigger it for an existing user who's
+  // upgrading straight into this version (their flag was never set,
+  // simply because this feature didn't exist yet, but they already have
+  // real data). Existing users get the What's New changelog instead, and
+  // never lose anything — this whole block only ever reads/writes a
+  // couple of localStorage flags, never touches IndexedDB.
+  try {
+    const hasData = (await DB.count('products')) > 0 || (await DB.count('sales')) > 0;
+    const seenOnboarding = localStorage.getItem('sa_onboarding_complete');
+
+    if (!seenOnboarding && !hasData) {
+      if (window.Onboarding) Onboarding.maybeStart();
+    } else {
+      if (!seenOnboarding) localStorage.setItem('sa_onboarding_complete', '1');
+      const shownWhatsNew = window.WhatsNew ? WhatsNew.maybeShow() : false;
+      if (!shownWhatsNew && window.Donate) {
+        setTimeout(() => Donate.maybeShow(), 1400);
+      }
+    }
+  } catch (e) {
+    console.warn('Onboarding/What\u2019s New check failed:', e);
+  }
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

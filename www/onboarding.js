@@ -67,6 +67,10 @@ const Onboarding = (() => {
     if (tourTapHandler) { document.removeEventListener('click', tourTapHandler, true); tourTapHandler = null; }
     spotlightEl = ringEl = captionEl = null;
     markSeen();
+    // A fresh install that just finished onboarding is already on the
+    // latest version by definition — don't also pop the changelog right
+    // behind it.
+    if (window.WhatsNew) WhatsNew.markSeen();
     animate(el, { opacity: [1, 0] }, { duration: 0.2 }).finished.then(() => el.remove());
   }
 

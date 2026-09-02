@@ -88,6 +88,15 @@ const Router = (() => {
 
     compactifyNumbers(view);
     applyEnterAnimation(view);
+
+    // Business-data screens only — never on the app-management ones
+    // (More/Settings/About), since a promo there would feel like it's
+    // advertising the app to its own owner rather than helping them run
+    // their shop.
+    const SPOTLIGHT_ROUTES = ['dashboard', 'products', 'pos', 'sales', 'suppliers', 'inventory', 'customers', 'reports'];
+    if (window.ShopPromo && SPOTLIGHT_ROUTES.includes(name)) {
+      ShopPromo.mountTop(view);
+    }
   }
 
   function computeDirection(fromRoute, toRoute) {
@@ -1106,7 +1115,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // every release — used by WhatsNew to detect "this device just updated"
 // without depending on the native App plugin (which isn't available on
 // every platform this runs on).
-const CURRENT_VERSION = '1.7.1';
+const CURRENT_VERSION = '1.7.2';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -1314,6 +1323,7 @@ function initPullToRefresh() {
       spinner.classList.add('spin');
       spinner.style.opacity = '1';
       spinner.style.transform = 'translateY(6px)';
+      if (window.ShopPromo) ShopPromo.invalidateCache();
       await Router.refresh();
       await new Promise((r) => setTimeout(r, 280));
       spinner.classList.remove('spin');
@@ -1495,8 +1505,6 @@ async function renderDashboard(container) {
       </div>
     </div>
 
-    <div id="shopPromoSlot"></div>
-
     ${lowStock.length ? `
       <div class="section-title">Low Stock</div>
       <div class="list stagger">
@@ -1551,8 +1559,6 @@ async function renderDashboard(container) {
       </div>
     `}
   `;
-
-  if (window.ShopPromo) ShopPromo.renderInto(container.querySelector('#shopPromoSlot'));
 }
 
 function quickAction(route, icon, label) {

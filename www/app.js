@@ -1115,7 +1115,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // every release — used by WhatsNew to detect "this device just updated"
 // without depending on the native App plugin (which isn't available on
 // every platform this runs on).
-const CURRENT_VERSION = '1.7.2';
+const CURRENT_VERSION = '1.7.3';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via

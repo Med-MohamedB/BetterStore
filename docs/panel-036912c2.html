@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
 <title>Better Store — Promo Control Panel</title>
 <style>
   :root {
@@ -65,17 +66,33 @@
   /* --- live preview, mirrors .feature-spotlight in the real app --- */
   .preview-frame { background: #29262B; border-radius: var(--radius); padding: 16px 10px; }
   .feature-spotlight {
-    display: flex; align-items: center; gap: 12px; padding: 12px 14px;
-    background: linear-gradient(135deg, rgba(172,95,219,0.22), rgba(227,162,238,0.14));
-    border: 1px solid rgba(172,95,219,0.4); border-radius: 18px;
+    position: relative; display: flex; align-items: center; gap: 13px; padding: 13px 14px;
+    overflow: hidden;
+    background:
+      linear-gradient(#2e2830, #2e2830) padding-box,
+      linear-gradient(120deg, #AC5FDB, #E3A2EE, #8A7AE0) border-box;
+    border: 1.5px solid transparent; border-radius: 18px;
+    box-shadow: 0 6px 18px -8px rgba(172,95,219,0.45);
   }
-  .feature-spotlight__icon { font-size: 22px; flex-shrink: 0; }
-  .feature-spotlight__body { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-  .feature-spotlight__title { font-size: 13.5px; font-weight: 700; color: #F3E9F7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .feature-spotlight__sheen {
+    position: absolute; inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(227,162,238,0.35) 45%, transparent 60%);
+    background-size: 250% 250%; animation: spotlightSheen 5s ease-in-out infinite; pointer-events: none;
+  }
+  @keyframes spotlightSheen { 0%, 100% { background-position: 120% 0%; } 50% { background-position: -20% 100%; } }
+  .feature-spotlight__media {
+    position: relative; z-index: 1; flex-shrink: 0; width: 42px; height: 42px; border-radius: 13px;
+    overflow: hidden; display: flex; align-items: center; justify-content: center;
+    font-size: 21px; background: linear-gradient(135deg, rgba(172,95,219,0.3), rgba(227,162,238,0.22));
+  }
+  .feature-spotlight__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .feature-spotlight__body { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .feature-spotlight__title { font-size: 14px; font-weight: 800; color: #F3E9F7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .feature-spotlight__sub { font-size: 12px; color: #B8A3C2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .feature-spotlight__chevron { position: relative; z-index: 1; font-size: 20px; font-weight: 700; color: #7E6D89; margin-right: 2px; }
   .feature-spotlight__dismiss {
-    flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
-    background: rgba(0,0,0,0.2); color: #B8A3C2; font-size: 12px;
+    position: relative; z-index: 1; flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+    background: rgba(0,0,0,0.25); color: #B8A3C2; font-size: 11px;
     display: flex; align-items: center; justify-content: center;
   }
   details summary { cursor: pointer; font-size: 12.5px; color: var(--text-dim); }
@@ -87,16 +104,19 @@
 
   <h1>🎯 Promo Control Panel</h1>
   <div class="sub">Edit the banner shown in Better Store. Publishing pushes straight to your GitHub repo — no app update needed.</div>
+  <div class="hint" style="margin-bottom:18px;">🔒 This page holds no secrets of its own — your token lives only in this browser's local storage. Anyone who stumbles on this URL sees an empty form and can't publish anything without it.</div>
 
   <div class="card">
     <h2>Live Preview</h2>
     <div class="preview-frame">
       <a href="#" class="feature-spotlight" id="previewCard" style="text-decoration:none;">
-        <span class="feature-spotlight__icon" id="pIcon">🎯</span>
+        <span class="feature-spotlight__sheen"></span>
+        <span class="feature-spotlight__media" id="pMedia">🎯</span>
         <span class="feature-spotlight__body">
           <span class="feature-spotlight__title" id="pTitle">Title goes here</span>
           <span class="feature-spotlight__sub" id="pSub">Subtitle goes here</span>
         </span>
+        <span class="feature-spotlight__chevron">›</span>
         <span class="feature-spotlight__dismiss">✕</span>
       </a>
     </div>
@@ -111,8 +131,12 @@
       <input type="checkbox" id="fActive" checked>
     </div>
 
-    <label for="fIcon">Icon (one emoji)</label>
+    <label for="fIcon">Icon (one emoji — used if no image below)</label>
     <input type="text" id="fIcon" maxlength="8" value="🎯" placeholder="🎯">
+
+    <label for="fImage">Image URL (optional, overrides the icon)</label>
+    <input type="url" id="fImage" placeholder="https://example.com/pic.png">
+    <div class="hint">Square-ish images look best — it's shown in a 42×42 rounded chip. Must start with https://. Leave blank to just use the emoji.</div>
 
     <label for="fTitle">Title</label>
     <input type="text" id="fTitle" maxlength="80" placeholder="Short, punchy title">
@@ -169,6 +193,7 @@
     const els = {
       active: document.getElementById('fActive'),
       icon: document.getElementById('fIcon'),
+      image: document.getElementById('fImage'),
       title: document.getElementById('fTitle'),
       sub: document.getElementById('fSub'),
       url: document.getElementById('fUrl'),
@@ -206,7 +231,13 @@
 
     // --- live preview ---
     function updatePreview() {
-      document.getElementById('pIcon').textContent = els.icon.value || '🎯';
+      const media = document.getElementById('pMedia');
+      const imgUrl = els.image.value.trim();
+      if (imgUrl && /^https:\/\//i.test(imgUrl)) {
+        media.innerHTML = `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.parentElement.textContent='${(els.icon.value || '🎯').replace(/'/g, "\\'")}'">`;
+      } else {
+        media.textContent = els.icon.value || '🎯';
+      }
       document.getElementById('pTitle').textContent = els.title.value || 'Title goes here';
       document.getElementById('pSub').textContent = els.sub.value || 'Subtitle goes here';
       const note = document.getElementById('previewNote');
@@ -216,6 +247,8 @@
         note.textContent = '⚠️ This expiry date is in the past — the app will already be showing the default Telegram Shop card.';
       } else if (els.url.value && !/^https:\/\//i.test(els.url.value)) {
         note.textContent = '⚠️ Link must start with https:// or the app will ignore it (the card just won\u2019t be tappable).';
+      } else if (imgUrl && !/^https:\/\//i.test(imgUrl)) {
+        note.textContent = '⚠️ Image URL must start with https:// or the app will ignore it and use the emoji instead.';
       } else {
         note.textContent = '';
       }
@@ -240,6 +273,7 @@
       return {
         active: els.active.checked,
         icon: els.icon.value.trim() || '🎯',
+        image: els.image.value.trim() || null,
         title: els.title.value.trim(),
         subtitle: els.sub.value.trim(),
         url: els.url.value.trim(),
@@ -250,6 +284,7 @@
     function applyConfigToForm(cfg) {
       els.active.checked = cfg.active !== false;
       els.icon.value = cfg.icon || '🎯';
+      els.image.value = cfg.image || '';
       els.title.value = cfg.title || '';
       els.sub.value = cfg.subtitle || '';
       els.url.value = cfg.url || '';
@@ -288,7 +323,7 @@
     });
 
     document.getElementById('resetBtn').addEventListener('click', () => {
-      applyConfigToForm({ active: false, icon: '🛍️', title: 'Check out our Telegram Shop', subtitle: 't.me/RwmShop', url: 'https://t.me/RwmShop', expiresAt: null });
+      applyConfigToForm({ active: false, icon: '🛍️', image: null, title: 'Check out our Telegram Shop', subtitle: 't.me/RwmShop', url: 'https://t.me/RwmShop', expiresAt: null });
       setStatus('ok', 'Form reset to the Telegram Shop default (inactive custom ad). Hit Publish to push this live.');
     });
 

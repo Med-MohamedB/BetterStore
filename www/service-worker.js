@@ -10,7 +10,7 @@
  * Android will keep serving the old version from cache.
  */
 
-const CACHE_NAME = 'store-app-shell-v24';
+const CACHE_NAME = 'store-app-shell-v25';
 
 const APP_SHELL_FILES = [
   './',

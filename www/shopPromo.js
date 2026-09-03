@@ -2,54 +2,49 @@
    ShopPromo — a small "spotlight" card shown at the top of every
    business-data screen (see the SPOTLIGHT_ROUTES allowlist in app.js's
    Router.renderCurrent). Its content is fetched at runtime from a JSON
-   file the developer controls, so it can be changed any time WITHOUT an
-   app update — no rebuild, no re-publish, no user action needed.
+   file at AD_CONFIG_URL, so it can be changed any time WITHOUT an app
+   update — edit it via the control panel (docs/panel-036912c2.html),
+   publish, then pull-to-refresh the Dashboard to see it live in seconds.
 
-   HOW TO USE THIS:
-   1. Set AD_CONFIG_URL below to a raw HTTPS URL you control (e.g. a file
-      in your own GitHub repo, served via raw.githubusercontent.com).
-   2. Add a file there with this shape:
-        {
-          "active": true,
-          "icon": "🎯",
-          "title": "Short punchy title",
-          "subtitle": "One short line",
-          "url": "https://example.com",
-          "expiresAt": null
-        }
-      Set "active": false (or just delete the file) to fall back to the
-      default Telegram Shop card automatically.
-   3. To "preview" a change: push it, then pull-to-refresh the Dashboard
-      in the app — that forces a fresh fetch (bypassing any cache) so you
-      see exactly what users will see, in seconds.
+   ad-config.json shape:
+     {
+       "active": true,
+       "icon": "🎯",
+       "image": "https://.../pic.png",   // optional — takes priority over icon when present
+       "title": "Short punchy title",
+       "subtitle": "One short line",
+       "url": "https://example.com",
+       "expiresAt": null
+     }
+   Set "active": false (or delete the file) to fall back to the default
+   Telegram Shop card automatically.
 
-   SECURITY MODEL — this matters, read it before changing it:
+   SECURITY MODEL:
    - The remote JSON is treated as plain DATA ONLY. Every text field is
      escaped (escapeHTML) before it ever touches innerHTML — it can never
      inject HTML or run script, even if the hosting source were somehow
      compromised.
-   - "url" is only ever used as a navigation target, and only if it starts
-     with "https://" — never eval'd, never rendered as a raw href string.
-   - There is no way for anyone to comment, reply, or otherwise interact
-     with this beyond tapping it or dismissing it.
-   - Access control is just "who can push to your repo" — the same access
-     control you already trust for the app's source code.
-   - No ad-network domains, no ad-network-shaped markup (no class/id with
-     "ad", "banner", "sponsor" in it) — this is indistinguishable from any
-     other first-party content to both domain-based and cosmetic-filter
+   - "url" and "image" are only ever used where a URL is expected (a nav
+     target / an <img src>), and only if they start with "https://" —
+     never eval'd, never built into a raw HTML string.
+   - No comment/reply mechanism of any kind — tap or dismiss, that's it.
+   - Access control is just "who can push to the repo" — same trust
+     boundary as the app's source code itself.
+   - No ad-network domains, no ad-network-shaped markup (no "ad",
+     "banner", "sponsor" in any class/id) — indistinguishable from any
+     other first-party content to both domain- and cosmetic-filter
      ad blockers.
    ========================================================================== */
 
 const ShopPromo = (() => {
-  // TODO: point this at a raw JSON file in a repo you control, e.g.
-  // 'https://raw.githubusercontent.com/<your-username>/BetterStore/main/ad-config.json'
-  const AD_CONFIG_URL = '';
+  const AD_CONFIG_URL = 'https://raw.githubusercontent.com/med-mohamedb/BetterStore/main/ad-config.json';
 
   const CACHE_KEY = 'sa_spotlight_cache';
   const DISMISS_KEY = 'sa_spotlight_dismissed_session';
 
   const DEFAULT_CONFIG = {
     icon: '🛍️',
+    image: null,
     title: 'Check out our Telegram Shop',
     subtitle: 't.me/RwmShop',
     url: 'https://t.me/RwmShop',
@@ -74,7 +69,7 @@ const ShopPromo = (() => {
   }
 
   async function fetchRemote() {
-    if (!AD_CONFIG_URL) return null; // not configured yet — silently use the default
+    if (!AD_CONFIG_URL) return null;
     try {
       const res = await fetch(`${AD_CONFIG_URL}?t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) return null;
@@ -92,6 +87,7 @@ const ShopPromo = (() => {
     if (remote && remote.active && !expired) {
       return {
         icon: (typeof remote.icon === 'string' && remote.icon.trim()) ? remote.icon.slice(0, 8) : '🎯',
+        image: isSafeUrl(remote.image) ? remote.image : null,
         title: typeof remote.title === 'string' ? remote.title.slice(0, 80) : '',
         subtitle: typeof remote.subtitle === 'string' ? remote.subtitle.slice(0, 120) : '',
         url: isSafeUrl(remote.url) ? remote.url : null,
@@ -142,22 +138,41 @@ const ShopPromo = (() => {
   }
 
   function renderCard(slot, config) {
+    const mediaHTML = config.image
+      ? `<span class="feature-spotlight__media"><img src="${config.image}" alt="" referrerpolicy="no-referrer" loading="lazy"></span>`
+      : `<span class="feature-spotlight__media feature-spotlight__media--emoji">${escapeHTML(config.icon)}</span>`;
+
     slot.innerHTML = `
       <a href="#" class="feature-spotlight tappable">
-        <span class="feature-spotlight__icon">${escapeHTML(config.icon)}</span>
+        <span class="feature-spotlight__sheen"></span>
+        ${mediaHTML}
         <span class="feature-spotlight__body">
           <span class="feature-spotlight__title">${escapeHTML(config.title)}</span>
           <span class="feature-spotlight__sub">${escapeHTML(config.subtitle)}</span>
         </span>
+        <span class="feature-spotlight__chevron">›</span>
         <button class="feature-spotlight__dismiss tappable" aria-label="Dismiss">✕</button>
       </a>
     `;
     const card = slot.querySelector('.feature-spotlight');
-    if (window.Fx) Fx.animate(card, { opacity: [0, 1], y: [-8, 0] }, { type: 'spring', stiffness: 300, damping: 22 });
+
+    // If a custom image fails to load (bad URL, host went down, etc.),
+    // fall back to the emoji icon rather than showing a broken-image box.
+    const img = card.querySelector('.feature-spotlight__media img');
+    if (img) {
+      img.addEventListener('error', () => {
+        const media = card.querySelector('.feature-spotlight__media');
+        media.classList.add('feature-spotlight__media--emoji');
+        media.innerHTML = escapeHTML(config.icon);
+      });
+    }
+
+    if (window.Fx) Fx.animate(card, { opacity: [0, 1], y: [-10, 0], scale: [0.97, 1] }, { type: 'spring', stiffness: 320, damping: 24 });
 
     card.addEventListener('click', (e) => {
       e.preventDefault();
       if (e.target.closest('.feature-spotlight__dismiss')) return;
+      if (window.Fx) Fx.animate(card, { scale: [1, 0.97, 1] }, { duration: 0.22 });
       if (config.url && window.openExternal) openExternal(config.url);
     });
 

@@ -15,89 +15,85 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--text);
-    padding: 20px 16px 60px; max-width: 480px; margin: 0 auto;
-  }
+  body { margin: 0; background: var(--bg); color: var(--text); padding: 20px 16px 60px; max-width: 480px; margin: 0 auto; }
   h1 { font-size: 19px; margin: 4px 0 2px; }
-  .sub { color: var(--text-dim); font-size: 12.5px; margin-bottom: 22px; }
-  .card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
-  }
+  .sub { color: var(--text-dim); font-size: 12.5px; margin-bottom: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
   .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); margin: 0 0 12px; }
   label { display: block; font-size: 12.5px; color: var(--text-dim); margin: 12px 0 5px; }
   label:first-of-type { margin-top: 0; }
-  input[type="text"], input[type="url"], input[type="date"], textarea {
+  input[type="text"], input[type="url"], input[type="date"], textarea, select {
     width: 100%; padding: 10px 12px; border-radius: var(--radius-sm);
     border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
     font-size: 14px; font-family: inherit;
   }
+  input[type="text"][readonly] { color: var(--text-faint); font-size: 11.5px; }
   input[type="password"] { width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-size: 14px; font-family: monospace; }
-  textarea { resize: vertical; min-height: 50px; }
+  input[type="color"] { width: 100%; height: 40px; padding: 3px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  textarea { resize: vertical; min-height: 46px; }
   .row { display: flex; gap: 10px; }
   .row > div { flex: 1; }
   .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
   .toggle-row label { margin: 0; color: var(--text); font-size: 14px; }
   input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
-  button {
-    cursor: pointer; border: none; font-family: inherit; font-weight: 700; font-size: 14px;
-  }
-  .btn-primary {
-    width: 100%; padding: 13px; border-radius: var(--radius-sm);
-    background: linear-gradient(135deg, var(--teal), var(--accent)); color: var(--accent-ink);
-    margin-top: 4px;
-  }
-  .btn-secondary {
-    width: 100%; padding: 11px; border-radius: var(--radius-sm);
-    background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
-    margin-top: 8px; font-size: 13px;
-  }
+  button { cursor: pointer; border: none; font-family: inherit; font-weight: 700; font-size: 14px; }
+  .btn-primary { width: 100%; padding: 13px; border-radius: var(--radius-sm); background: linear-gradient(135deg, var(--teal), var(--accent)); color: var(--accent-ink); margin-top: 4px; }
+  .btn-secondary { padding: 10px 14px; border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text); border: 1px solid var(--border); font-size: 12.5px; white-space: nowrap; }
   .btn-row { display: flex; gap: 8px; }
   .btn-row button { flex: 1; }
-  #status {
-    margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-sm);
-    font-size: 12.5px; display: none; white-space: pre-wrap; word-break: break-word;
-  }
+  .upload-row { display: flex; gap: 8px; align-items: stretch; }
+  .upload-row input { flex: 1; min-width: 0; }
+  #status { margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 12.5px; display: none; white-space: pre-wrap; word-break: break-word; }
   #status.ok { display: block; background: rgba(111,207,151,0.12); color: var(--success); border: 1px solid rgba(111,207,151,0.3); }
   #status.err { display: block; background: rgba(217,82,122,0.12); color: var(--danger); border: 1px solid rgba(217,82,122,0.3); }
   #status.loading { display: block; background: var(--surface-2); color: var(--text-dim); }
+  details summary { cursor: pointer; font-size: 12.5px; color: var(--text-dim); }
+  .hint { font-size: 11px; color: var(--text-faint); margin-top: 4px; line-height: 1.5; }
+  a.linklike { color: var(--teal); }
 
-  /* --- live preview, mirrors .feature-spotlight in the real app --- */
+  /* --- style toggle --- */
+  .seg { display: flex; background: var(--surface-2); border-radius: 999px; padding: 3px; }
+  .seg__btn { flex: 1; padding: 9px; border-radius: 999px; background: transparent; color: var(--text-dim); font-size: 13px; }
+  .seg__btn.active { background: var(--accent); color: var(--accent-ink); }
+
+  /* --- compact preview (mirrors .feature-spotlight in app) --- */
   .preview-frame { background: #29262B; border-radius: var(--radius); padding: 16px 10px; }
   .feature-spotlight {
-    position: relative; display: flex; align-items: center; gap: 13px; padding: 13px 14px;
-    overflow: hidden;
-    background:
-      linear-gradient(#2e2830, #2e2830) padding-box,
-      linear-gradient(120deg, #AC5FDB, #E3A2EE, #8A7AE0) border-box;
-    border: 1.5px solid transparent; border-radius: 18px;
-    box-shadow: 0 6px 18px -8px rgba(172,95,219,0.45);
+    position: relative; display: flex; align-items: center; gap: 13px; padding: 13px 14px; overflow: hidden;
+    background: linear-gradient(#2e2830, #2e2830) padding-box, linear-gradient(120deg, #AC5FDB, #E3A2EE, #8A7AE0) border-box;
+    border: 1.5px solid transparent; border-radius: 18px; box-shadow: 0 6px 18px -8px rgba(172,95,219,0.45);
+    text-decoration: none;
   }
-  .feature-spotlight__sheen {
-    position: absolute; inset: 0;
-    background: linear-gradient(115deg, transparent 30%, rgba(227,162,238,0.35) 45%, transparent 60%);
-    background-size: 250% 250%; animation: spotlightSheen 5s ease-in-out infinite; pointer-events: none;
-  }
-  @keyframes spotlightSheen { 0%, 100% { background-position: 120% 0%; } 50% { background-position: -20% 100%; } }
-  .feature-spotlight__media {
-    position: relative; z-index: 1; flex-shrink: 0; width: 42px; height: 42px; border-radius: 13px;
-    overflow: hidden; display: flex; align-items: center; justify-content: center;
-    font-size: 21px; background: linear-gradient(135deg, rgba(172,95,219,0.3), rgba(227,162,238,0.22));
-  }
+  .feature-spotlight__media { position: relative; z-index: 1; flex-shrink: 0; width: 42px; height: 42px; border-radius: 13px; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 21px; background: linear-gradient(135deg, rgba(172,95,219,0.3), rgba(227,162,238,0.22)); }
   .feature-spotlight__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .feature-spotlight__body { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; min-width: 0; }
   .feature-spotlight__title { font-size: 14px; font-weight: 800; color: #F3E9F7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .feature-spotlight__sub { font-size: 12px; color: #B8A3C2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .feature-spotlight__chevron { position: relative; z-index: 1; font-size: 20px; font-weight: 700; color: #7E6D89; margin-right: 2px; }
-  .feature-spotlight__dismiss {
-    position: relative; z-index: 1; flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
-    background: rgba(0,0,0,0.25); color: #B8A3C2; font-size: 11px;
-    display: flex; align-items: center; justify-content: center;
+  .feature-spotlight__dismiss { position: relative; z-index: 1; flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; background: rgba(0,0,0,0.25); color: #B8A3C2; font-size: 11px; display: flex; align-items: center; justify-content: center; }
+
+  /* --- hero canvas (live preview + drag editor) --- */
+  .hero-canvas-frame { background: #29262B; border-radius: var(--radius); padding: 14px 10px; }
+  .hero-canvas {
+    position: relative; width: 100%; border-radius: 18px; overflow: hidden;
+    touch-action: none; user-select: none; -webkit-user-select: none;
   }
-  details summary { cursor: pointer; font-size: 12.5px; color: var(--text-dim); }
-  .hint { font-size: 11px; color: var(--text-faint); margin-top: 4px; line-height: 1.5; }
-  a { color: var(--teal); }
+  .hero-canvas__pattern { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .hero-canvas__drag { position: absolute; cursor: grab; touch-action: none; }
+  .hero-canvas__drag:active { cursor: grabbing; }
+  .hero-canvas__drag.hc-illu { pointer-events: auto; }
+  .hero-canvas__drag.hc-illu img { display: block; height: auto; pointer-events: none; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.35)); }
+  .hero-canvas__drag.hc-title, .hero-canvas__drag.hc-sub {
+    pointer-events: auto; right: 12px; font-weight: 800; white-space: pre-line; line-height: 1.25;
+    outline: 1px dashed rgba(255,255,255,0.3); outline-offset: 4px; padding: 2px 4px;
+  }
+  .hero-canvas__drag.hc-btn {
+    pointer-events: auto; display: inline-flex; align-items: center; gap: 4px;
+    padding: 9px 16px; border-radius: 999px; font-size: 13px; font-weight: 700;
+    white-space: nowrap; box-shadow: 0 6px 16px -4px rgba(0,0,0,0.35);
+  }
+  .hero-canvas__dismiss { position: absolute; top: 12px; right: 12px; width: 24px; height: 24px; border-radius: 50%; background: rgba(0,0,0,0.25); color: rgba(255,255,255,0.85); font-size: 11px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -107,49 +103,154 @@
   <div class="hint" style="margin-bottom:18px;">🔒 This page holds no secrets of its own — your token lives only in this browser's local storage. Anyone who stumbles on this URL sees an empty form and can't publish anything without it.</div>
 
   <div class="card">
-    <h2>Live Preview</h2>
-    <div class="preview-frame">
-      <a href="#" class="feature-spotlight" id="previewCard" style="text-decoration:none;">
-        <span class="feature-spotlight__sheen"></span>
-        <span class="feature-spotlight__media" id="pMedia">🎯</span>
-        <span class="feature-spotlight__body">
-          <span class="feature-spotlight__title" id="pTitle">Title goes here</span>
-          <span class="feature-spotlight__sub" id="pSub">Subtitle goes here</span>
-        </span>
-        <span class="feature-spotlight__chevron">›</span>
-        <span class="feature-spotlight__dismiss">✕</span>
-      </a>
+    <h2>Banner Style</h2>
+    <div class="seg">
+      <button class="seg__btn active" id="styleSimpleBtn">Simple</button>
+      <button class="seg__btn" id="styleCustomBtn">Custom</button>
     </div>
-    <div class="hint" id="previewNote"></div>
+    <div class="hint">Simple: the small icon + text card. Custom: a full designed hero banner — your own background, colors, fonts, and freely-positioned image/text/button.</div>
   </div>
 
-  <div class="card">
-    <h2>Ad Content</h2>
+  <!-- ============================= SIMPLE ============================= -->
+  <div id="simpleSection">
+    <div class="card">
+      <h2>Live Preview</h2>
+      <div class="preview-frame">
+        <a href="#" class="feature-spotlight" id="previewCard" style="text-decoration:none;">
+          <span class="feature-spotlight__media" id="pMedia">🎯</span>
+          <span class="feature-spotlight__body">
+            <span class="feature-spotlight__title" id="pTitle">Title goes here</span>
+            <span class="feature-spotlight__sub" id="pSub">Subtitle goes here</span>
+          </span>
+          <span class="feature-spotlight__chevron">›</span>
+          <span class="feature-spotlight__dismiss">✕</span>
+        </a>
+      </div>
+    </div>
 
+    <div class="card">
+      <h2>Content</h2>
+      <label for="fIcon">Icon (one emoji — used if no image below)</label>
+      <input type="text" id="fIcon" maxlength="8" value="🎯">
+
+      <label for="fImage">Image (optional, overrides the icon)</label>
+      <div class="upload-row">
+        <input type="text" id="fImage" readonly placeholder="No image uploaded">
+        <button class="btn-secondary" data-upload-target="fImage" data-upload-btn>📤 Upload</button>
+      </div>
+      <div class="hint">Square-ish images look best — shown in a 42×42 rounded chip.</div>
+
+      <label for="fTitle">Title</label>
+      <input type="text" id="fTitle" maxlength="80" placeholder="Short, punchy title">
+
+      <label for="fSub">Subtitle</label>
+      <input type="text" id="fSub" maxlength="120" placeholder="One short line">
+    </div>
+  </div>
+
+  <!-- ============================= CUSTOM ============================= -->
+  <div id="customSection" style="display:none;">
+    <div class="card">
+      <h2>Live Preview — drag to reposition</h2>
+      <div class="hero-canvas-frame">
+        <div class="hero-canvas" id="heroCanvas"></div>
+      </div>
+      <div class="hint">Drag the illustration, title, subtitle, and button directly above. Everything else (colors, text, fonts) is set in the fields below.</div>
+    </div>
+
+    <div class="card">
+      <h2>Background</h2>
+      <label for="hBgType">Type</label>
+      <select id="hBgType">
+        <option value="gradient">Gradient</option>
+        <option value="solid">Solid color</option>
+        <option value="image">Custom image</option>
+      </select>
+      <div id="hBgGradientRow" class="row">
+        <div><label>From</label><input type="color" id="hBgFrom" value="#6a3fa0"></div>
+        <div><label>To</label><input type="color" id="hBgTo" value="#2b1740"></div>
+      </div>
+      <div id="hBgSolidRow" style="display:none;">
+        <label>Color</label><input type="color" id="hBgSolid" value="#6a3fa0">
+      </div>
+      <div id="hBgImageRow" style="display:none;">
+        <label>Background image</label>
+        <div class="upload-row">
+          <input type="text" id="hBgImage" readonly placeholder="No image uploaded">
+          <button class="btn-secondary" data-upload-target="hBgImage" data-upload-btn>📤 Upload</button>
+        </div>
+      </div>
+
+      <label for="hHeight">Banner height — <span id="hHeightLabel">180</span>px</label>
+      <input type="range" id="hHeight" min="130" max="280" value="180">
+
+      <label for="hPattern">Decorative pattern</label>
+      <select id="hPattern">
+        <option value="none">None</option>
+        <option value="dots">Dots</option>
+        <option value="wave">Wave</option>
+      </select>
+
+      <label for="hFont">Font</label>
+      <select id="hFont">
+        <option value="system">System</option>
+        <option value="rounded">Rounded / Friendly</option>
+        <option value="bold">Bold Display</option>
+        <option value="serif">Serif</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <h2>Illustration (optional)</h2>
+      <div class="upload-row">
+        <input type="text" id="hIlluImage" readonly placeholder="No image uploaded">
+        <button class="btn-secondary" data-upload-target="hIlluImage" data-upload-btn>📤 Upload</button>
+      </div>
+      <div class="hint">Transparent PNGs work best. Drag it into place on the preview above once uploaded.</div>
+      <label for="hIlluWidth">Size — <span id="hIlluWidthLabel">38</span>%</label>
+      <input type="range" id="hIlluWidth" min="10" max="65" value="38">
+    </div>
+
+    <div class="card">
+      <h2>Title</h2>
+      <textarea id="hTitleText" placeholder="Check out our&#10;Telegram Shop"></textarea>
+      <div class="row">
+        <div><label>Color</label><input type="color" id="hTitleColor" value="#ffffff"></div>
+        <div><label>Size — <span id="hTitleSizeLabel">21</span>px</label><input type="range" id="hTitleSize" min="12" max="30" value="21"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Subtitle</h2>
+      <textarea id="hSubText" placeholder="Exclusive deals, new arrivals!"></textarea>
+      <div class="row">
+        <div><label>Color</label><input type="color" id="hSubColor" value="#d8cbe8"></div>
+        <div><label>Size — <span id="hSubSizeLabel">12.5</span>px</label><input type="range" id="hSubSize" min="10" max="20" step="0.5" value="12.5"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Button (optional — leave blank to hide)</h2>
+      <input type="text" id="hBtnText" maxlength="30" placeholder="Visit Now">
+      <div class="row">
+        <div><label>Background</label><input type="color" id="hBtnBg" value="#7c4dff"></div>
+        <div><label>Text color</label><input type="color" id="hBtnColor" value="#ffffff"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= SHARED ============================= -->
+  <div class="card">
+    <h2>Link & Timing</h2>
     <div class="toggle-row">
       <label for="fActive">Show this ad (off = fall back to Telegram Shop)</label>
       <input type="checkbox" id="fActive" checked>
     </div>
-
-    <label for="fIcon">Icon (one emoji — used if no image below)</label>
-    <input type="text" id="fIcon" maxlength="8" value="🎯" placeholder="🎯">
-
-    <label for="fImage">Image URL (optional, overrides the icon)</label>
-    <input type="url" id="fImage" placeholder="https://example.com/pic.png">
-    <div class="hint">Square-ish images look best — it's shown in a 42×42 rounded chip. Must start with https://. Leave blank to just use the emoji.</div>
-
-    <label for="fTitle">Title</label>
-    <input type="text" id="fTitle" maxlength="80" placeholder="Short, punchy title">
-
-    <label for="fSub">Subtitle</label>
-    <input type="text" id="fSub" maxlength="120" placeholder="One short line">
-
     <label for="fUrl">Link (must start with https://)</label>
     <input type="url" id="fUrl" placeholder="https://t.me/RwmShop">
-
     <label for="fExpires">Auto-expire on (optional)</label>
     <input type="date" id="fExpires">
-    <div class="hint">Leave blank to run indefinitely. After this date, it automatically falls back to the Telegram Shop card — no need to come back and turn it off.</div>
+    <div class="hint">Leave blank to run indefinitely. After this date, it automatically falls back to the Telegram Shop card.</div>
   </div>
 
   <div class="card">
@@ -157,213 +258,415 @@
       <summary>⚙️ GitHub connection settings</summary>
       <div style="margin-top:12px;">
         <label for="ghOwner">GitHub username</label>
-        <input type="text" id="ghOwner" placeholder="e.g. rwgmo">
-
+        <input type="text" id="ghOwner" placeholder="e.g. med-mohamedb">
         <label for="ghRepo">Repository name</label>
         <input type="text" id="ghRepo" value="BetterStore">
-
         <label for="ghBranch">Branch</label>
         <input type="text" id="ghBranch" value="main">
-
-        <label for="ghPath">File path in repo</label>
+        <label for="ghPath">Config file path</label>
         <input type="text" id="ghPath" value="ad-config.json">
-
+        <label for="ghAssetsPath">Uploaded-images folder</label>
+        <input type="text" id="ghAssetsPath" value="assets">
         <label for="ghToken">Personal Access Token</label>
         <input type="password" id="ghToken" placeholder="github_pat_...">
         <div class="hint">
           Generate one at github.com → Settings → Developer settings → Personal access tokens → Fine-grained tokens.
-          Scope it to <b>only this repository</b>, with <b>Contents: Read and write</b> permission — nothing else.
-          This is saved only in this browser's local storage and is sent only to api.github.com.
+          Scope it to <b>only this repository</b>, with <b>Contents: Read and write</b> permission.
+          Saved only in this browser's local storage.
         </div>
       </div>
     </details>
   </div>
 
   <div class="btn-row">
-    <button class="btn-secondary" id="loadBtn">↓ Load Current</button>
-    <button class="btn-secondary" id="resetBtn">↺ Reset to Shop</button>
+    <button class="btn-secondary" style="flex:1;" id="loadBtn">↓ Load Current</button>
+    <button class="btn-secondary" style="flex:1;" id="resetBtn">↺ Reset to Shop</button>
   </div>
   <button class="btn-primary" id="publishBtn">Publish to App</button>
 
   <div id="status"></div>
+  <input type="file" id="fileInput" accept="image/*" style="display:none;">
 
-  <script>
-    const LS_KEY = 'promoControlSettings';
+<script>
+  const LS_KEY = 'promoControlSettings';
+  const FONT_STACKS = {
+    system: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`,
+    rounded: `"Baloo 2", "Varela Round", -apple-system, sans-serif`,
+    bold: `"Poppins", "Arial Black", -apple-system, sans-serif`,
+    serif: `Georgia, "Times New Roman", serif`,
+  };
 
-    const els = {
-      active: document.getElementById('fActive'),
-      icon: document.getElementById('fIcon'),
-      image: document.getElementById('fImage'),
-      title: document.getElementById('fTitle'),
-      sub: document.getElementById('fSub'),
-      url: document.getElementById('fUrl'),
-      expires: document.getElementById('fExpires'),
-      ghOwner: document.getElementById('ghOwner'),
-      ghRepo: document.getElementById('ghRepo'),
-      ghBranch: document.getElementById('ghBranch'),
-      ghPath: document.getElementById('ghPath'),
-      ghToken: document.getElementById('ghToken'),
-    };
+  const els = {};
+  ['fActive','fIcon','fImage','fTitle','fSub','fUrl','fExpires',
+   'hBgType','hBgFrom','hBgTo','hBgSolid','hBgImage','hHeight','hPattern','hFont',
+   'hIlluImage','hIlluWidth','hTitleText','hTitleColor','hTitleSize',
+   'hSubText','hSubColor','hSubSize','hBtnText','hBtnBg','hBtnColor',
+   'ghOwner','ghRepo','ghBranch','ghPath','ghAssetsPath','ghToken'].forEach((id) => { els[id] = document.getElementById(id); });
 
-    // --- persist GitHub connection settings locally (not the ad content itself) ---
-    function loadSettings() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
-        if (saved.owner) els.ghOwner.value = saved.owner;
-        if (saved.repo) els.ghRepo.value = saved.repo;
-        if (saved.branch) els.ghBranch.value = saved.branch;
-        if (saved.path) els.ghPath.value = saved.path;
-        if (saved.token) els.ghToken.value = saved.token;
-      } catch (e) {}
+  let currentStyle = 'simple';
+  // x/y are % positions, kept separately from the form fields since they're set by dragging.
+  const heroPos = {
+    illustration: { x: 6, y: 12 },
+    title: { x: 42, y: 14 },
+    subtitle: { x: 42, y: 48 },
+    button: { x: 42, y: 72 },
+  };
+
+  /* ---------------- persistence of connection settings ---------------- */
+  function loadSettings() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+      ['ghOwner','ghRepo','ghBranch','ghPath','ghAssetsPath','ghToken'].forEach((k) => {
+        if (saved[k]) els[k].value = saved[k];
+      });
+    } catch (e) {}
+  }
+  function saveSettings() {
+    const obj = {};
+    ['ghOwner','ghRepo','ghBranch','ghPath','ghAssetsPath','ghToken'].forEach((k) => { obj[k] = els[k].value.trim(); });
+    localStorage.setItem(LS_KEY, JSON.stringify(obj));
+  }
+  loadSettings();
+  document.getElementById('ghSettings').open = !els.ghOwner.value;
+
+  function setStatus(kind, msg) {
+    const el = document.getElementById('status');
+    el.className = kind;
+    el.textContent = msg;
+  }
+
+  /* ---------------- style toggle ---------------- */
+  function setStyle(style) {
+    currentStyle = style;
+    document.getElementById('simpleSection').style.display = style === 'simple' ? '' : 'none';
+    document.getElementById('customSection').style.display = style === 'custom' ? '' : 'none';
+    document.getElementById('styleSimpleBtn').classList.toggle('active', style === 'simple');
+    document.getElementById('styleCustomBtn').classList.toggle('active', style === 'custom');
+    if (style === 'custom') renderHeroCanvas();
+    else updateSimplePreview();
+  }
+  document.getElementById('styleSimpleBtn').addEventListener('click', () => setStyle('simple'));
+  document.getElementById('styleCustomBtn').addEventListener('click', () => setStyle('custom'));
+
+  /* ---------------- simple preview ---------------- */
+  function updateSimplePreview() {
+    const media = document.getElementById('pMedia');
+    const imgUrl = els.fImage.value.trim();
+    if (imgUrl) {
+      media.innerHTML = `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+    } else {
+      media.textContent = els.fIcon.value || '🎯';
     }
-    function saveSettings() {
-      localStorage.setItem(LS_KEY, JSON.stringify({
-        owner: els.ghOwner.value.trim(),
-        repo: els.ghRepo.value.trim(),
-        branch: els.ghBranch.value.trim() || 'main',
-        path: els.ghPath.value.trim() || 'ad-config.json',
-        token: els.ghToken.value.trim(),
-      }));
-    }
-    loadSettings();
-    if (els.ghOwner.value) document.getElementById('ghSettings').open = false;
-    else document.getElementById('ghSettings').open = true;
+    document.getElementById('pTitle').textContent = els.fTitle.value || 'Title goes here';
+    document.getElementById('pSub').textContent = els.fSub.value || 'Subtitle goes here';
+  }
+  ['fIcon','fImage','fTitle','fSub'].forEach((id) => els[id].addEventListener('input', updateSimplePreview));
+  updateSimplePreview();
 
-    // --- live preview ---
-    function updatePreview() {
-      const media = document.getElementById('pMedia');
-      const imgUrl = els.image.value.trim();
-      if (imgUrl && /^https:\/\//i.test(imgUrl)) {
-        media.innerHTML = `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.parentElement.textContent='${(els.icon.value || '🎯').replace(/'/g, "\\'")}'">`;
-      } else {
-        media.textContent = els.icon.value || '🎯';
-      }
-      document.getElementById('pTitle').textContent = els.title.value || 'Title goes here';
-      document.getElementById('pSub').textContent = els.sub.value || 'Subtitle goes here';
-      const note = document.getElementById('previewNote');
-      if (!els.active.checked) {
-        note.textContent = '"Show this ad" is off — the app will display the default Telegram Shop card instead of this.';
-      } else if (els.expires.value && new Date(els.expires.value) < new Date()) {
-        note.textContent = '⚠️ This expiry date is in the past — the app will already be showing the default Telegram Shop card.';
-      } else if (els.url.value && !/^https:\/\//i.test(els.url.value)) {
-        note.textContent = '⚠️ Link must start with https:// or the app will ignore it (the card just won\u2019t be tappable).';
-      } else if (imgUrl && !/^https:\/\//i.test(imgUrl)) {
-        note.textContent = '⚠️ Image URL must start with https:// or the app will ignore it and use the emoji instead.';
-      } else {
-        note.textContent = '';
-      }
-    }
-    Object.values(els).forEach((el) => el.addEventListener('input', updatePreview));
-    updatePreview();
+  /* ---------------- background type toggle ---------------- */
+  function updateBgFieldsVisibility() {
+    const type = els.hBgType.value;
+    document.getElementById('hBgGradientRow').style.display = type === 'gradient' ? 'flex' : 'none';
+    document.getElementById('hBgSolidRow').style.display = type === 'solid' ? 'block' : 'none';
+    document.getElementById('hBgImageRow').style.display = type === 'image' ? 'block' : 'none';
+  }
+  els.hBgType.addEventListener('change', () => { updateBgFieldsVisibility(); renderHeroCanvas(); });
+  updateBgFieldsVisibility();
 
-    function setStatus(kind, msg) {
-      const el = document.getElementById('status');
-      el.className = kind;
-      el.textContent = msg;
-    }
+  /* ---------------- live labels ---------------- */
+  els.hHeight.addEventListener('input', () => { document.getElementById('hHeightLabel').textContent = els.hHeight.value; renderHeroCanvas(); });
+  els.hIlluWidth.addEventListener('input', () => { document.getElementById('hIlluWidthLabel').textContent = els.hIlluWidth.value; renderHeroCanvas(); });
+  els.hTitleSize.addEventListener('input', () => { document.getElementById('hTitleSizeLabel').textContent = els.hTitleSize.value; renderHeroCanvas(); });
+  els.hSubSize.addEventListener('input', () => { document.getElementById('hSubSizeLabel').textContent = els.hSubSize.value; renderHeroCanvas(); });
 
-    function apiUrl() {
+  ['hBgFrom','hBgTo','hBgSolid','hBgImage','hPattern','hFont','hIlluImage',
+   'hTitleText','hTitleColor','hSubText','hSubColor','hBtnText','hBtnBg','hBtnColor']
+    .forEach((id) => els[id].addEventListener('input', renderHeroCanvas));
+
+  /* ---------------- hero canvas (live preview + drag) ---------------- */
+  function heroBackgroundStyle() {
+    const type = els.hBgType.value;
+    if (type === 'image' && els.hBgImage.value.trim()) {
+      return `background-image: linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15)), url('${els.hBgImage.value.trim()}'); background-size: cover; background-position: center;`;
+    }
+    if (type === 'solid') return `background: ${els.hBgSolid.value};`;
+    return `background: linear-gradient(135deg, ${els.hBgFrom.value}, ${els.hBgTo.value});`;
+  }
+
+  function patternSVG() {
+    const p = els.hPattern.value;
+    if (p === 'dots') return `<svg class="hero-canvas__pattern" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><pattern id="cpDots" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="1.2" cy="1.2" r="1.2" fill="rgba(255,255,255,0.35)"/></pattern></defs><rect x="55" width="45" height="100" fill="url(#cpDots)"/></svg>`;
+    if (p === 'wave') return `<svg class="hero-canvas__pattern" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M60,0 C75,25 45,45 65,65 C80,80 70,100 100,100 L100,0 Z" fill="rgba(255,255,255,0.06)"/></svg>`;
+    return '';
+  }
+
+  function renderHeroCanvas() {
+    const canvas = document.getElementById('heroCanvas');
+    canvas.style.height = `${els.hHeight.value}px`;
+    canvas.style.cssText += heroBackgroundStyle();
+
+    const illuUrl = els.hIlluImage.value.trim();
+    const illuHTML = illuUrl
+      ? `<div class="hero-canvas__drag hc-illu" data-key="illustration" style="left:${heroPos.illustration.x}%; top:${heroPos.illustration.y}%; width:${els.hIlluWidth.value}%;"><img src="${illuUrl}" style="width:100%;"></div>`
+      : '';
+
+    const btnText = els.hBtnText.value.trim();
+    const btnHTML = btnText
+      ? `<div class="hero-canvas__drag hc-btn" data-key="button" style="left:${heroPos.button.x}%; top:${heroPos.button.y}%; background:${els.hBtnBg.value}; color:${els.hBtnColor.value};">${btnText} ›</div>`
+      : '';
+
+    canvas.innerHTML = `
+      ${patternSVG()}
+      ${illuHTML}
+      <div class="hero-canvas__drag hc-title" data-key="title" style="left:${heroPos.title.x}%; top:${heroPos.title.y}%; color:${els.hTitleColor.value}; font-size:${els.hTitleSize.value}px; font-family:${FONT_STACKS[els.hFont.value]};">${(els.hTitleText.value || 'Check out our\nTelegram Shop').replace(/</g,'&lt;')}</div>
+      <div class="hero-canvas__drag hc-sub" data-key="subtitle" style="left:${heroPos.subtitle.x}%; top:${heroPos.subtitle.y}%; color:${els.hSubColor.value}; font-size:${els.hSubSize.value}px; font-family:${FONT_STACKS[els.hFont.value]};">${(els.hSubText.value || 'Exclusive deals, new arrivals!').replace(/</g,'&lt;')}</div>
+      ${btnHTML}
+      <div class="hero-canvas__dismiss">✕</div>
+    `;
+    wireDragHandlers(canvas);
+  }
+
+  function wireDragHandlers(canvas) {
+    canvas.querySelectorAll('.hero-canvas__drag').forEach((el) => {
+      el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        const key = el.dataset.key;
+        el.setPointerCapture(e.pointerId);
+        const rect = canvas.getBoundingClientRect();
+
+        const onMove = (ev) => {
+          let x = ((ev.clientX - rect.left) / rect.width) * 100;
+          let y = ((ev.clientY - rect.top) / rect.height) * 100;
+          x = Math.max(0, Math.min(95, x));
+          y = Math.max(0, Math.min(92, y));
+          heroPos[key].x = Math.round(x * 10) / 10;
+          heroPos[key].y = Math.round(y * 10) / 10;
+          el.style.left = heroPos[key].x + '%';
+          el.style.top = heroPos[key].y + '%';
+        };
+        const onUp = () => {
+          canvas.removeEventListener('pointermove', onMove);
+          canvas.removeEventListener('pointerup', onUp);
+        };
+        canvas.addEventListener('pointermove', onMove);
+        canvas.addEventListener('pointerup', onUp);
+      });
+    });
+  }
+
+  /* ---------------- image upload (direct to GitHub, no external host) ---------------- */
+  let uploadTargetId = null;
+  document.querySelectorAll('[data-upload-btn]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      uploadTargetId = btn.dataset.uploadTarget;
+      document.getElementById('fileInput').click();
+    });
+  });
+
+  document.getElementById('fileInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file || !uploadTargetId) return;
+    saveSettings();
+    const token = els.ghToken.value.trim();
+    if (!els.ghOwner.value.trim() || !token) { setStatus('err', 'Fill in GitHub username and token first (⚙️ GitHub connection settings).'); return; }
+
+    setStatus('loading', 'Uploading image\u2026');
+    try {
+      const base64 = await fileToBase64(file);
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+      const safeName = `${Date.now()}.${ext}`;
+      const assetsPath = (els.ghAssetsPath.value.trim() || 'assets').replace(/^\/+|\/+$/g, '');
+      const path = `${assetsPath}/${safeName}`;
       const owner = els.ghOwner.value.trim();
       const repo = els.ghRepo.value.trim();
-      const path = els.ghPath.value.trim();
-      return `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-    }
+      const branch = els.ghBranch.value.trim() || 'main';
 
-    function currentConfigObject() {
-      return {
-        active: els.active.checked,
-        icon: els.icon.value.trim() || '🎯',
-        image: els.image.value.trim() || null,
-        title: els.title.value.trim(),
-        subtitle: els.sub.value.trim(),
-        url: els.url.value.trim(),
-        expiresAt: els.expires.value ? new Date(els.expires.value + 'T23:59:59Z').toISOString() : null,
-      };
-    }
+      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+        method: 'PUT',
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: `Upload promo image ${safeName}`, content: base64, branch }),
+      });
+      if (!res.ok) { setStatus('err', `Upload failed (${res.status}): ${await res.text()}`); return; }
 
-    function applyConfigToForm(cfg) {
-      els.active.checked = cfg.active !== false;
-      els.icon.value = cfg.icon || '🎯';
-      els.image.value = cfg.image || '';
-      els.title.value = cfg.title || '';
-      els.sub.value = cfg.subtitle || '';
-      els.url.value = cfg.url || '';
-      els.expires.value = cfg.expiresAt ? new Date(cfg.expiresAt).toISOString().slice(0, 10) : '';
-      updatePreview();
+      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
+      const target = document.getElementById(uploadTargetId);
+      target.value = rawUrl;
+      target.dispatchEvent(new Event('input'));
+      setStatus('ok', `\u2705 Image uploaded and linked in.`);
+      if (currentStyle === 'simple') updateSimplePreview(); else renderHeroCanvas();
+    } catch (err) {
+      setStatus('err', 'Upload failed: ' + err.message);
     }
+  });
 
-    function b64EncodeUnicode(str) {
-      return btoa(unescape(encodeURIComponent(str)));
-    }
-    function b64DecodeUnicode(str) {
-      return decodeURIComponent(escape(atob(str)));
-    }
-
-    document.getElementById('loadBtn').addEventListener('click', async () => {
-      saveSettings();
-      const token = els.ghToken.value.trim();
-      if (!els.ghOwner.value.trim() || !token) { setStatus('err', 'Fill in GitHub username and token first.'); return; }
-      setStatus('loading', 'Loading current config\u2026');
-      try {
-        const res = await fetch(`${apiUrl()}?ref=${encodeURIComponent(els.ghBranch.value.trim() || 'main')}`, {
-          headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' },
-        });
-        if (res.status === 404) {
-          setStatus('ok', 'No ad-config.json exists yet in the repo — fill in the form and hit Publish to create it.');
-          return;
-        }
-        if (!res.ok) { setStatus('err', `GitHub error ${res.status}: ${await res.text()}`); return; }
-        const data = await res.json();
-        const cfg = JSON.parse(b64DecodeUnicode(data.content.replace(/\n/g, '')));
-        applyConfigToForm(cfg);
-        setStatus('ok', 'Loaded the currently-live config.');
-      } catch (e) {
-        setStatus('err', 'Failed to load: ' + e.message);
-      }
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
     });
+  }
 
-    document.getElementById('resetBtn').addEventListener('click', () => {
-      applyConfigToForm({ active: false, icon: '🛍️', image: null, title: 'Check out our Telegram Shop', subtitle: 't.me/RwmShop', url: 'https://t.me/RwmShop', expiresAt: null });
-      setStatus('ok', 'Form reset to the Telegram Shop default (inactive custom ad). Hit Publish to push this live.');
-    });
+  /* ---------------- config object <-> form ---------------- */
+  function currentConfigObject() {
+    const base = {
+      active: els.fActive.checked,
+      style: currentStyle,
+      url: els.fUrl.value.trim(),
+      expiresAt: els.fExpires.value ? new Date(els.fExpires.value + 'T23:59:59Z').toISOString() : null,
+    };
+    if (currentStyle === 'simple') {
+      return { ...base, icon: els.fIcon.value.trim() || '🎯', image: els.fImage.value.trim() || null, title: els.fTitle.value.trim(), subtitle: els.fSub.value.trim() };
+    }
+    return {
+      ...base,
+      custom: {
+        height: Number(els.hHeight.value),
+        background: { type: els.hBgType.value, from: els.hBgFrom.value, to: els.hBgTo.value, image: els.hBgType.value === 'image' ? (els.hBgImage.value.trim() || null) : null },
+        pattern: els.hPattern.value,
+        font: els.hFont.value,
+        illustration: els.hIlluImage.value.trim() ? { image: els.hIlluImage.value.trim(), x: heroPos.illustration.x, y: heroPos.illustration.y, width: Number(els.hIlluWidth.value) } : null,
+        title: { text: els.hTitleText.value || 'Check out our\nTelegram Shop', color: els.hTitleColor.value, x: heroPos.title.x, y: heroPos.title.y, size: Number(els.hTitleSize.value) },
+        subtitle: { text: els.hSubText.value || 'Exclusive deals, new arrivals!', color: els.hSubColor.value, x: heroPos.subtitle.x, y: heroPos.subtitle.y, size: Number(els.hSubSize.value) },
+        button: els.hBtnText.value.trim() ? { text: els.hBtnText.value.trim(), bg: els.hBtnBg.value, color: els.hBtnColor.value, x: heroPos.button.x, y: heroPos.button.y } : null,
+      },
+    };
+  }
 
-    document.getElementById('publishBtn').addEventListener('click', async () => {
-      saveSettings();
-      const token = els.ghToken.value.trim();
-      if (!els.ghOwner.value.trim() || !token) { setStatus('err', 'Fill in GitHub username and token first.'); return; }
-      if (els.active.checked && !/^https:\/\//i.test(els.url.value.trim())) {
-        setStatus('err', 'Link must start with https:// before you can publish an active ad.');
-        return;
+  // Solid backgrounds are stored using the "from" slot on the wire (see
+  // resolveCustom in shopPromo.js, which only reads .from for solid).
+  function patchSolidIntoFrom(cfg) {
+    if (cfg.custom && cfg.custom.background.type === 'solid') cfg.custom.background.from = els.hBgSolid.value;
+    return cfg;
+  }
+
+  function applyConfigToForm(cfg) {
+    els.fActive.checked = cfg.active !== false;
+    els.fUrl.value = cfg.url || '';
+    els.fExpires.value = cfg.expiresAt ? new Date(cfg.expiresAt).toISOString().slice(0, 10) : '';
+
+    if (cfg.style === 'custom' && cfg.custom) {
+      setStyle('custom');
+      const c = cfg.custom;
+      els.hHeight.value = c.height || 180; document.getElementById('hHeightLabel').textContent = els.hHeight.value;
+      els.hBgType.value = (c.background && c.background.type) || 'gradient';
+      els.hBgFrom.value = (c.background && c.background.from) || '#6a3fa0';
+      els.hBgTo.value = (c.background && c.background.to) || '#2b1740';
+      els.hBgSolid.value = (c.background && c.background.from) || '#6a3fa0';
+      els.hBgImage.value = (c.background && c.background.image) || '';
+      updateBgFieldsVisibility();
+      els.hPattern.value = c.pattern || 'none';
+      els.hFont.value = c.font || 'system';
+      if (c.illustration) {
+        els.hIlluImage.value = c.illustration.image || '';
+        els.hIlluWidth.value = c.illustration.width || 38;
+        heroPos.illustration.x = c.illustration.x ?? 6;
+        heroPos.illustration.y = c.illustration.y ?? 12;
+      } else {
+        els.hIlluImage.value = '';
       }
-
-      setStatus('loading', 'Publishing\u2026');
-      try {
-        const branch = els.ghBranch.value.trim() || 'main';
-        // Need the current file's sha to update it (GitHub requires this to
-        // avoid accidentally overwriting someone else's newer change).
-        let sha;
-        const existing = await fetch(`${apiUrl()}?ref=${encodeURIComponent(branch)}`, {
-          headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' },
-        });
-        if (existing.ok) sha = (await existing.json()).sha;
-
-        const content = JSON.stringify(currentConfigObject(), null, 2);
-        const res = await fetch(apiUrl(), {
-          method: 'PUT',
-          headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: `Update promo banner (${new Date().toISOString()})`,
-            content: b64EncodeUnicode(content),
-            branch,
-            ...(sha ? { sha } : {}),
-          }),
-        });
-        if (!res.ok) { setStatus('err', `Publish failed (${res.status}): ${await res.text()}`); return; }
-        setStatus('ok', '✅ Published! Open the app and pull-to-refresh the Dashboard to see it live within seconds.');
-      } catch (e) {
-        setStatus('err', 'Failed to publish: ' + e.message);
+      document.getElementById('hIlluWidthLabel').textContent = els.hIlluWidth.value;
+      els.hTitleText.value = (c.title && c.title.text) || '';
+      els.hTitleColor.value = (c.title && c.title.color) || '#ffffff';
+      els.hTitleSize.value = (c.title && c.title.size) || 21;
+      document.getElementById('hTitleSizeLabel').textContent = els.hTitleSize.value;
+      heroPos.title.x = (c.title && c.title.x) ?? 42;
+      heroPos.title.y = (c.title && c.title.y) ?? 14;
+      els.hSubText.value = (c.subtitle && c.subtitle.text) || '';
+      els.hSubColor.value = (c.subtitle && c.subtitle.color) || '#d8cbe8';
+      els.hSubSize.value = (c.subtitle && c.subtitle.size) || 12.5;
+      document.getElementById('hSubSizeLabel').textContent = els.hSubSize.value;
+      heroPos.subtitle.x = (c.subtitle && c.subtitle.x) ?? 42;
+      heroPos.subtitle.y = (c.subtitle && c.subtitle.y) ?? 48;
+      if (c.button) {
+        els.hBtnText.value = c.button.text || '';
+        els.hBtnBg.value = c.button.bg || '#7c4dff';
+        els.hBtnColor.value = c.button.color || '#ffffff';
+        heroPos.button.x = c.button.x ?? 42;
+        heroPos.button.y = c.button.y ?? 72;
+      } else {
+        els.hBtnText.value = '';
       }
-    });
-  </script>
+      renderHeroCanvas();
+    } else {
+      setStyle('simple');
+      els.fIcon.value = cfg.icon || '🎯';
+      els.fImage.value = cfg.image || '';
+      els.fTitle.value = cfg.title || '';
+      els.fSub.value = cfg.subtitle || '';
+      updateSimplePreview();
+    }
+  }
+
+  function apiUrl(path) {
+    return `https://api.github.com/repos/${els.ghOwner.value.trim()}/${els.ghRepo.value.trim()}/contents/${path}`;
+  }
+  function b64EncodeUnicode(str) { return btoa(unescape(encodeURIComponent(str))); }
+  function b64DecodeUnicode(str) { return decodeURIComponent(escape(atob(str))); }
+
+  document.getElementById('loadBtn').addEventListener('click', async () => {
+    saveSettings();
+    const token = els.ghToken.value.trim();
+    if (!els.ghOwner.value.trim() || !token) { setStatus('err', 'Fill in GitHub username and token first.'); return; }
+    setStatus('loading', 'Loading current config\u2026');
+    try {
+      const branch = els.ghBranch.value.trim() || 'main';
+      const res = await fetch(`${apiUrl(els.ghPath.value.trim())}?ref=${encodeURIComponent(branch)}`, {
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' },
+      });
+      if (res.status === 404) { setStatus('ok', 'No ad-config.json exists yet — fill in the form and hit Publish to create it.'); return; }
+      if (!res.ok) { setStatus('err', `GitHub error ${res.status}: ${await res.text()}`); return; }
+      const data = await res.json();
+      const cfg = JSON.parse(b64DecodeUnicode(data.content.replace(/\n/g, '')));
+      applyConfigToForm(cfg);
+      setStatus('ok', 'Loaded the currently-live config.');
+    } catch (e) {
+      setStatus('err', 'Failed to load: ' + e.message);
+    }
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    applyConfigToForm({ active: false, style: 'simple', icon: '🛍️', image: null, title: 'Check out our Telegram Shop', subtitle: 't.me/RwmShop', url: 'https://t.me/RwmShop', expiresAt: null });
+    setStatus('ok', 'Form reset to the Telegram Shop default (inactive). Hit Publish to push this live.');
+  });
+
+  document.getElementById('publishBtn').addEventListener('click', async () => {
+    saveSettings();
+    const token = els.ghToken.value.trim();
+    if (!els.ghOwner.value.trim() || !token) { setStatus('err', 'Fill in GitHub username and token first.'); return; }
+    if (els.fActive.checked && !/^https:\/\//i.test(els.fUrl.value.trim())) {
+      setStatus('err', 'Link must start with https:// before you can publish an active ad.');
+      return;
+    }
+
+    setStatus('loading', 'Publishing\u2026');
+    try {
+      const branch = els.ghBranch.value.trim() || 'main';
+      const path = els.ghPath.value.trim() || 'ad-config.json';
+      let sha;
+      const existing = await fetch(`${apiUrl(path)}?ref=${encodeURIComponent(branch)}`, {
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' },
+      });
+      if (existing.ok) sha = (await existing.json()).sha;
+
+      const cfg = patchSolidIntoFrom(currentConfigObject());
+      const content = JSON.stringify(cfg, null, 2);
+      const res = await fetch(apiUrl(path), {
+        method: 'PUT',
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: `Update promo banner (${new Date().toISOString()})`, content: b64EncodeUnicode(content), branch, ...(sha ? { sha } : {}) }),
+      });
+      if (!res.ok) { setStatus('err', `Publish failed (${res.status}): ${await res.text()}`); return; }
+      setStatus('ok', '✅ Published! Open the app and pull-to-refresh the Dashboard to see it live within seconds.');
+    } catch (e) {
+      setStatus('err', 'Failed to publish: ' + e.message);
+    }
+  });
+
+  // initial paint
+  renderHeroCanvas();
+</script>
 </body>
 </html>

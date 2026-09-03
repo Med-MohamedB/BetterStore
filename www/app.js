@@ -1115,7 +1115,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // every release — used by WhatsNew to detect "this device just updated"
 // without depending on the native App plugin (which isn't available on
 // every platform this runs on).
-const CURRENT_VERSION = '1.7.3';
+const CURRENT_VERSION = '1.8.0';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -1808,43 +1808,5 @@ window.showDiagnostics = showDiagnostics;
     }
   } catch (e) {
     console.warn('Onboarding/What\u2019s New check failed:', e);
-  }
-
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      // Show "connect to internet" banner until the service worker has
-      // fully taken control of this page (i.e. first-time offline cache
-      // is complete). Never shows again after that, on this device.
-      if (!navigator.serviceWorker.controller) {
-        showFirstRunBanner();
-      }
-
-      navigator.serviceWorker.register('service-worker.js').then(() => {
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          hideFirstRunBanner();
-        });
-      }).catch((err) => {
-        console.warn('Service worker registration failed:', err);
-        showFirstRunBanner('offline-setup-failed');
-      });
-    });
-  }
-
-  function showFirstRunBanner(mode) {
-    if (document.getElementById('first-run-banner')) return;
-    const bar = document.createElement('div');
-    bar.id = 'first-run-banner';
-    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;' +
-      'background:#c0392b;color:#fff;padding:10px 16px;font-size:13px;' +
-      'text-align:center;font-family:sans-serif;';
-    bar.textContent = mode === 'offline-setup-failed'
-      ? 'Setup failed — please connect to the internet and reopen the app once.'
-      : 'First time setup: please stay connected to the internet until this message disappears.';
-    document.body.appendChild(bar);
-  }
-
-  function hideFirstRunBanner() {
-    const bar = document.getElementById('first-run-banner');
-    if (bar) bar.remove();
   }
 })();

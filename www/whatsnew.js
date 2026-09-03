@@ -19,6 +19,7 @@ const WhatsNew = (() => {
     { icon: '\u2728', text: 'A friendlier first-run tour and noticeably smoother motion everywhere.' },
     { icon: '📜', text: 'Added Terms of Use \u2014 readable any time from More.' },
     { icon: '🛍️', text: 'A quick link to our Telegram Shop right on your Dashboard.' },
+    { icon: '🛠️', text: 'Fixed a bug where updates could silently fail to apply until app data was cleared.' },
   ];
 
   function markSeen() {

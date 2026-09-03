@@ -1630,106 +1630,6 @@ body.swipe-active .topbar {
 @keyframes ptrSpin { to { transform: translateY(6px) rotate(360deg); } }
 
 /* ==========================================================================
-   Boot Gate — first-launch overlay
-   Shown once, ever, per device: either a blocking "connect to the internet"
-   screen (offline on first run) or a brief "setting up offline mode" splash
-   (online on first run). Hidden instantly and permanently after that via
-   localStorage flag — never flashes on later launches.
-   ========================================================================== */
-#bootGate {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: var(--bg);
-  background-image:
-    radial-gradient(circle at 20% 15%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 55%),
-    radial-gradient(circle at 85% 80%, color-mix(in srgb, var(--teal) 14%, transparent), transparent 50%);
-}
-#bootGate.show { display: flex; }
-
-.boot-card {
-  width: 100%;
-  max-width: 360px;
-  padding: 32px 26px 28px;
-  border-radius: var(--radius-lg);
-  text-align: center;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge);
-  background-image: var(--glass-sheen);
-  animation: bootCardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-}
-@keyframes bootCardIn {
-  from { opacity: 0; transform: translateY(10px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.boot-icon {
-  width: 64px; height: 64px;
-  margin: 0 auto 18px;
-  border-radius: 20px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 28px;
-  background: color-mix(in srgb, var(--accent) 22%, var(--surface-2));
-  border: 1px solid var(--border);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
-}
-.boot-icon.pulse { animation: bootPulse 1.6s ease-in-out infinite; }
-@keyframes bootPulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 35%, transparent), inset 0 1px 0 var(--glass-highlight); }
-  50% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 0%, transparent), inset 0 1px 0 var(--glass-highlight); }
-}
-
-.boot-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 8px;
-}
-.boot-text {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text-dim);
-  margin-bottom: 22px;
-}
-
-.boot-spinner {
-  width: 22px; height: 22px;
-  margin: 4px auto 0;
-  border-radius: 50%;
-  border: 2.5px solid var(--border);
-  border-top-color: var(--accent);
-  animation: ptrSpin 0.8s linear infinite;
-}
-
-.boot-btn {
-  width: 100%;
-  padding: 13px 18px;
-  border-radius: var(--radius-sm);
-  border: none;
-  font-size: 14.5px;
-  font-weight: 600;
-  color: var(--accent-ink);
-  background: linear-gradient(135deg, var(--teal), var(--accent));
-  box-shadow: var(--shadow);
-  transition: transform 0.15s ease, opacity 0.15s ease;
-}
-.boot-btn:active { transform: scale(0.97); opacity: 0.9; }
-
-.boot-status {
-  margin-top: 14px;
-  font-size: 12px;
-  color: var(--text-faint);
-  min-height: 16px;
-}
-
-/* ==========================================================================
    Onboarding — interactive first-launch walkthrough. No XP/points/progress
    bars anywhere; the "game" feel comes from real physics-y motion and a
    tiny hands-on toy (coins-into-register), not a scoring system.
@@ -2046,3 +1946,66 @@ body.swipe-active .topbar {
   display: flex; align-items: center; justify-content: center;
 }
 .feature-spotlight:active { transform: scale(0.985); }
+
+/* --- Hero spotlight banner (custom style, larger, fully designed) --- */
+
+.hero-spotlight {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin-bottom: 20px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  text-decoration: none;
+}
+.hero-spotlight:active { transform: scale(0.98); }
+
+.hero-spotlight__pattern {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.hero-spotlight__illu {
+  position: absolute;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 20px rgba(0,0,0,0.35));
+  pointer-events: none;
+}
+
+.hero-spotlight__title,
+.hero-spotlight__subtitle {
+  position: absolute;
+  right: 14px;
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: pre-line;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  pointer-events: none;
+}
+.hero-spotlight__subtitle { font-weight: 500; text-shadow: none; }
+
+.hero-spotlight__button {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 6px 16px -4px rgba(0,0,0,0.35);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.hero-spotlight__dismiss {
+  position: absolute;
+  top: 12px; right: 12px;
+  background: rgba(0,0,0,0.25);
+  color: rgba(255,255,255,0.85);
+}

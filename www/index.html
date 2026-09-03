@@ -17,108 +17,28 @@
 </head>
 <body>
 
-<!-- Boot Gate: first-launch-only overlay. Hidden by default so returning
-     users (flag already set in localStorage) never see any flash. -->
-<div id="bootGate">
-  <div class="boot-card" id="bootCard">
-    <div class="boot-icon pulse" id="bootIcon">📡</div>
-    <div class="boot-title" id="bootTitle">Connect to the internet</div>
-    <div class="boot-text" id="bootText">
-      First time opening Store App — it needs one quick connection to set
-      itself up for offline use. After this, it will never ask again.
-    </div>
-    <button class="boot-btn" id="bootRetryBtn" style="display:none;">Retry</button>
-    <div class="boot-spinner" id="bootSpinner" style="display:none;"></div>
-    <div class="boot-status" id="bootStatus"></div>
-  </div>
-</div>
+<!-- Service-worker cleanup: this app is a Capacitor-bundled native build,
+     which already ships every file inside the APK — it doesn't need a
+     service worker for offline support at all, and Capacitor's own team
+     flags SW+Android-WebView as unreliable in practice. An earlier version
+     of this app registered one anyway, which caused a real bug: after an
+     app update, the OLD service worker could keep serving its OLD cached
+     copies of app.js/index.html/etc. indefinitely, making new features
+     silently never show up until someone cleared all app data (which also
+     wiped their real business data). This unregisters any such leftover
+     service worker and clears its caches, unconditionally, every launch —
+     cheap and a no-op once nothing is left to clean up. -->
 <script>
 (function () {
-  var FLAG = 'sa_boot_complete';
-  if (localStorage.getItem(FLAG)) return; // already set up — do nothing, ever
-
-  var gate = document.getElementById('bootGate');
-  var icon = document.getElementById('bootIcon');
-  var title = document.getElementById('bootTitle');
-  var text = document.getElementById('bootText');
-  var btn = document.getElementById('bootRetryBtn');
-  var spinner = document.getElementById('bootSpinner');
-  var status = document.getElementById('bootStatus');
-
-  function showOfflineState() {
-    gate.classList.add('show');
-    icon.textContent = '📡';
-    title.textContent = 'Connect to the internet';
-    text.textContent = 'First time opening Store App — it needs one quick connection to set itself up for offline use. After this, it will never ask again.';
-    btn.style.display = 'block';
-    spinner.style.display = 'none';
-    status.textContent = '';
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.getRegistrations()
+    .then(function (regs) { regs.forEach(function (r) { r.unregister(); }); })
+    .catch(function () {});
+  if ('caches' in window) {
+    caches.keys()
+      .then(function (keys) { keys.forEach(function (k) { caches.delete(k); }); })
+      .catch(function () {});
   }
-
-  function showSettingUpState() {
-    gate.classList.add('show');
-    icon.textContent = '✨';
-    title.textContent = 'Setting up offline mode';
-    text.textContent = 'Just a moment — Store App is caching everything it needs so it will work with zero internet from now on.';
-    btn.style.display = 'none';
-    spinner.style.display = 'block';
-    status.textContent = '';
-  }
-
-  function finish() {
-    localStorage.setItem(FLAG, '1');
-    gate.classList.remove('show');
-  }
-
-  function runSetup() {
-    showSettingUpState();
-    if (!('serviceWorker' in navigator)) {
-      // No SW support (rare) — nothing more we can do, just let them in.
-      finish();
-      return;
-    }
-    var timedOut = false;
-    var timeout = setTimeout(function () {
-      timedOut = true;
-      status.textContent = 'Taking longer than usual… you can keep waiting.';
-    }, 8000);
-    var giveUp = setTimeout(function () {
-      // Safety net: don't trap the user forever on a flaky connection.
-      finish();
-    }, 25000);
-
-    navigator.serviceWorker.register('./service-worker.js')
-      .then(function () { return navigator.serviceWorker.ready; })
-      .then(function () {
-        clearTimeout(timeout);
-        clearTimeout(giveUp);
-        finish();
-      })
-      .catch(function () {
-        clearTimeout(timeout);
-        clearTimeout(giveUp);
-        // Registration failed outright — let them use the app online-only
-        // this session rather than blocking them completely.
-        finish();
-      });
-  }
-
-  function attempt() {
-    if (navigator.onLine) {
-      runSetup();
-    } else {
-      showOfflineState();
-    }
-  }
-
-  btn.addEventListener('click', attempt);
-  window.addEventListener('online', function () {
-    if (gate.classList.contains('show') && spinner.style.display === 'none') {
-      attempt(); // auto-retry the moment connection comes back
-    }
-  });
-
-  attempt();
 })();
 </script>
 

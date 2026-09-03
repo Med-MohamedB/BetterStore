@@ -1,9 +1,9 @@
 {
-  "active": true,
-  "icon": "💅🏻",
+  "active": false,
+  "icon": "🛍️",
   "image": null,
-  "title": "Test wissal",
-  "subtitle": "klba",
-  "url": "https://youtube.com/@rwgar",
+  "title": "Check out our Telegram Shop",
+  "subtitle": "t.me/RwmShop",
+  "url": "https://t.me/RwmShop",
   "expiresAt": null
 }

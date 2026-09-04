@@ -1,10 +1,8 @@
 {
   "active": true,
-  "style": "simple",
-  "url": "https://youtu.be/iik25wqIuFo?si=rO3dOLWU6Sbxx7VD",
+  "style": "image",
+  "url": "https://t.me/RwmShop/9",
   "expiresAt": null,
-  "icon": "🎯",
-  "image": "https://raw.githubusercontent.com/Med-MohamedB/BetterStore/main/assets/1788519046384.jpg",
-  "title": "Silly AD",
-  "subtitle": "Nothing important don't click"
+  "bannerImage": "https://raw.githubusercontent.com/Med-MohamedB/BetterStore/main/assets/1788556285798.png",
+  "bannerHeight": 148
 }

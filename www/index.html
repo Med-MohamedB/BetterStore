@@ -59,19 +59,19 @@
   <nav class="bottom-nav" id="bottomNav">
     <span class="nav-indicator" id="navIndicator"></span>
     <button class="nav-item" data-route="dashboard">
-      <span class="nav-item__icon">🏠</span><span>Dashboard</span>
+      <span class="nav-item__icon"><span class="icon-wrap"><span class="icon-emoji">🏠</span><svg class="icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /> <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg></span></span><span>Dashboard</span>
     </button>
     <button class="nav-item" data-route="products">
-      <span class="nav-item__icon">📦</span><span>Products</span>
+      <span class="nav-item__icon"><span class="icon-wrap"><span class="icon-emoji">📦</span><svg class="icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" /> <path d="M12 22V12" /> <polyline points="3.29 7 12 12 20.71 7" /> <path d="m7.5 4.27 9 5.15" /></svg></span></span><span>Products</span>
     </button>
     <button class="nav-item nav-item--fab" data-route="pos">
-      <span class="nav-item__icon">🧾<span class="nav-badge" id="cartBadge"></span></span><span>POS</span>
+      <span class="nav-item__icon"><span class="icon-wrap"><span class="icon-emoji">🧾</span><svg class="icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17V7" /> <path d="M16 8h-6a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4H8" /> <path d="M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z" /></svg></span><span class="nav-badge" id="cartBadge"></span></span><span>POS</span>
     </button>
     <button class="nav-item" data-route="sales">
-      <span class="nav-item__icon">🧮</span><span>Sales</span>
+      <span class="nav-item__icon"><span class="icon-wrap"><span class="icon-emoji">🧮</span><svg class="icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /> <path d="M3 3v5h5" /> <path d="M12 7v5l4 2" /></svg></span></span><span>Sales</span>
     </button>
     <button class="nav-item" data-route="more">
-      <span class="nav-item__icon">☰</span><span>More</span>
+      <span class="nav-item__icon"><span class="icon-wrap"><span class="icon-emoji">☰</span><svg class="icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16" /> <path d="M4 12h16" /> <path d="M4 19h16" /></svg></span></span><span>More</span>
     </button>
   </nav>
 
@@ -85,6 +85,7 @@
 <!-- Core layer (order matters: db before app) -->
 <script src="db.js"></script>
 <script src="vendor/motion.min.js"></script>
+<script src="icons.js"></script>
 <script src="app.js"></script>
 <script src="products.js"></script>
 <script src="vendor/zxing.min.js"></script>
@@ -103,6 +104,7 @@
 <script src="donate.js"></script>
 <script src="terms.js"></script>
 <script src="shopPromo.js"></script>
+<script src="adNotify.js"></script>
 
 <!-- Feature modules are added here as they're built, stage by stage -->
 <!-- <script src="pos.js"></script> -->

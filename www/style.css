@@ -1947,9 +1947,9 @@ body.swipe-active .topbar {
 }
 .feature-spotlight:active { transform: scale(0.985); }
 
-/* --- Hero spotlight banner (custom style, larger, fully designed) --- */
+/* --- Image banner (custom style — one full pre-designed graphic) --- */
 
-.hero-spotlight {
+.image-spotlight {
   position: relative;
   display: block;
   width: 100%;
@@ -1958,54 +1958,37 @@ body.swipe-active .topbar {
   overflow: hidden;
   box-shadow: var(--shadow-lg);
   text-decoration: none;
+  background: var(--surface-2); /* shows briefly while the image loads */
 }
-.hero-spotlight:active { transform: scale(0.98); }
-
-.hero-spotlight__pattern {
-  position: absolute;
-  inset: 0;
+.image-spotlight:active { transform: scale(0.98); }
+.image-spotlight img {
   width: 100%;
   height: 100%;
-  pointer-events: none;
+  object-fit: cover;
+  display: block;
 }
-
-.hero-spotlight__illu {
-  position: absolute;
-  height: auto;
-  object-fit: contain;
-  filter: drop-shadow(0 10px 20px rgba(0,0,0,0.35));
-  pointer-events: none;
-}
-
-.hero-spotlight__title,
-.hero-spotlight__subtitle {
-  position: absolute;
-  right: 14px;
-  font-weight: 800;
-  line-height: 1.25;
-  white-space: pre-line;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.25);
-  pointer-events: none;
-}
-.hero-spotlight__subtitle { font-weight: 500; text-shadow: none; }
-
-.hero-spotlight__button {
-  position: absolute;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 9px 16px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 700;
-  box-shadow: 0 6px 16px -4px rgba(0,0,0,0.35);
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-.hero-spotlight__dismiss {
+.image-spotlight__dismiss {
   position: absolute;
   top: 12px; right: 12px;
-  background: rgba(0,0,0,0.25);
-  color: rgba(255,255,255,0.85);
+  background: rgba(0,0,0,0.35);
+  color: rgba(255,255,255,0.9);
 }
+
+/* ==========================================================================
+   Icon system — every functional icon in the app is rendered by Icon() in
+   icons.js as BOTH an emoji and a line-icon SVG, side by side; this block
+   is what actually decides which one is visible, based on the active
+   theme pack's data-icon-style attribute (set in applyTheme()). Switching
+   themes just flips that one attribute — every icon everywhere swaps
+   instantly, no re-render needed anywhere.
+   ========================================================================== */
+
+.icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.icon-svg { display: none; color: currentColor; }
+[data-icon-style="line"] .icon-emoji { display: none; }
+[data-icon-style="line"] .icon-svg { display: inline-block; }

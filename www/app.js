@@ -1115,7 +1115,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // every release — used by WhatsNew to detect "this device just updated"
 // without depending on the native App plugin (which isn't available on
 // every platform this runs on).
-const CURRENT_VERSION = '1.8.0';
+const CURRENT_VERSION = '1.9.0';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -1359,6 +1359,7 @@ function initPullToRefresh() {
    top of style.css for why that foundation is deliberately fixed. */
 const THEME_PACKS = {
   orchid:   { name: 'Orchid',    accent: '#AC5FDB', accentDim: '#8A46B3', teal: '#E3A2EE', coral: '#D9527A', blue: '#8A7AE0' },
+  standard: { name: 'Standard',  accent: '#4A4A4A', accentDim: '#333333', teal: '#9B9B9B', coral: '#5C5C5C', blue: '#7A7A7A', accentInk: '#FFFFFF', iconStyle: 'line' },
   ocean:    { name: 'Ocean',     accent: '#22B8CF', accentDim: '#1A8FA3', teal: '#7FE0D6', coral: '#FF6B81', blue: '#5B8DEF' },
   sunset:   { name: 'Sunset',    accent: '#FF8A3D', accentDim: '#E06A1F', teal: '#FFC46B', coral: '#FF4D6D', blue: '#A66BFF' },
   forest:   { name: 'Forest',    accent: '#43B274', accentDim: '#2E8A57', teal: '#8FE3B0', coral: '#E8A33D', blue: '#4C8DFF' },
@@ -1381,9 +1382,16 @@ async function applyTheme() {
   const root = document.documentElement.style;
   root.setProperty('--accent', pack.accent);
   root.setProperty('--accent-dim', pack.accentDim);
+  root.setProperty('--accent-ink', pack.accentInk || '#1D1721');
   root.setProperty('--teal', pack.teal);
   root.setProperty('--coral', pack.coral);
   root.setProperty('--blue', pack.blue);
+
+  // Standard is the one pack that swaps every functional icon for a clean
+  // monochrome line-icon set instead of emoji (see icons.js) — every
+  // other pack keeps emoji. This attribute is what the CSS in the "Icon
+  // system" block of style.css actually switches on.
+  document.documentElement.setAttribute('data-icon-style', pack.iconStyle || 'emoji');
 
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
@@ -1510,7 +1518,7 @@ async function renderDashboard(container) {
       <div class="list stagger">
         ${lowStock.slice(0, 5).map((p) => `
           <div class="list-row">
-            <div class="list-row__icon">⚠️</div>
+            <div class="list-row__icon">${Icon('alert-triangle', '⚠️')}</div>
             <div class="list-row__body">
               <div class="list-row__title">${escapeHTML(p.name)}</div>
               <div class="list-row__subtitle">Minimum: ${p.minStock ?? 0}</div>
@@ -1525,14 +1533,14 @@ async function renderDashboard(container) {
 
     <div class="section-title">Quick Actions</div>
     <div class="quick-actions">
-      ${quickAction('scanner', '📷', 'Scan')}
-      ${quickAction('pos', '🧾', 'New Sale')}
-      ${quickAction('products/new', '➕', 'Add Product')}
-      ${quickAction('products', '📦', 'Products')}
-      ${quickAction('inventory', '📊', 'Inventory')}
-      ${quickAction('sales', '🧮', 'Sales History')}
-      ${quickAction('customers', '👤', 'Customers')}
-      ${quickAction('reports', '📈', 'Reports')}
+      ${quickAction('scanner', Icon('camera', '📷'), 'Scan')}
+      ${quickAction('pos', Icon('cart', '🧾'), 'New Sale')}
+      ${quickAction('products/new', Icon('plus-circle', '➕'), 'Add Product')}
+      ${quickAction('products', Icon('package', '📦'), 'Products')}
+      ${quickAction('inventory', Icon('bar-chart', '📊'), 'Inventory')}
+      ${quickAction('sales', Icon('history', '🧮'), 'Sales History')}
+      ${quickAction('customers', Icon('users', '👤'), 'Customers')}
+      ${quickAction('reports', Icon('trending-up', '📈'), 'Reports')}
     </div>
 
     <div class="section-title">Recent Sales</div>
@@ -1589,12 +1597,12 @@ window.saleNetTotal = saleNetTotal;
 
 function renderMore(container) {
   const items = [
-    ['inventory', '📊', 'Inventory', 'Stock levels & adjustments'],
-    ['reports', '📈', 'Reports & Statistics', 'Revenue, best sellers, profit'],
-    ['customers', '👤', 'Customers', 'Customer directory & purchase history'],
-    ['suppliers', '🚚', 'Suppliers', 'Supplier directory'],
-    ['backup', '💾', 'Backup & Restore', 'Export/import your data'],
-    ['settings', '⚙️', 'Settings', 'Store, appearance, POS, security'],
+    ['inventory', Icon('bar-chart', '📊'), 'Inventory', 'Stock levels & adjustments'],
+    ['reports', Icon('trending-up', '📈'), 'Reports & Statistics', 'Revenue, best sellers, profit'],
+    ['customers', Icon('users', '👤'), 'Customers', 'Customer directory & purchase history'],
+    ['suppliers', Icon('truck', '🚚'), 'Suppliers', 'Supplier directory'],
+    ['backup', Icon('database', '💾'), 'Backup & Restore', 'Export/import your data'],
+    ['settings', Icon('settings', '⚙️'), 'Settings', 'Store, appearance, POS, security'],
   ];
   container.innerHTML = `
     <div class="list stagger">
@@ -1607,7 +1615,7 @@ function renderMore(container) {
         <div class="list-row__trailing text-faint">›</div>
       </div>
       <div class="list-row tappable" id="replayTourRow">
-        <div class="list-row__icon">🎬</div>
+        <div class="list-row__icon">${Icon('play-circle', '🎬')}</div>
         <div class="list-row__body">
           <div class="list-row__title">Replay Interactive Tour</div>
           <div class="list-row__subtitle">See the welcome walkthrough again</div>
@@ -1615,7 +1623,7 @@ function renderMore(container) {
         <div class="list-row__trailing text-faint">›</div>
       </div>
       <div class="list-row tappable" id="viewTermsRow">
-        <div class="list-row__icon">📜</div>
+        <div class="list-row__icon">${Icon('scroll', '📜')}</div>
         <div class="list-row__body">
           <div class="list-row__title">Terms of Use</div>
           <div class="list-row__subtitle">What you agreed to when you started using the app</div>

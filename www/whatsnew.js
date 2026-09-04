@@ -11,15 +11,12 @@ const WhatsNew = (() => {
   // Add a new entry here each release; oldest-first doesn't matter since
   // only the current version's list is ever shown.
   const ITEMS = [
-    { icon: '🖨️', text: 'Print now opens Android\u2019s real print dialog directly \u2014 no more Share-sheet detour.' },
-    { icon: '📤', text: 'Share actually works now, and sends a clean text receipt.' },
-    { icon: '🎨', text: '8 new theme packs that re-skin the whole app \u2014 not just the accent color.' },
-    { icon: '\u21a9\ufe0f', text: 'Partial refunds \u2014 pick exactly which items, and how many, to return.' },
-    { icon: '\ud83d\udcbe', text: 'Fixed backup export crashing on newer Android versions.' },
-    { icon: '\u2728', text: 'A friendlier first-run tour and noticeably smoother motion everywhere.' },
-    { icon: '📜', text: 'Added Terms of Use \u2014 readable any time from More.' },
-    { icon: '🛍️', text: 'A quick link to our Telegram Shop right on your Dashboard.' },
     { icon: '🛠️', text: 'Fixed a bug where updates could silently fail to apply until app data was cleared.' },
+    { icon: '🎨', text: 'New Standard theme \u2014 clean black/white/grey with formal line icons instead of emoji.' },
+    { icon: '🔔', text: 'Notifications for new offers, with the image included when there is one.' },
+    { icon: '↩️', text: 'Partial refunds \u2014 pick exactly which items, and how many, to return.' },
+    { icon: '📜', text: 'Added Terms of Use \u2014 readable any time from More.' },
+    { icon: '✨', text: 'A friendlier first-run tour and noticeably smoother motion everywhere.' },
   ];
 
   function markSeen() {

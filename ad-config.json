@@ -13,20 +13,25 @@
     },
     "pattern": "wave",
     "font": "rounded",
-    "illustration": null,
+    "illustration": {
+      "image": "https://raw.githubusercontent.com/Med-MohamedB/BetterStore/main/assets/1788518880180.jpg",
+      "x": 4.7,
+      "y": 8.3,
+      "width": 41
+    },
     "title": {
-      "text": " ",
+      "text": "Test",
       "color": "#ffffff",
-      "x": 2.6,
-      "y": 9.6,
-      "size": 21
+      "x": 54.5,
+      "y": 16.9,
+      "size": 22
     },
     "subtitle": {
-      "text": " ",
+      "text": "Click here",
       "color": "#d8cbe8",
-      "x": 46.1,
-      "y": 69.4,
-      "size": 18.5
+      "x": 50.3,
+      "y": 46.6,
+      "size": 19
     },
     "button": null
   }

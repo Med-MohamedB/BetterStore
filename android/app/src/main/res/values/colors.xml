@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tint used for the small status-bar icon on every notification,
+         including the ones FCM displays automatically while the app is
+         in the background or fully closed (see AndroidManifest.xml's
+         com.google.firebase.messaging.default_notification_color). -->
+    <color name="notify_accent">#8b5cf6</color>
+</resources>

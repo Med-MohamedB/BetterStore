@@ -1115,7 +1115,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // every release — used by WhatsNew to detect "this device just updated"
 // without depending on the native App plugin (which isn't available on
 // every platform this runs on).
-const CURRENT_VERSION = '1.9.1';
+const CURRENT_VERSION = '1.9.2';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -1817,6 +1817,7 @@ window.showDiagnostics = showDiagnostics;
       // chance to be asked for the notification permission proactively
       // (rather than the first time an ad happens to change).
       if (window.AdNotify) setTimeout(() => AdNotify.requestPermission(), 1200);
+      if (window.AdPush) setTimeout(() => AdPush.init(), 1300);
     }
   } catch (e) {
     console.warn('Onboarding/What\u2019s New check failed:', e);

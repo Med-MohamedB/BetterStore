@@ -33,6 +33,26 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- Firebase Cloud Messaging: these three meta-data entries control
+             how Android displays a push notification AUTOMATICALLY when the
+             app is backgrounded or fully closed (no app code runs in that
+             case — the OS builds the notification straight from the FCM
+             payload using these defaults). Keeps every ad push consistent
+             with the in-app notification: same logo, same tint, same
+             high-importance "pop up immediately" channel. The channel
+             itself is created both natively (MainActivity) and from JS
+             (AdNotify.ensureChannel) so it always exists before a push
+             can reference it. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_notify" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notify_accent" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="ad-alerts" />
     </application>
 
     <!-- Permissions -->

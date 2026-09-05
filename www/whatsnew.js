@@ -11,6 +11,7 @@ const WhatsNew = (() => {
   // Add a new entry here each release; oldest-first doesn't matter since
   // only the current version's list is ever shown.
   const ITEMS = [
+    { icon: '⚡', text: 'New offers now push to your phone the instant they\u2019re published \u2014 even if the app is closed.' },
     { icon: '🔔', text: 'The app now asks for notification permission up front, so new-offer alerts are ready to go from the start.' },
     { icon: '🖼️', text: 'Offer notifications always show your app logo, and now pop up properly instead of landing silently.' },
     { icon: '💎', text: 'Custom image banners now get the same glowing themed border and light sweep as other offer cards.' },

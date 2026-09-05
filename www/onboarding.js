@@ -76,6 +76,7 @@ const Onboarding = (() => {
     // already resolved before the first ad ever needs to push one, and it
     // isn't shown mid-tour where it'd interrupt the walkthrough.
     if (window.AdNotify) setTimeout(() => AdNotify.requestPermission(), 600);
+    if (window.AdPush) setTimeout(() => AdPush.init(), 700);
   }
 
   /* ---------------------------------------------------------------- */

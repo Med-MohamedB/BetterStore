@@ -36,6 +36,9 @@ const AdMobBridge = (() => {
   let consentChecked = false;
   let canRequestAds = true; // optimistic default if consent check itself fails
   let bannerVisible = false;
+  let everShownThisSession = false; // survives navigating away, unlike bannerVisible
+  let everFailedThisSession = false;
+  let everAttemptedThisSession = false;
   let lastError = null;
   let lastConsentStatus = null;
 
@@ -84,8 +87,12 @@ const AdMobBridge = (() => {
     try {
       await p.initialize({});
       initialized = true;
-      p.addListener('bannerAdLoaded', () => console.log('AdMob: banner loaded'));
+      p.addListener('bannerAdLoaded', () => {
+        everShownThisSession = true;
+        console.log('AdMob: banner loaded');
+      });
       p.addListener('bannerAdFailedToLoad', (err) => {
+        everFailedThisSession = true;
         lastError = `load failed: ${(err && (err.message || err.code)) || JSON.stringify(err)}`;
         console.warn('AdMob: banner failed to load', err);
       });
@@ -107,6 +114,7 @@ const AdMobBridge = (() => {
     }
     const p = plugin();
     try {
+      everAttemptedThisSession = true;
       await p.showBanner({
         adId: AD_UNIT_ID,
         adSize: 'ADAPTIVE_BANNER',
@@ -146,6 +154,9 @@ const AdMobBridge = (() => {
       canRequestAds,
       lastConsentStatus,
       bannerVisible,
+      everAttemptedThisSession,
+      everShownThisSession,
+      everFailedThisSession,
       lastError,
     };
   }

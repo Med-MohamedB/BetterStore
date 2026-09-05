@@ -1803,7 +1803,10 @@ async function showDiagnostics() {
     lines.push(`Consent checked: ${a.consentChecked ? 'yes' : 'no'}`);
     lines.push(`Consent status: ${a.lastConsentStatus || 'unknown'}`);
     lines.push(`Can request ads: ${a.canRequestAds ? 'yes' : 'NO \u2014 this blocks every ad request'}`);
-    lines.push(`Banner currently visible: ${a.bannerVisible ? 'yes' : 'no'}`);
+    lines.push(`Ad request ever attempted this session: ${a.everAttemptedThisSession ? 'yes' : 'NOT YET \u2014 visit Dashboard/Products/POS etc. first'}`);
+    lines.push(`Ad ever loaded successfully this session: ${a.everShownThisSession ? 'yes' : 'no'}`);
+    lines.push(`Ad ever failed to load this session: ${a.everFailedThisSession ? 'yes' : 'no'}`);
+    lines.push(`Banner on screen RIGHT NOW: ${a.bannerVisible ? 'yes' : 'no (expected \u2014 this screen isn\u2019t an ad screen)'}`);
     lines.push(`Last error: ${a.lastError || 'none'}`);
     if (!a.pluginPresent) lines.push('\u26a0\ufe0f AdMob plugin not found \u2014 the installed build may predate this feature.');
   } else {

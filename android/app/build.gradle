@@ -62,6 +62,14 @@ dependencies {
     implementation project(':capacitor-cordova-android-plugins')
     implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.0"
     implementation "androidx.biometric:biometric:1.1.0"
+
+    // @capacitor/push-notifications only exposes firebase-messaging to
+    // ITS OWN module (Gradle's `implementation` scope doesn't leak
+    // dependencies to the app that depends on the plugin) — so MainActivity
+    // calling FirebaseMessaging directly needs its own explicit dependency
+    // here, or the compiler can't find the class at all.
+    implementation platform('com.google.firebase:firebase-bom:34.14.0')
+    implementation 'com.google.firebase:firebase-messaging'
 }
 
 apply from: 'capacitor.build.gradle'

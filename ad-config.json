@@ -1,11 +1,11 @@
 {
-  "active": false,
+  "active": true,
   "style": "simple",
-  "adMode": "admob",
-  "url": "",
+  "adMode": "both",
+  "url": "https://rickroll.it/rickroll.mp4",
   "expiresAt": null,
   "icon": "🎯",
-  "image": null,
-  "title": "",
-  "subtitle": ""
+  "image": "https://raw.githubusercontent.com/Med-MohamedB/BetterStore/main/assets/1788632619866.jpg",
+  "title": "wissal",
+  "subtitle": "9iiiw"
 }

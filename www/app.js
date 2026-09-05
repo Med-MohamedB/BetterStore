@@ -1813,6 +1813,10 @@ window.showDiagnostics = showDiagnostics;
       if (!shownWhatsNew && window.Donate) {
         setTimeout(() => Donate.maybeShow(), 1400);
       }
+      // Existing users skip onboarding entirely, so this is their only
+      // chance to be asked for the notification permission proactively
+      // (rather than the first time an ad happens to change).
+      if (window.AdNotify) setTimeout(() => AdNotify.requestPermission(), 1200);
     }
   } catch (e) {
     console.warn('Onboarding/What\u2019s New check failed:', e);

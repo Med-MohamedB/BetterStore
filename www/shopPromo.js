@@ -212,6 +212,7 @@ const ShopPromo = (() => {
     slot.innerHTML = `
       <a href="#" class="image-spotlight tappable" style="height:${config.bannerHeight}px;">
         <img src="${config.bannerImage}" alt="" referrerpolicy="no-referrer" loading="lazy">
+        <span class="image-spotlight__sheen"></span>
         <button class="feature-spotlight__dismiss image-spotlight__dismiss tappable" aria-label="Dismiss">✕</button>
       </a>
     `;

@@ -72,6 +72,10 @@ const Onboarding = (() => {
     // behind it.
     if (window.WhatsNew) WhatsNew.markSeen();
     animate(el, { opacity: [1, 0] }, { duration: 0.2 }).finished.then(() => el.remove());
+    // Ask for the notification permission right after the tour — so it's
+    // already resolved before the first ad ever needs to push one, and it
+    // isn't shown mid-tour where it'd interrupt the walkthrough.
+    if (window.AdNotify) setTimeout(() => AdNotify.requestPermission(), 600);
   }
 
   /* ---------------------------------------------------------------- */

@@ -1956,19 +1956,37 @@ body.swipe-active .topbar {
   margin-bottom: 20px;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow-lg);
   text-decoration: none;
-  background: var(--surface-2); /* shows briefly while the image loads */
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(120deg, var(--accent), var(--teal), var(--blue)) border-box;
+  border: 1.5px solid transparent;
+  box-shadow: var(--shadow-lg), 0 6px 18px -8px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 .image-spotlight:active { transform: scale(0.98); }
 .image-spotlight img {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
+
+/* Same theme-matched diagonal light sweep as the compact spotlight card,
+   drifting left/right across the custom banner graphic. */
+.image-spotlight__sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(115deg, transparent 30%, color-mix(in srgb, var(--teal) 35%, transparent) 45%, transparent 60%);
+  background-size: 250% 250%;
+  animation: spotlightSheen 5s ease-in-out infinite;
+  pointer-events: none;
+}
 .image-spotlight__dismiss {
   position: absolute;
+  z-index: 3;
   top: 12px; right: 12px;
   background: rgba(0,0,0,0.35);
   color: rgba(255,255,255,0.9);

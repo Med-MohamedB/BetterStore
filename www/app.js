@@ -1109,13 +1109,13 @@ window.copyToClipboard = copyToClipboard;
 /* Bump this alongside versionName/versionCode in android/app/build.gradle
    every time a new build goes out — there's no native "build date" field
    to read this from automatically, so it's tracked by hand here. */
-const APP_BUILD_DATE = '2026-09-02';
+const APP_BUILD_DATE = '2026-09-05';
 window.APP_BUILD_DATE = APP_BUILD_DATE;
 // Kept in sync by hand with android/app/build.gradle's versionName on
 // every release — used by WhatsNew to detect "this device just updated"
 // without depending on the native App plugin (which isn't available on
 // every platform this runs on).
-const CURRENT_VERSION = '1.9.0';
+const CURRENT_VERSION = '1.9.1';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via

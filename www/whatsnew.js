@@ -11,9 +11,11 @@ const WhatsNew = (() => {
   // Add a new entry here each release; oldest-first doesn't matter since
   // only the current version's list is ever shown.
   const ITEMS = [
+    { icon: '🔔', text: 'The app now asks for notification permission up front, so new-offer alerts are ready to go from the start.' },
+    { icon: '🖼️', text: 'Offer notifications always show your app logo, and now pop up properly instead of landing silently.' },
+    { icon: '💎', text: 'Custom image banners now get the same glowing themed border and light sweep as other offer cards.' },
     { icon: '🛠️', text: 'Fixed a bug where updates could silently fail to apply until app data was cleared.' },
     { icon: '🎨', text: 'New Standard theme \u2014 clean black/white/grey with formal line icons instead of emoji.' },
-    { icon: '🔔', text: 'Notifications for new offers, with the image included when there is one.' },
     { icon: '↩️', text: 'Partial refunds \u2014 pick exactly which items, and how many, to return.' },
     { icon: '📜', text: 'Added Terms of Use \u2014 readable any time from More.' },
     { icon: '✨', text: 'A friendlier first-run tour and noticeably smoother motion everywhere.' },

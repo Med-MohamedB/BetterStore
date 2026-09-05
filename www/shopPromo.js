@@ -303,6 +303,17 @@ const ShopPromo = (() => {
     attachDismiss(slot, card, config);
   }
 
-  return { mountTop, invalidateCache, hideEverywhere };
+  /** For the on-device diagnostics screen — surfaces what ShopPromo
+   *  currently believes about the ad source, without needing a computer
+   *  to inspect it. */
+  function getDebugInfo() {
+    return {
+      adModeLoaded: cachedConfig !== undefined,
+      adMode: cachedAdMode,
+      rotationCount: parseInt(localStorage.getItem(AD_ROTATION_KEY), 10) || 0,
+    };
+  }
+
+  return { mountTop, invalidateCache, hideEverywhere, getDebugInfo };
 })();
 window.ShopPromo = ShopPromo;

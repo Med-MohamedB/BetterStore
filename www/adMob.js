@@ -36,6 +36,8 @@ const AdMobBridge = (() => {
   let consentChecked = false;
   let canRequestAds = true; // optimistic default if consent check itself fails
   let bannerVisible = false;
+  let lastError = null;
+  let lastConsentStatus = null;
 
   function plugin() {
     const cap = window.Capacitor;
@@ -56,13 +58,16 @@ const AdMobBridge = (() => {
     if (!p || consentChecked) return canRequestAds;
     try {
       const info = await p.requestConsentInfo();
+      lastConsentStatus = info.status;
       if (info.isConsentFormAvailable && info.status === 'REQUIRED') {
         const updated = await p.showConsentForm();
         canRequestAds = updated.canRequestAds;
+        lastConsentStatus = updated.status;
       } else {
         canRequestAds = info.canRequestAds;
       }
     } catch (e) {
+      lastError = `consent check: ${e.message || e}`;
       console.warn('AdMob consent check failed:', e);
       // Leave canRequestAds at its optimistic default — better to attempt
       // the ad request than to permanently block ads over a transient
@@ -80,8 +85,12 @@ const AdMobBridge = (() => {
       await p.initialize({});
       initialized = true;
       p.addListener('bannerAdLoaded', () => console.log('AdMob: banner loaded'));
-      p.addListener('bannerAdFailedToLoad', (err) => console.warn('AdMob: banner failed to load', err));
+      p.addListener('bannerAdFailedToLoad', (err) => {
+        lastError = `load failed: ${(err && (err.message || err.code)) || JSON.stringify(err)}`;
+        console.warn('AdMob: banner failed to load', err);
+      });
     } catch (e) {
+      lastError = `init: ${e.message || e}`;
       console.warn('AdMob init failed:', e);
     }
     return initialized;
@@ -92,6 +101,7 @@ const AdMobBridge = (() => {
   async function showBanner() {
     if (!(await ensureInit())) return;
     if (!(await ensureConsent())) {
+      lastError = lastError || 'consent not granted (canRequestAds=false)';
       console.warn('AdMob: consent not granted, skipping ad request');
       return;
     }
@@ -105,7 +115,9 @@ const AdMobBridge = (() => {
         isTesting: IS_TESTING,
       });
       bannerVisible = true;
+      lastError = null;
     } catch (e) {
+      lastError = `showBanner: ${e.message || e}`;
       console.warn('AdMob banner failed to show:', e);
     }
   }
@@ -122,6 +134,22 @@ const AdMobBridge = (() => {
     bannerVisible = false;
   }
 
-  return { showBanner, hideBannerIfShown };
+  /** Everything the on-device diagnostics screen (More → About This App →
+   *  Run Diagnostics) needs to show, so a stuck banner is debuggable from
+   *  the phone itself with no computer involved. */
+  function getDebugInfo() {
+    return {
+      pluginPresent: !!plugin(),
+      isNative: isNative(),
+      initialized,
+      consentChecked,
+      canRequestAds,
+      lastConsentStatus,
+      bannerVisible,
+      lastError,
+    };
+  }
+
+  return { showBanner, hideBannerIfShown, getDebugInfo };
 })();
 window.AdMobBridge = AdMobBridge;

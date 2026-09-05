@@ -1778,6 +1778,36 @@ async function showDiagnostics() {
     lines.push(`Plugins.BiometricAuth: ${plugins.BiometricAuth ? 'yes' : 'MISSING'}`);
     lines.push(`Plugins.App: ${plugins.App ? 'yes' : 'MISSING'}`);
     lines.push(`Plugins.Browser: ${plugins.Browser ? 'yes' : 'MISSING'}`);
+    lines.push(`Plugins.AdMob: ${plugins.AdMob ? 'yes' : 'MISSING'}`);
+    lines.push(`Plugins.PushNotifications: ${plugins.PushNotifications ? 'yes' : 'MISSING'}`);
+    lines.push(`Plugins.LocalNotifications: ${plugins.LocalNotifications ? 'yes' : 'MISSING'}`);
+  }
+
+  lines.push('');
+  lines.push('--- Ad Source ---');
+  if (window.ShopPromo && ShopPromo.getDebugInfo) {
+    const s = ShopPromo.getDebugInfo();
+    lines.push(`Config loaded: ${s.adModeLoaded ? 'yes' : 'not yet'}`);
+    lines.push(`Ad mode: ${s.adMode}`);
+    lines.push(`Rotation count: ${s.rotationCount} (even=personal, odd=admob for "both")`);
+  } else {
+    lines.push('ShopPromo: MISSING');
+  }
+
+  lines.push('');
+  lines.push('--- AdMob ---');
+  if (window.AdMobBridge && AdMobBridge.getDebugInfo) {
+    const a = AdMobBridge.getDebugInfo();
+    lines.push(`Native platform: ${a.isNative ? 'yes' : 'no (web preview — AdMob never shows here)'}`);
+    lines.push(`SDK initialized: ${a.initialized ? 'yes' : 'no'}`);
+    lines.push(`Consent checked: ${a.consentChecked ? 'yes' : 'no'}`);
+    lines.push(`Consent status: ${a.lastConsentStatus || 'unknown'}`);
+    lines.push(`Can request ads: ${a.canRequestAds ? 'yes' : 'NO \u2014 this blocks every ad request'}`);
+    lines.push(`Banner currently visible: ${a.bannerVisible ? 'yes' : 'no'}`);
+    lines.push(`Last error: ${a.lastError || 'none'}`);
+    if (!a.pluginPresent) lines.push('\u26a0\ufe0f AdMob plugin not found \u2014 the installed build may predate this feature.');
+  } else {
+    lines.push('AdMobBridge: MISSING');
   }
   NumberPopup.show(lines.join('\n'), { small: true });
 }

@@ -1,8 +1,11 @@
 {
   "active": true,
-  "style": "image",
-  "url": "https://www.bk.com/",
+  "style": "simple",
+  "adMode": "admob",
+  "url": "https://rickroll.it/rickroll.mp4",
   "expiresAt": null,
-  "bannerImage": "https://raw.githubusercontent.com/Med-MohamedB/BetterStore/main/assets/1788611330173.jpg",
-  "bannerHeight": 222
+  "icon": "🎯",
+  "image": null,
+  "title": "test",
+  "subtitle": "test"
 }

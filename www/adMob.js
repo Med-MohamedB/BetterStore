@@ -28,9 +28,18 @@
    ========================================================================== */
 
 const AdMobBridge = (() => {
+  // ↓↓↓ TEMPORARY: forces Google's public sample ad unit, which always
+  // serves a real (test-labeled) ad regardless of AdMob account approval
+  // status — used purely to confirm the banner itself renders/positions
+  // correctly while your real account is still pending review. Once
+  // AdMob shows your account as Approved, set this back to `false` and
+  // republish — it'll automatically go back to using your real
+  // AD_UNIT_ID/IS_TESTING values below.
+  const FORCE_SAMPLE_AD_FOR_TESTING = true;
+
   // Your real AdMob banner ad unit, live and earning.
-  const AD_UNIT_ID = 'ca-app-pub-3555762597064994/7740575940';
-  const IS_TESTING = false;
+  const AD_UNIT_ID = FORCE_SAMPLE_AD_FOR_TESTING ? 'ca-app-pub-3940256099942544/6300978111' : 'ca-app-pub-3555762597064994/7740575940';
+  const IS_TESTING = FORCE_SAMPLE_AD_FOR_TESTING ? true : false;
 
   let initialized = false;
   let consentChecked = false;

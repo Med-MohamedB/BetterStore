@@ -80,6 +80,42 @@ jobs:
               }, f)
           PY
 
+      - name: Wait for the CDN to actually serve the new content
+        if: steps.ad.outputs.should_send == 'true'
+        run: |
+          python3 - <<'PY'
+          import json, time, urllib.request, urllib.error
+
+          with open("ad-config.json") as f:
+              expected = json.load(f)
+
+          url = "https://raw.githubusercontent.com/Med-MohamedB/BetterStore/main/ad-config.json"
+          # raw.githubusercontent.com sits behind an edge cache that can lag
+          # a few minutes behind a brand-new commit — REGARDLESS of
+          # cache-busting query params, which it ignores for this host.
+          # Sending the push the instant the commit lands (without this
+          # wait) means the notification can arrive before the app is able
+          # to fetch anything but the OLD content, which is exactly the bug
+          # this step exists to close: don't push until the public URL the
+          # app actually reads from has caught up.
+          deadline = time.time() + 6 * 60  # give up after 6 minutes either way
+          attempt = 0
+          while time.time() < deadline:
+              attempt += 1
+              try:
+                  req = urllib.request.Request(f"{url}?_={int(time.time())}")
+                  with urllib.request.urlopen(req, timeout=10) as resp:
+                      live = json.loads(resp.read().decode())
+                  if live == expected:
+                      print(f"CDN caught up after {attempt} check(s).")
+                      raise SystemExit(0)
+              except (urllib.error.URLError, json.JSONDecodeError) as e:
+                  print(f"Check {attempt}: fetch/parse failed ({e}), retrying...")
+              time.sleep(10)
+
+          print("CDN still hasn't caught up after 6 minutes — sending the push anyway.")
+          PY
+
       - name: Authenticate to Firebase
         if: steps.ad.outputs.should_send == 'true'
         id: auth

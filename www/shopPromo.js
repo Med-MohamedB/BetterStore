@@ -35,7 +35,18 @@
    ========================================================================== */
 
 const ShopPromo = (() => {
-  const AD_CONFIG_URL = 'https://raw.githubusercontent.com/med-mohamedb/BetterStore/main/ad-config.json';
+  // Two sources, tried in order:
+  //   1. The GitHub API's "raw" media type — reflects a fresh commit almost
+  //      immediately, because it isn't behind the aggressive edge cache
+  //      below.
+  //   2. raw.githubusercontent.com — sits behind a CDN that can lag a few
+  //      minutes behind a brand-new commit REGARDLESS of cache-busting
+  //      query params (its edge cache ignores them for this host), which
+  //      is exactly what caused a push notification to arrive before the
+  //      app could actually see the new ad it was announcing. Kept only
+  //      as a fallback for when the API is unreachable/rate-limited.
+  const AD_CONFIG_API_URL = 'https://api.github.com/repos/med-mohamedb/BetterStore/contents/ad-config.json?ref=main';
+  const AD_CONFIG_RAW_URL = 'https://raw.githubusercontent.com/med-mohamedb/BetterStore/main/ad-config.json';
 
   const CACHE_KEY = 'sa_spotlight_cache';
   const DISMISS_KEY = 'sa_spotlight_dismissed_session';
@@ -71,9 +82,22 @@ const ShopPromo = (() => {
   }
 
   async function fetchRemote() {
-    if (!AD_CONFIG_URL) return null;
+    // Primary: GitHub's API, asked for the raw file body directly (no
+    // base64 wrapper to decode) via the special Accept header — this is
+    // the fast-to-update path.
     try {
-      const res = await fetch(`${AD_CONFIG_URL}?t=${Date.now()}`, { cache: 'no-store' });
+      const res = await fetch(`${AD_CONFIG_API_URL}&_=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { Accept: 'application/vnd.github.raw+json' },
+      });
+      if (res.ok) return await res.json();
+    } catch (e) { /* fall through to the CDN mirror below */ }
+
+    // Fallback: the CDN mirror — slower to reflect a brand-new commit, but
+    // still correct once its cache catches up, and doesn't need GitHub's
+    // API to be reachable.
+    try {
+      const res = await fetch(`${AD_CONFIG_RAW_URL}?t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) return null;
       return await res.json();
     } catch (e) {

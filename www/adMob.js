@@ -16,19 +16,15 @@
    visually distinguishable as ads rather than blended into surrounding
    app content, so a plain, clearly-Google-branded banner is expected.
 
-   SETUP: ships with Google's PUBLIC TEST App ID/Ad Unit ID by default —
-   safe to leave as-is, it only ever serves clearly-labeled test ads and
-   earns nothing. To earn real revenue:
-     1. Create a free AdMob account at admob.google.com, add this app
-        (package: com.mohaab.storeapp), create a Banner ad unit.
-     2. Put your real App ID in AndroidManifest.xml's
-        com.google.android.gms.ads.APPLICATION_ID meta-data (replacing
-        the ca-app-pub-3940256099942544~... test value there).
-     3. Replace AD_UNIT_ID below with your real banner ad unit id, and
-        set IS_TESTING to false.
-   New AdMob accounts/apps often serve test-only fill for the first
-   little while even once IDs are correct — that's Google's own review
-   process, not a bug here.
+   SETUP: currently wired to your real AdMob App ID (in AndroidManifest.xml)
+   and real ad unit ID (AD_UNIT_ID below), with IS_TESTING off — this is
+   live and earning. New AdMob accounts/apps can take a while (sometimes
+   longer than Google's own "up to an hour" estimate) to start actually
+   returning fill; a consent-check failure or no-fill response both look
+   identical from the outside (no ad, no error shown to the user) — see
+   ensureConsent() below and the console logs from bannerAdLoaded /
+   bannerAdFailedToLoad for what's actually happening (inspect via
+   chrome://inspect with the phone on USB debugging).
    ========================================================================== */
 
 const AdMobBridge = (() => {
@@ -37,6 +33,8 @@ const AdMobBridge = (() => {
   const IS_TESTING = false;
 
   let initialized = false;
+  let consentChecked = false;
+  let canRequestAds = true; // optimistic default if consent check itself fails
   let bannerVisible = false;
 
   function plugin() {
@@ -48,6 +46,32 @@ const AdMobBridge = (() => {
     return !!(cap && cap.isNativePlatform && cap.isNativePlatform());
   }
 
+  /** Google's Mobile Ads SDK will silently refuse to serve ANY ad — no
+   *  error, just permanent no-fill — until this consent (UMP) flow has
+   *  been resolved at least once. Skipping this entirely is the single
+   *  most common reason a correctly-configured AdMob integration shows
+   *  nothing at all. */
+  async function ensureConsent() {
+    const p = plugin();
+    if (!p || consentChecked) return canRequestAds;
+    try {
+      const info = await p.requestConsentInfo();
+      if (info.isConsentFormAvailable && info.status === 'REQUIRED') {
+        const updated = await p.showConsentForm();
+        canRequestAds = updated.canRequestAds;
+      } else {
+        canRequestAds = info.canRequestAds;
+      }
+    } catch (e) {
+      console.warn('AdMob consent check failed:', e);
+      // Leave canRequestAds at its optimistic default — better to attempt
+      // the ad request than to permanently block ads over a transient
+      // consent-check failure.
+    }
+    consentChecked = true;
+    return canRequestAds;
+  }
+
   async function ensureInit() {
     const p = plugin();
     if (!p || !isNative()) return false;
@@ -55,6 +79,8 @@ const AdMobBridge = (() => {
     try {
       await p.initialize({});
       initialized = true;
+      p.addListener('bannerAdLoaded', () => console.log('AdMob: banner loaded'));
+      p.addListener('bannerAdFailedToLoad', (err) => console.warn('AdMob: banner failed to load', err));
     } catch (e) {
       console.warn('AdMob init failed:', e);
     }
@@ -64,8 +90,12 @@ const AdMobBridge = (() => {
   /** Shows the banner pinned to the top of the screen. Safe to call
    *  repeatedly — reloads/re-shows if already up. */
   async function showBanner() {
-    const p = plugin();
     if (!(await ensureInit())) return;
+    if (!(await ensureConsent())) {
+      console.warn('AdMob: consent not granted, skipping ad request');
+      return;
+    }
+    const p = plugin();
     try {
       await p.showBanner({
         adId: AD_UNIT_ID,

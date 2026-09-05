@@ -9,9 +9,12 @@
    element. That means it:
      - does NOT scroll with the page the way the personal ad card does
      - can't inherit the app's custom border/glow/theme styling
-     - will sit at a fixed distance from the top/bottom of the SCREEN,
-       not from wherever the promo slot happens to be in the scrolled
-       content
+     - draws straight over whatever pixels are already there — it does
+       NOT push the app's own header down automatically the way an HTML
+       element would. This file compensates for that by adding top
+       padding to #app equal to the ad's real reported height (see
+       applyContentOffset() below), so the header ends up sitting BELOW
+       the ad instead of hidden behind it.
    This isn't a bug to fix — Google's AdMob policies require ads to stay
    visually distinguishable as ads rather than blended into surrounding
    app content, so a plain, clearly-Google-branded banner is expected.
@@ -60,6 +63,17 @@ const AdMobBridge = (() => {
     return !!(cap && cap.isNativePlatform && cap.isNativePlatform());
   }
 
+  /** Pushes the app's whole shell (header included) down by the ad's
+   *  real height so the native banner has clear space above it instead
+   *  of drawing over it. `px` is in dp, which lines up with CSS px in a
+   *  standard Capacitor WebView (both are density-independent). Pass 0
+   *  to remove the offset entirely. */
+  function applyContentOffset(px) {
+    const app = document.getElementById('app');
+    if (!app) return;
+    app.style.paddingTop = px > 0 ? `${px}px` : '';
+  }
+
   /** Google's Mobile Ads SDK will silently refuse to serve ANY ad — no
    *  error, just permanent no-fill — until this consent (UMP) flow has
    *  been resolved at least once. Skipping this entirely is the single
@@ -105,6 +119,11 @@ const AdMobBridge = (() => {
         lastError = `load failed: ${(err && (err.message || err.code)) || JSON.stringify(err)}`;
         console.warn('AdMob: banner failed to load', err);
       });
+      p.addListener('bannerAdSizeChanged', (size) => {
+        // A hidden/removed/failed banner reports 0×0 — treat that as
+        // "no offset needed" rather than collapsing content to nothing.
+        applyContentOffset(size && size.height > 0 ? size.height : 0);
+      });
     } catch (e) {
       lastError = `init: ${e.message || e}`;
       console.warn('AdMob init failed:', e);
@@ -149,6 +168,7 @@ const AdMobBridge = (() => {
       await p.removeBanner();
     } catch (e) { /* already gone — fine */ }
     bannerVisible = false;
+    applyContentOffset(0);
   }
 
   /** Everything the on-device diagnostics screen (More → About This App →

@@ -1123,7 +1123,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // the next actual feature). Bump this on every single patch, however
 // small, so What's New / the About screen always reflects exactly what's
 // installed.
-const CURRENT_VERSION = '1.9.5.1';
+const CURRENT_VERSION = '1.9.5.2';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via

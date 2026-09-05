@@ -1,0 +1,147 @@
+name: Send Ad Push Notification
+
+# Fires the instant ad-config.json changes on main — whether that commit
+# came from `git push` (Termux) or from the control panel publishing
+# through the GitHub Contents API. Sends one push to every installed copy
+# of the app (they're all subscribed to the "ad-updates" FCM topic — see
+# android/app/src/main/java/com/mohaab/storeapp/MainActivity.kt), which
+# Android displays immediately even if the app is closed.
+#
+# One-time setup required (see README section "Setting up push notifications"):
+#   1. Create a free Firebase project, add an Android app with package
+#      com.mohaab.storeapp, download google-services.json into android/app/.
+#   2. Firebase console → Project settings → Service accounts → Generate
+#      new private key → save the JSON it downloads as a GitHub repo
+#      secret named FCM_SERVICE_ACCOUNT_KEY (Settings → Secrets and
+#      variables → Actions → New repository secret, paste the whole file).
+# Without that secret this workflow just skips sending (steps below no-op).
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'ad-config.json'
+  workflow_dispatch:
+
+jobs:
+  send-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read ad-config.json and build the push payload
+        id: ad
+        run: |
+          python3 - <<'PY'
+          import json, os
+
+          out_path = os.environ["GITHUB_OUTPUT"]
+
+          def write(key, value):
+              with open(out_path, "a") as f:
+                  f.write(f"{key}={value}\n")
+
+          try:
+              with open("ad-config.json") as f:
+                  cfg = json.load(f)
+          except FileNotFoundError:
+              write("should_send", "false")
+              raise SystemExit(0)
+
+          active = bool(cfg.get("active"))
+          style = cfg.get("style", "simple")
+
+          if style == "image":
+              title = "New offer available"
+              body = "Tap to see what\u2019s new"
+              image = cfg.get("bannerImage") or ""
+          else:
+              title = (cfg.get("title") or "New offer available").strip()
+              body = (cfg.get("subtitle") or "").strip()
+              image = cfg.get("image") or ""
+
+          url = cfg.get("url") or ""
+
+          # The default Telegram-shop placeholder isn't "a new ad" worth a push.
+          if title == "Check out our Telegram Shop":
+              active = False
+
+          write("should_send", "true" if active else "false")
+          # GITHUB_OUTPUT doesn't handle embedded newlines/special chars well —
+          # write the payload fields to a JSON file instead and let the next
+          # step read that, so nothing needs shell-escaping.
+          with open("ad-push-payload.json", "w") as f:
+              json.dump({
+                  "style": style,
+                  "title": title,
+                  "body": body,
+                  "image": image,
+                  "url": url,
+              }, f)
+          PY
+
+      - name: Authenticate to Firebase
+        if: steps.ad.outputs.should_send == 'true'
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FCM_SERVICE_ACCOUNT_KEY }}
+          token_format: 'access_token'
+
+      - name: Send push to the ad-updates topic
+        if: steps.ad.outputs.should_send == 'true'
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          PROJECT_ID: ${{ steps.auth.outputs.project_id }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+
+          with open("ad-push-payload.json") as f:
+              ad = json.load(f)
+
+          message = {
+              "message": {
+                  "topic": "ad-updates",
+                  "notification": {
+                      "title": ad["title"],
+                      "body": ad["body"],
+                  },
+                  "android": {
+                      "notification": {
+                          "channel_id": "ad-alerts",
+                          "notification_priority": "PRIORITY_HIGH",
+                          **({"image": ad["image"]} if ad["image"] else {}),
+                      }
+                  },
+                  "data": {
+                      "style": ad["style"],
+                      "title": ad["title"],
+                      "body": ad["body"],
+                      "image": ad["image"],
+                      "url": ad["url"],
+                  },
+              }
+          }
+
+          project_id = os.environ["PROJECT_ID"]
+          req = urllib.request.Request(
+              f"https://fcm.googleapis.com/v1/projects/{project_id}/messages:send",
+              data=json.dumps(message).encode(),
+              headers={
+                  "Authorization": f"Bearer {os.environ['ACCESS_TOKEN']}",
+                  "Content-Type": "application/json; charset=UTF-8",
+              },
+              method="POST",
+          )
+          try:
+              with urllib.request.urlopen(req) as resp:
+                  print("FCM response:", resp.status, resp.read().decode())
+          except urllib.error.HTTPError as e:
+              print("FCM send failed:", e.code, e.read().decode())
+              raise SystemExit(1)
+          PY
+
+      - name: Skipped (no active ad or inactive change)
+        if: steps.ad.outputs.should_send != 'true'
+        run: echo "ad-config.json is inactive or unchanged in a pushable way — no notification sent."

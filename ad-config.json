@@ -1,11 +1,11 @@
 {
-  "active": true,
+  "active": false,
   "style": "simple",
   "adMode": "admob",
-  "url": "https://rickroll.it/rickroll.mp4",
+  "url": "",
   "expiresAt": null,
   "icon": "🎯",
   "image": null,
-  "title": "test",
-  "subtitle": "test"
+  "title": "",
+  "subtitle": ""
 }

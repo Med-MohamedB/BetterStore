@@ -53,6 +53,12 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="ad-alerts" />
+
+        <!-- AdMob's App ID — your real one (created in the AdMob console).
+             The public Google test value used before this was replaced. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3555762597064994~1450017262" />
     </application>
 
     <!-- Permissions -->

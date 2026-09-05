@@ -50,6 +50,8 @@ const ShopPromo = (() => {
 
   const CACHE_KEY = 'sa_spotlight_cache';
   const DISMISS_KEY = 'sa_spotlight_dismissed_session';
+  const AD_ROTATION_KEY = 'sa_ad_rotation_counter';
+  const VALID_AD_MODES = ['personal', 'admob', 'both'];
 
   const DEFAULT_CONFIG = {
     style: 'simple',
@@ -61,6 +63,7 @@ const ShopPromo = (() => {
   };
 
   let cachedConfig;
+  let cachedAdMode = 'personal';
   let inFlight = null;
 
   function isSafeUrl(url) {
@@ -134,6 +137,10 @@ const ShopPromo = (() => {
     };
   }
 
+  function readAdMode(remote) {
+    return remote && VALID_AD_MODES.includes(remote.adMode) ? remote.adMode : 'personal';
+  }
+
   async function getConfig() {
     if (cachedConfig !== undefined) return cachedConfig;
     if (inFlight) return inFlight;
@@ -142,9 +149,12 @@ const ShopPromo = (() => {
       if (remote) {
         persist(remote);
         cachedConfig = resolve(remote);
+        cachedAdMode = readAdMode(remote);
         if (window.AdNotify) AdNotify.checkAndNotify(cachedConfig);
       } else {
-        cachedConfig = resolve(loadPersisted());
+        const persisted = loadPersisted();
+        cachedConfig = resolve(persisted);
+        cachedAdMode = readAdMode(persisted);
       }
       inFlight = null;
       return cachedConfig;
@@ -155,6 +165,15 @@ const ShopPromo = (() => {
   function invalidateCache() {
     cachedConfig = undefined;
     inFlight = null;
+  }
+
+  // adMode is independent of the personal ad's own active/inactive state
+  // — AdMob keeps running even if the personal promo is switched off, and
+  // vice versa, since they're two separate revenue/marketing channels.
+  function nextTurnIsAdMob() {
+    const n = (parseInt(localStorage.getItem(AD_ROTATION_KEY), 10) || 0) + 1;
+    localStorage.setItem(AD_ROTATION_KEY, String(n));
+    return n % 2 === 0;
   }
 
   function signatureFor(config) {
@@ -168,6 +187,17 @@ const ShopPromo = (() => {
 
     const config = await getConfig();
     if (!config) return;
+
+    const showAdMobThisTurn = cachedAdMode === 'admob' || (cachedAdMode === 'both' && nextTurnIsAdMob());
+
+    if (showAdMobThisTurn) {
+      // The native AdMob banner is an overlay drawn by Android itself, not
+      // an element inside `container` — nothing to insert into the DOM
+      // this turn, just trigger it and get out of the way.
+      if (window.AdMobBridge) window.AdMobBridge.showBanner();
+      return;
+    }
+    if (window.AdMobBridge) window.AdMobBridge.hideBannerIfShown();
 
     // The dismiss flag is tied to THIS specific ad's content, not "any ad
     // this session" — so dismissing today's offer hides today's offer, but
@@ -184,6 +214,13 @@ const ShopPromo = (() => {
 
     if (config.style === 'image') renderImageBanner(slot, config);
     else renderCompact(slot, config);
+  }
+
+  /** Called from the router for any screen that ISN'T a promo-eligible
+   *  screen, so a native AdMob banner from a previous screen doesn't
+   *  linger as a stray overlay somewhere it was never meant to appear. */
+  function hideEverywhere() {
+    if (window.AdMobBridge) window.AdMobBridge.hideBannerIfShown();
   }
 
   function attachDismiss(slot, card, config) {
@@ -266,6 +303,6 @@ const ShopPromo = (() => {
     attachDismiss(slot, card, config);
   }
 
-  return { mountTop, invalidateCache };
+  return { mountTop, invalidateCache, hideEverywhere };
 })();
 window.ShopPromo = ShopPromo;

@@ -96,6 +96,8 @@ const Router = (() => {
     const SPOTLIGHT_ROUTES = ['dashboard', 'products', 'pos', 'sales', 'suppliers', 'inventory', 'customers', 'reports'];
     if (window.ShopPromo && SPOTLIGHT_ROUTES.includes(name)) {
       ShopPromo.mountTop(view);
+    } else if (window.ShopPromo) {
+      ShopPromo.hideEverywhere();
     }
   }
 
@@ -1115,7 +1117,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // every release — used by WhatsNew to detect "this device just updated"
 // without depending on the native App plugin (which isn't available on
 // every platform this runs on).
-const CURRENT_VERSION = '1.9.4';
+const CURRENT_VERSION = '1.9.5';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via

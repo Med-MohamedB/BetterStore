@@ -81,6 +81,23 @@
   <div class="hint" style="margin-bottom:18px;">🔒 This page holds no secrets of its own — your token lives only in this browser's local storage.</div>
 
   <div class="card">
+    <h2>Ad Source</h2>
+    <div class="seg">
+      <button class="seg__btn active" id="adModePersonalBtn">Personal Only</button>
+      <button class="seg__btn" id="adModeAdMobBtn">AdMob Only</button>
+      <button class="seg__btn" id="adModeBothBtn">Both (Alternate)</button>
+    </div>
+    <div class="hint">
+      <b>Personal Only:</b> just your own ad below, as always.
+      <b>AdMob Only:</b> a real Google AdMob banner instead — you earn per view/click, but you don't control what shows.
+      <b>Both:</b> alternates between your ad and an AdMob banner as people switch between screens in the app.
+      This applies no matter whether your own ad below is marked Active or not — they're independent switches.
+      AdMob banners are a native ad slot, not a styled card — they won't carry your app's theme border, and Google requires that (ads have to stay visibly identifiable as ads).
+      Ships wired to Google's public TEST ad unit until you configure your own real AdMob account in <code>www/adMob.js</code>.
+    </div>
+  </div>
+
+  <div class="card">
     <h2>Banner Style</h2>
     <div class="seg">
       <button class="seg__btn active" id="styleSimpleBtn">Simple</button>
@@ -206,6 +223,18 @@
    'ghOwner','ghRepo','ghBranch','ghPath','ghAssetsPath','ghToken'].forEach((id) => { els[id] = document.getElementById(id); });
 
   let currentStyle = 'simple';
+  let currentAdMode = 'personal';
+
+  /* ---------------- ad source toggle ---------------- */
+  function setAdMode(mode) {
+    currentAdMode = mode;
+    document.getElementById('adModePersonalBtn').classList.toggle('active', mode === 'personal');
+    document.getElementById('adModeAdMobBtn').classList.toggle('active', mode === 'admob');
+    document.getElementById('adModeBothBtn').classList.toggle('active', mode === 'both');
+  }
+  document.getElementById('adModePersonalBtn').addEventListener('click', () => setAdMode('personal'));
+  document.getElementById('adModeAdMobBtn').addEventListener('click', () => setAdMode('admob'));
+  document.getElementById('adModeBothBtn').addEventListener('click', () => setAdMode('both'));
 
   /* ---------------- connection settings persistence ---------------- */
   function loadSettings() {
@@ -341,6 +370,7 @@
     const base = {
       active: els.fActive.checked,
       style: currentStyle,
+      adMode: currentAdMode,
       url: els.fUrl.value.trim(),
       expiresAt: els.fExpires.value ? new Date(els.fExpires.value + 'T23:59:59Z').toISOString() : null,
     };
@@ -352,6 +382,7 @@
 
   function applyConfigToForm(cfg) {
     els.fActive.checked = cfg.active !== false;
+    setAdMode(['personal', 'admob', 'both'].includes(cfg.adMode) ? cfg.adMode : 'personal');
     els.fUrl.value = cfg.url || '';
     els.fExpires.value = cfg.expiresAt ? new Date(cfg.expiresAt).toISOString().slice(0, 10) : '';
 
@@ -399,7 +430,7 @@
   });
 
   document.getElementById('resetBtn').addEventListener('click', () => {
-    applyConfigToForm({ active: false, style: 'simple', icon: '🛍️', image: null, title: 'Check out our Telegram Shop', subtitle: 't.me/RwmShop', url: 'https://t.me/RwmShop', expiresAt: null });
+    applyConfigToForm({ active: false, style: 'simple', adMode: 'personal', icon: '🛍️', image: null, title: 'Check out our Telegram Shop', subtitle: 't.me/RwmShop', url: 'https://t.me/RwmShop', expiresAt: null });
     setStatus('ok', 'Form reset to the Telegram Shop default (inactive). Hit Publish to push this live.');
   });
 

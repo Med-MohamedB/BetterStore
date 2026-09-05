@@ -11,6 +11,7 @@ const WhatsNew = (() => {
   // Add a new entry here each release; oldest-first doesn't matter since
   // only the current version's list is ever shown.
   const ITEMS = [
+    { icon: '📢', text: 'New "Ad Source" control in the panel \u2014 run your own ad, real AdMob ads, or alternate between both, from one switch.' },
     { icon: '🎯', text: 'Fixed a race condition where the push notification could arrive before the app was actually able to see the new ad it was announcing.' },
     { icon: '🔄', text: 'Opening the app (including from a new-offer notification) now always shows the latest ad right away, instead of a stale cached one.' },
     { icon: '⚡', text: 'New offers now push to your phone the instant they\u2019re published \u2014 even if the app is closed.' },

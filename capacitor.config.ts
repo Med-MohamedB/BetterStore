@@ -18,6 +18,13 @@ const config: CapacitorConfig = {
       // straight from the FCM payload using AndroidManifest.xml's
       // default_notification_* meta-data instead.
       presentationOptions: ['sound', 'alert']
+    },
+    AdMob: {
+      // initializeForTesting only affects the plugin's OWN test flows —
+      // whether ads actually request as test ads is controlled per-call
+      // via `isTesting` in www/adMob.js (currently true, using Google's
+      // public test ad unit id, until a real one is configured there).
+      initializeForTesting: false
     }
   }
 };

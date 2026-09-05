@@ -133,27 +133,41 @@ const ShopPromo = (() => {
     inFlight = null;
   }
 
+  function signatureFor(config) {
+    if (!config) return '';
+    if (config.style === 'image') return `image:${config.bannerImage}:${config.url}`;
+    return `simple:${config.title}:${config.subtitle}:${config.image}:${config.url}`;
+  }
+
   async function mountTop(container) {
     if (!container) return;
-    if (sessionStorage.getItem(DISMISS_KEY)) return;
+
+    const config = await getConfig();
+    if (!config) return;
+
+    // The dismiss flag is tied to THIS specific ad's content, not "any ad
+    // this session" — so dismissing today's offer hides today's offer, but
+    // the moment a genuinely different one is published (including via an
+    // instant push while the app is open), it shows up on its own instead
+    // of staying hidden until the next app restart.
+    if (sessionStorage.getItem(DISMISS_KEY) === signatureFor(config)) return;
 
     const slot = document.createElement('div');
     slot.className = 'feature-spotlight-slot';
     container.insertBefore(slot, container.firstChild);
 
-    const config = await getConfig();
-    if (!config || !slot.isConnected || sessionStorage.getItem(DISMISS_KEY)) return;
+    if (!slot.isConnected || sessionStorage.getItem(DISMISS_KEY) === signatureFor(config)) return;
 
     if (config.style === 'image') renderImageBanner(slot, config);
     else renderCompact(slot, config);
   }
 
-  function attachDismiss(slot, card) {
+  function attachDismiss(slot, card, config) {
     const btn = slot.querySelector('.feature-spotlight__dismiss');
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      sessionStorage.setItem(DISMISS_KEY, '1');
+      sessionStorage.setItem(DISMISS_KEY, signatureFor(config));
       const done = () => slot.remove();
       if (window.Fx) Fx.animate(card, { opacity: [1, 0], x: [0, 24] }, { duration: 0.18 }).finished.then(done);
       else done();
@@ -202,7 +216,7 @@ const ShopPromo = (() => {
 
     if (window.Fx) Fx.animate(card, { opacity: [0, 1], y: [-10, 0], scale: [0.97, 1] }, { type: 'spring', stiffness: 320, damping: 24 });
     attachTap(card, config.url);
-    attachDismiss(slot, card);
+    attachDismiss(slot, card, config);
   }
 
   /* ---------------------------------------------------------------- */
@@ -225,7 +239,7 @@ const ShopPromo = (() => {
 
     if (window.Fx) Fx.animate(card, { opacity: [0, 1], y: [-10, 0], scale: [0.97, 1] }, { type: 'spring', stiffness: 320, damping: 24 });
     attachTap(card, config.url);
-    attachDismiss(slot, card);
+    attachDismiss(slot, card, config);
   }
 
   return { mountTop, invalidateCache };

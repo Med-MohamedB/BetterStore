@@ -1115,7 +1115,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // every release — used by WhatsNew to detect "this device just updated"
 // without depending on the native App plugin (which isn't available on
 // every platform this runs on).
-const CURRENT_VERSION = '1.9.2';
+const CURRENT_VERSION = '1.9.3';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -1135,6 +1135,25 @@ async function getAppVersionLabel() {
   return `Web version · ${APP_BUILD_DATE}`;
 }
 window.getAppVersionLabel = getAppVersionLabel;
+
+/* Whenever the app comes back to the foreground — tapping an ad
+   notification, switching back from another app, unlocking the phone,
+   anything — re-fetch ad-config.json before showing the current screen
+   again. Without this, a push notification can arrive and the ad
+   genuinely changes on GitHub, but the screen you land on still shows
+   whatever was cached from before you left, until some other action
+   (like pulling to refresh) happens to invalidate it. This makes
+   "notification arrived" and "the app already shows the new ad the
+   moment you open it" the same instant, every time. */
+function watchAppResumeForFreshAds() {
+  const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+  if (!isNative || !window.Capacitor.Plugins || !window.Capacitor.Plugins.App) return;
+  window.Capacitor.Plugins.App.addListener('appStateChange', ({ isActive }) => {
+    if (!isActive) return;
+    if (window.ShopPromo) ShopPromo.invalidateCache();
+    Router.refresh();
+  });
+}
 
 /* ---------------------------------------------------------------------- */
 /* Cart badge on the POS nav icon                                          */
@@ -1793,6 +1812,7 @@ window.showDiagnostics = showDiagnostics;
   Router.init();
   initTabSwipeGesture();
   initPullToRefresh();
+  watchAppResumeForFreshAds();
 
   // Onboarding is for a genuinely empty, fresh install only — gating on
   // the flag alone would wrongly trigger it for an existing user who's

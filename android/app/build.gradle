@@ -60,7 +60,7 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.0"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.3.21"
     implementation "androidx.biometric:biometric:1.1.0"
 
     // @capacitor/push-notifications only exposes firebase-messaging to

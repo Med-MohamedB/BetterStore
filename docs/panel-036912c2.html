@@ -7,19 +7,41 @@
 <title>Better Store — Promo Control Panel</title>
 <style>
   :root {
-    --bg: #262024; --surface: #2e2830; --surface-2: #383039; --border: #4a414f;
+    --bg: #221d24; --surface: #2e2830; --surface-2: #383039; --surface-3: #423a46; --border: #4a414f;
     --text: #f2eef4; --text-dim: #a89ab0; --text-faint: #7a6f80;
     --accent: #AC5FDB; --accent-dim: #8A46B3; --accent-ink: #1D1721;
-    --teal: #E3A2EE; --danger: #D9527A; --success: #6fcf97;
+    --teal: #E3A2EE; --danger: #D9527A; --success: #6fcf97; --warn: #E3B341;
     --radius: 16px; --radius-sm: 10px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); padding: 20px 16px 60px; max-width: 480px; margin: 0 auto; }
-  h1 { font-size: 19px; margin: 4px 0 2px; }
-  .sub { color: var(--text-dim); font-size: 12.5px; margin-bottom: 12px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
-  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); margin: 0 0 12px; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body { padding-bottom: 160px; }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 0 16px; }
+
+  /* ---------------- top bar ---------------- */
+  .topbar { position: sticky; top: 0; z-index: 20; background: linear-gradient(180deg, var(--bg) 70%, transparent); padding: 16px 16px 8px; }
+  .topbar h1 { font-size: 18px; margin: 0 0 2px; display: flex; align-items: center; gap: 7px; }
+  .topbar .sub { color: var(--text-dim); font-size: 12px; }
+  .live-chip { margin-top: 10px; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--border); font-size: 12.5px; }
+  .live-chip__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--text-faint); }
+  .live-chip.on .live-chip__dot { background: var(--success); box-shadow: 0 0 8px var(--success); }
+  .live-chip.off .live-chip__dot { background: var(--text-faint); }
+  .live-chip.admob .live-chip__dot { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+  .live-chip__text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-dim); }
+  .live-chip__refresh { flex-shrink: 0; background: none; border: none; color: var(--text-dim); font-size: 14px; padding: 2px 4px; cursor: pointer; }
+
+  /* ---------------- tabs ---------------- */
+  .tabs { display: flex; gap: 4px; padding: 10px 16px 0; position: sticky; top: 0; background: var(--bg); z-index: 19; }
+  .tab { flex: 1; padding: 10px 4px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; background: transparent; color: var(--text-dim); font-size: 12.5px; font-weight: 700; border-bottom: 2px solid var(--border); }
+  .tab.active { color: var(--text); border-bottom: 2px solid var(--accent); }
+
+  main { padding-top: 14px; }
+  [data-tab-panel] { animation: fadeIn 0.15s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); margin: 0 0 12px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
   label { display: block; font-size: 12.5px; color: var(--text-dim); margin: 12px 0 5px; }
   label:first-of-type { margin-top: 0; }
   input[type="text"], input[type="url"], input[type="date"] {
@@ -27,6 +49,7 @@
     border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
     font-size: 14px; font-family: inherit;
   }
+  input.invalid { border-color: var(--danger); }
   input[type="text"][readonly] { color: var(--text-faint); font-size: 11.5px; }
   input[type="password"] { width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-size: 14px; font-family: monospace; }
   input[type="range"] { width: 100%; accent-color: var(--accent); }
@@ -36,18 +59,16 @@
   .toggle-row label { margin: 0; color: var(--text); font-size: 14px; }
   input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
   button { cursor: pointer; border: none; font-family: inherit; font-weight: 700; font-size: 14px; }
-  .btn-primary { width: 100%; padding: 13px; border-radius: var(--radius-sm); background: linear-gradient(135deg, var(--teal), var(--accent)); color: var(--accent-ink); margin-top: 4px; }
+  button:disabled { opacity: 0.55; cursor: default; }
+  .btn-primary { width: 100%; padding: 13px; border-radius: var(--radius-sm); background: linear-gradient(135deg, var(--teal), var(--accent)); color: var(--accent-ink); }
   .btn-secondary { padding: 10px 14px; border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text); border: 1px solid var(--border); font-size: 12.5px; white-space: nowrap; }
   .btn-row { display: flex; gap: 8px; }
   .btn-row button { flex: 1; }
   .upload-row { display: flex; gap: 8px; align-items: stretch; }
   .upload-row input { flex: 1; min-width: 0; }
-  #status { margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 12.5px; display: none; white-space: pre-wrap; word-break: break-word; }
-  #status.ok { display: block; background: rgba(111,207,151,0.12); color: var(--success); border: 1px solid rgba(111,207,151,0.3); }
-  #status.err { display: block; background: rgba(217,82,122,0.12); color: var(--danger); border: 1px solid rgba(217,82,122,0.3); }
-  #status.loading { display: block; background: var(--surface-2); color: var(--text-dim); }
-  details summary { cursor: pointer; font-size: 12.5px; color: var(--text-dim); }
-  .hint { font-size: 11px; color: var(--text-faint); margin-top: 4px; line-height: 1.5; }
+  .hint { font-size: 11px; color: var(--text-faint); margin-top: 6px; line-height: 1.55; }
+  .hint b { color: var(--text-dim); }
+  code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-size: 10.5px; }
 
   .seg { display: flex; background: var(--surface-2); border-radius: 999px; padding: 3px; }
   .seg__btn { flex: 1; padding: 9px; border-radius: 999px; background: transparent; color: var(--text-dim); font-size: 13px; }
@@ -70,121 +91,162 @@
 
   .image-spotlight { position: relative; display: block; width: 100%; border-radius: 18px; overflow: hidden; background: #383039; }
   .image-spotlight img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .image-spotlight__dismiss { position: absolute; top: 12px; right: 12px; width: 24px; height: 24px; border-radius: 50%; background: rgba(0,0,0,0.35); color: rgba(255,255,255,0.9); font-size: 11px; display: flex; align-items: center; justify-content: center; }
   .image-spotlight__empty { display: flex; align-items: center; justify-content: center; height: 100%; color: #7a6f80; font-size: 12.5px; text-align: center; padding: 20px; }
+
+  .admob-preview { border: 1px dashed var(--border); border-radius: var(--radius-sm); padding: 14px; text-align: center; color: var(--text-faint); font-size: 12px; background: repeating-linear-gradient(135deg, var(--surface-2), var(--surface-2) 8px, var(--surface) 8px, var(--surface) 16px); }
+
+  pre#rawJson { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 11px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; color: var(--text-dim); max-height: 220px; overflow-y: auto; }
+
+  /* ---------------- sticky footer ---------------- */
+  .footer-bar { position: fixed; left: 0; right: 0; bottom: 0; background: linear-gradient(0deg, var(--bg) 75%, transparent); padding: 10px 16px 16px; z-index: 30; }
+  .footer-bar__inner { max-width: 480px; margin: 0 auto; }
+  #status { margin-top: 10px; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 12.5px; display: none; white-space: pre-wrap; word-break: break-word; }
+  #status.ok { display: block; background: rgba(111,207,151,0.12); color: var(--success); border: 1px solid rgba(111,207,151,0.3); }
+  #status.err { display: block; background: rgba(217,82,122,0.12); color: var(--danger); border: 1px solid rgba(217,82,122,0.3); }
+  #status.loading { display: block; background: var(--surface-2); color: var(--text-dim); }
 </style>
 </head>
 <body>
 
-  <h1>🎯 Promo Control Panel</h1>
-  <div class="sub">Edit the banner shown in Better Store. Publishing pushes straight to your GitHub repo — no app update needed.</div>
-  <div class="hint" style="margin-bottom:18px;">🔒 This page holds no secrets of its own — your token lives only in this browser's local storage.</div>
-
-  <div class="card">
-    <h2>Ad Source</h2>
-    <div class="seg">
-      <button class="seg__btn active" id="adModePersonalBtn">Personal Only</button>
-      <button class="seg__btn" id="adModeAdMobBtn">AdMob Only</button>
-      <button class="seg__btn" id="adModeBothBtn">Both (Alternate)</button>
-    </div>
-    <div class="hint">
-      <b>Personal Only:</b> just your own ad below, as always.
-      <b>AdMob Only:</b> a real Google AdMob banner instead — you earn per view/click, but you don't control what shows.
-      <b>Both:</b> alternates between your ad and an AdMob banner as people switch between screens in the app.
-      This applies no matter whether your own ad below is marked Active or not — they're independent switches.
-      AdMob banners are a native ad slot, not a styled card — they won't carry your app's theme border, and Google requires that (ads have to stay visibly identifiable as ads).
-      Ships wired to Google's public TEST ad unit until you configure your own real AdMob account in <code>www/adMob.js</code>.
+  <div class="topbar wrap">
+    <h1>🎯 Promo Control Panel</h1>
+    <div class="sub">Publishing pushes straight to your GitHub repo — no app update needed.</div>
+    <div class="live-chip off" id="liveChip">
+      <span class="live-chip__dot"></span>
+      <span class="live-chip__text" id="liveChipText">Not checked yet — fill in Connection settings below</span>
+      <button class="live-chip__refresh" id="liveChipRefresh" title="Refresh">⟳</button>
     </div>
   </div>
 
-  <div class="card">
-    <h2>Banner Style</h2>
-    <div class="seg">
-      <button class="seg__btn active" id="styleSimpleBtn">Simple</button>
-      <button class="seg__btn" id="styleImageBtn">Custom Image</button>
-    </div>
-    <div class="hint">Simple: small icon + text card. Custom Image: upload one full banner graphic (your own background, text, everything already designed) — no fields to fill in, just a picture and a link.</div>
-  </div>
+  <nav class="tabs wrap">
+    <button class="tab active" data-tab="content">Ad Content</button>
+    <button class="tab" data-tab="source">Ad Source</button>
+    <button class="tab" data-tab="connection">Connection</button>
+  </nav>
 
-  <!-- ============================= SIMPLE ============================= -->
-  <div id="simpleSection">
-    <div class="card">
-      <h2>Live Preview</h2>
-      <div class="preview-frame">
-        <a href="#" class="feature-spotlight" id="previewCard" style="text-decoration:none;">
-          <span class="feature-spotlight__media" id="pMedia">🎯</span>
-          <span class="feature-spotlight__body">
-            <span class="feature-spotlight__title" id="pTitle">Title goes here</span>
-            <span class="feature-spotlight__sub" id="pSub">Subtitle goes here</span>
-          </span>
-          <span class="feature-spotlight__chevron">›</span>
-          <span class="feature-spotlight__dismiss">✕</span>
-        </a>
+  <main class="wrap">
+
+    <!-- ============================= TAB: AD CONTENT ============================= -->
+    <section data-tab-panel="content">
+
+      <div class="card">
+        <h2>Banner Style</h2>
+        <div class="seg">
+          <button class="seg__btn active" id="styleSimpleBtn">Simple</button>
+          <button class="seg__btn" id="styleImageBtn">Custom Image</button>
+        </div>
+        <div class="hint">Simple: small icon + text card. Custom Image: upload one full banner graphic (your own background, text, everything already designed) — no fields to fill in, just a picture and a link.</div>
       </div>
-    </div>
 
-    <div class="card">
-      <h2>Content</h2>
-      <label for="fIcon">Icon (one emoji — used if no image below)</label>
-      <input type="text" id="fIcon" maxlength="8" value="🎯">
+      <!-- ---- Simple style ---- -->
+      <div id="simpleSection">
+        <div class="card">
+          <h2>Live Preview</h2>
+          <div class="preview-frame">
+            <a href="#" class="feature-spotlight" id="previewCard" style="text-decoration:none;">
+              <span class="feature-spotlight__media" id="pMedia">🎯</span>
+              <span class="feature-spotlight__body">
+                <span class="feature-spotlight__title" id="pTitle">Title goes here</span>
+                <span class="feature-spotlight__sub" id="pSub">Subtitle goes here</span>
+              </span>
+              <span class="feature-spotlight__chevron">›</span>
+              <span class="feature-spotlight__dismiss">✕</span>
+            </a>
+          </div>
+        </div>
 
-      <label for="fImage">Image (optional, overrides the icon)</label>
-      <div class="upload-row">
-        <input type="text" id="fImage" readonly placeholder="No image uploaded">
-        <button class="btn-secondary" data-upload-target="fImage" data-upload-btn>📤 Upload</button>
-      </div>
-      <div class="hint">Square-ish images look best — shown in a 42×42 rounded chip.</div>
+        <div class="card">
+          <h2>Content</h2>
+          <label for="fIcon">Icon (one emoji — used if no image below)</label>
+          <input type="text" id="fIcon" maxlength="8" value="🎯">
 
-      <label for="fTitle">Title</label>
-      <input type="text" id="fTitle" maxlength="80" placeholder="Short, punchy title">
+          <label for="fImage">Image (optional, overrides the icon)</label>
+          <div class="upload-row">
+            <input type="text" id="fImage" readonly placeholder="No image uploaded">
+            <button class="btn-secondary" data-upload-target="fImage" data-upload-btn>📤 Upload</button>
+          </div>
+          <div class="hint">Square-ish images look best — shown in a 42×42 rounded chip.</div>
 
-      <label for="fSub">Subtitle</label>
-      <input type="text" id="fSub" maxlength="120" placeholder="One short line">
-    </div>
-  </div>
+          <label for="fTitle">Title</label>
+          <input type="text" id="fTitle" maxlength="80" placeholder="Short, punchy title">
 
-  <!-- ============================= IMAGE ============================= -->
-  <div id="imageSection" style="display:none;">
-    <div class="card">
-      <h2>Live Preview</h2>
-      <div class="preview-frame">
-        <div class="image-spotlight" id="imgPreview" style="height:160px;">
-          <div class="image-spotlight__empty">Upload a banner image below to preview it here</div>
+          <label for="fSub">Subtitle</label>
+          <input type="text" id="fSub" maxlength="120" placeholder="One short line">
         </div>
       </div>
-    </div>
 
-    <div class="card">
-      <h2>Banner Image</h2>
-      <div class="upload-row">
-        <input type="text" id="bImage" readonly placeholder="No image uploaded">
-        <button class="btn-secondary" data-upload-target="bImage" data-upload-btn>📤 Upload</button>
+      <!-- ---- Image style ---- -->
+      <div id="imageSection" style="display:none;">
+        <div class="card">
+          <h2>Live Preview</h2>
+          <div class="preview-frame">
+            <div class="image-spotlight" id="imgPreview" style="height:160px;">
+              <div class="image-spotlight__empty">Upload a banner image below to preview it here</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Banner Image</h2>
+          <div class="upload-row">
+            <input type="text" id="bImage" readonly placeholder="No image uploaded">
+            <button class="btn-secondary" data-upload-target="bImage" data-upload-btn>📤 Upload</button>
+          </div>
+          <div class="hint">This IS the whole banner — design it exactly how you want (background, text, everything) in any image editor, then upload it here. Recommended: roughly 1200×500px, so it stays sharp and doesn't get too tall on screen.</div>
+
+          <label for="bHeight">Display height — <span id="bHeightLabel">160</span>px</label>
+          <input type="range" id="bHeight" min="90" max="320" value="160">
+        </div>
       </div>
-      <div class="hint">This IS the whole banner — design it exactly how you want (background, text, everything) in any image editor, then upload it here. Recommended: roughly 1200×500px, so it stays sharp and doesn't get too tall on screen.</div>
 
-      <label for="bHeight">Display height — <span id="bHeightLabel">160</span>px</label>
-      <input type="range" id="bHeight" min="90" max="320" value="160">
-    </div>
-  </div>
+      <div class="card">
+        <h2>Link & Timing</h2>
+        <div class="toggle-row">
+          <label for="fActive">Show this ad (off = fall back to Telegram Shop)</label>
+          <input type="checkbox" id="fActive" checked>
+        </div>
+        <label for="fUrl">Link (must start with https://)</label>
+        <input type="url" id="fUrl" placeholder="https://t.me/RwmShop">
+        <label for="fExpires">Auto-expire on (optional)</label>
+        <input type="date" id="fExpires">
+        <div class="hint">Leave blank to run indefinitely. After this date, it automatically falls back to the Telegram Shop card.</div>
+      </div>
 
-  <!-- ============================= SHARED ============================= -->
-  <div class="card">
-    <h2>Link & Timing</h2>
-    <div class="toggle-row">
-      <label for="fActive">Show this ad (off = fall back to Telegram Shop)</label>
-      <input type="checkbox" id="fActive" checked>
-    </div>
-    <label for="fUrl">Link (must start with https://)</label>
-    <input type="url" id="fUrl" placeholder="https://t.me/RwmShop">
-    <label for="fExpires">Auto-expire on (optional)</label>
-    <input type="date" id="fExpires">
-    <div class="hint">Leave blank to run indefinitely. After this date, it automatically falls back to the Telegram Shop card.</div>
-  </div>
+    </section>
 
-  <div class="card">
-    <details id="ghSettings">
-      <summary>⚙️ GitHub connection settings</summary>
-      <div style="margin-top:12px;">
+    <!-- ============================= TAB: AD SOURCE ============================= -->
+    <section data-tab-panel="source" hidden>
+
+      <div class="card">
+        <h2>Ad Source</h2>
+        <div class="seg">
+          <button class="seg__btn active" id="adModePersonalBtn">Personal Only</button>
+          <button class="seg__btn" id="adModeAdMobBtn">AdMob Only</button>
+          <button class="seg__btn" id="adModeBothBtn">Both (Alternate)</button>
+        </div>
+        <div class="hint">
+          <b>Personal Only:</b> just your own ad from the Ad Content tab.<br>
+          <b>AdMob Only:</b> a real Google AdMob banner instead — you earn per view/click, but you don't control what shows.<br>
+          <b>Both:</b> alternates between your ad and an AdMob banner as people switch between screens in the app.<br><br>
+          This is independent of the Active toggle on the Ad Content tab — AdMob keeps running even with your personal ad switched off, and vice versa.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>About AdMob banners</h2>
+        <div class="admob-preview">Google-served banner ad<br>(rendered natively by Android, not shown here)</div>
+        <div class="hint">
+          AdMob banners are a native ad slot pinned to the top of the screen, not a styled card — they won't carry the app's theme border or scroll with the page, and Google requires that (ads must stay visibly identifiable as ads). App ID and ad unit ID are configured in the app's own code (<code>android/app/src/main/AndroidManifest.xml</code> and <code>www/adMob.js</code>), not here.
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================= TAB: CONNECTION ============================= -->
+    <section data-tab-panel="connection" hidden>
+
+      <div class="card">
+        <h2>GitHub Connection</h2>
         <label for="ghOwner">GitHub username</label>
         <input type="text" id="ghOwner" placeholder="e.g. med-mohamedb">
         <label for="ghRepo">Repository name</label>
@@ -202,17 +264,30 @@
           Scope it to <b>only this repository</b>, with <b>Contents: Read and write</b> permission.
           <b>Note:</b> fine-grained tokens expire (often in 30-90 days) — if you start getting "Bad credentials," generate a fresh one here.
         </div>
+        <button class="btn-secondary" id="testConnBtn" style="width:100%; margin-top:14px;">🔌 Test Connection</button>
       </div>
-    </details>
+
+      <div class="card">
+        <h2>Raw config preview</h2>
+        <div class="hint" style="margin-top:0; margin-bottom:8px;">Exactly what gets published to <code>ad-config.json</code> if you hit Publish right now — handy for debugging.</div>
+        <pre id="rawJson">{}</pre>
+      </div>
+
+    </section>
+
+  </main>
+
+  <div class="footer-bar">
+    <div class="footer-bar__inner">
+      <div class="btn-row">
+        <button class="btn-secondary" style="flex:1;" id="loadBtn">↓ Load Current</button>
+        <button class="btn-secondary" style="flex:1;" id="resetBtn">↺ Reset to Shop</button>
+      </div>
+      <button class="btn-primary" id="publishBtn" style="margin-top:8px;">Publish to App</button>
+      <div id="status"></div>
+    </div>
   </div>
 
-  <div class="btn-row">
-    <button class="btn-secondary" style="flex:1;" id="loadBtn">↓ Load Current</button>
-    <button class="btn-secondary" style="flex:1;" id="resetBtn">↺ Reset to Shop</button>
-  </div>
-  <button class="btn-primary" id="publishBtn">Publish to App</button>
-
-  <div id="status"></div>
   <input type="file" id="fileInput" accept="image/*" style="display:none;">
 
 <script>
@@ -224,6 +299,20 @@
 
   let currentStyle = 'simple';
   let currentAdMode = 'personal';
+  let busy = false; // guards against double-submit while a request is in flight
+
+  /* ==================================================================== */
+  /* Tabs — data-driven so adding a future tab is just: one <button> with
+     data-tab="x" in .tabs, and one <section data-tab-panel="x" hidden>. */
+  /* ==================================================================== */
+  document.querySelectorAll('.tab').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('[data-tab-panel]').forEach((panel) => {
+        panel.hidden = panel.dataset.tabPanel !== btn.dataset.tab;
+      });
+    });
+  });
 
   /* ---------------- ad source toggle ---------------- */
   function setAdMode(mode) {
@@ -231,6 +320,7 @@
     document.getElementById('adModePersonalBtn').classList.toggle('active', mode === 'personal');
     document.getElementById('adModeAdMobBtn').classList.toggle('active', mode === 'admob');
     document.getElementById('adModeBothBtn').classList.toggle('active', mode === 'both');
+    updateRawJson();
   }
   document.getElementById('adModePersonalBtn').addEventListener('click', () => setAdMode('personal'));
   document.getElementById('adModeAdMobBtn').addEventListener('click', () => setAdMode('admob'));
@@ -249,12 +339,19 @@
     localStorage.setItem(LS_KEY, JSON.stringify(obj));
   }
   loadSettings();
-  document.getElementById('ghSettings').open = !els.ghOwner.value;
 
   function setStatus(kind, msg) {
     const el = document.getElementById('status');
     el.className = kind;
     el.textContent = msg;
+  }
+
+  function setBusy(isBusy) {
+    busy = isBusy;
+    ['loadBtn', 'resetBtn', 'publishBtn', 'testConnBtn'].forEach((id) => {
+      const btn = document.getElementById(id);
+      if (btn) btn.disabled = isBusy;
+    });
   }
 
   /** Turns a raw GitHub API error into something actually actionable,
@@ -264,13 +361,13 @@
     let body = '';
     try { body = await res.text(); } catch (e) {}
     if (res.status === 401) {
-      return '🔑 Your token was rejected ("Bad credentials"). It likely expired — fine-grained tokens usually expire in 30-90 days. Generate a fresh one (⚙️ GitHub connection settings has the steps) and paste it in.';
+      return '🔑 Your token was rejected ("Bad credentials"). It likely expired — fine-grained tokens usually expire in 30-90 days. Generate a fresh one (Connection tab has the steps) and paste it in.';
     }
     if (res.status === 403) {
       return '🚫 Access denied. Double-check the token is scoped to THIS repo with "Contents: Read and write" permission — not just "Read".';
     }
     if (res.status === 404) {
-      return '❓ Repo or path not found. Check the username/repo/branch fields in ⚙️ GitHub connection settings match exactly (case matters).';
+      return '❓ Repo or path not found. Check the username/repo/branch fields in the Connection tab match exactly (case matters).';
     }
     return `GitHub error ${res.status}: ${body}`;
   }
@@ -282,6 +379,7 @@
     document.getElementById('imageSection').style.display = style === 'image' ? '' : 'none';
     document.getElementById('styleSimpleBtn').classList.toggle('active', style === 'simple');
     document.getElementById('styleImageBtn').classList.toggle('active', style === 'image');
+    updateRawJson();
   }
   document.getElementById('styleSimpleBtn').addEventListener('click', () => setStyle('simple'));
   document.getElementById('styleImageBtn').addEventListener('click', () => setStyle('image'));
@@ -294,9 +392,9 @@
     else media.textContent = els.fIcon.value || '🎯';
     document.getElementById('pTitle').textContent = els.fTitle.value || 'Title goes here';
     document.getElementById('pSub').textContent = els.fSub.value || 'Subtitle goes here';
+    updateRawJson();
   }
   ['fIcon','fImage','fTitle','fSub'].forEach((id) => els[id].addEventListener('input', updateSimplePreview));
-  updateSimplePreview();
 
   /* ---------------- image banner preview ---------------- */
   function updateImagePreview() {
@@ -306,10 +404,24 @@
     frame.innerHTML = url
       ? `<img src="${url}">`
       : `<div class="image-spotlight__empty">Upload a banner image below to preview it here</div>`;
+    updateRawJson();
   }
   els.bImage.addEventListener('input', updateImagePreview);
   els.bHeight.addEventListener('input', () => { document.getElementById('bHeightLabel').textContent = els.bHeight.value; updateImagePreview(); });
-  updateImagePreview();
+
+  /* ---------------- shared field -> raw JSON + validation ---------------- */
+  ['fActive','fUrl','fExpires'].forEach((id) => els[id].addEventListener('input', () => { validateUrl(); updateRawJson(); }));
+
+  function validateUrl() {
+    const v = els.fUrl.value.trim();
+    const invalid = els.fActive.checked && v && !/^https:\/\//i.test(v);
+    els.fUrl.classList.toggle('invalid', invalid);
+    return !invalid;
+  }
+
+  function updateRawJson() {
+    document.getElementById('rawJson').textContent = JSON.stringify(currentConfigObject(), null, 2);
+  }
 
   /* ---------------- image upload (direct to GitHub) ---------------- */
   let uploadTargetId = null;
@@ -326,8 +438,9 @@
     if (!file || !uploadTargetId) return;
     saveSettings();
     const token = els.ghToken.value.trim();
-    if (!els.ghOwner.value.trim() || !token) { setStatus('err', 'Fill in GitHub username and token first (⚙️ GitHub connection settings).'); return; }
+    if (!els.ghOwner.value.trim() || !token) { setStatus('err', 'Fill in GitHub username and token first (Connection tab).'); return; }
 
+    setBusy(true);
     setStatus('loading', 'Uploading image\u2026');
     try {
       const base64 = await fileToBase64(file);
@@ -350,9 +463,11 @@
       const target = document.getElementById(uploadTargetId);
       target.value = rawUrl;
       target.dispatchEvent(new Event('input'));
-      setStatus('ok', `\u2705 Image uploaded and linked in.`);
+      setStatus('ok', `✅ Image uploaded and linked in.`);
     } catch (err) {
       setStatus('err', 'Upload failed: ' + err.message);
+    } finally {
+      setBusy(false);
     }
   });
 
@@ -400,6 +515,8 @@
       els.fSub.value = cfg.subtitle || '';
       updateSimplePreview();
     }
+    validateUrl();
+    updateRawJson();
   }
 
   function apiUrl(path) {
@@ -408,24 +525,87 @@
   function b64EncodeUnicode(str) { return btoa(unescape(encodeURIComponent(str))); }
   function b64DecodeUnicode(str) { return decodeURIComponent(escape(atob(str))); }
 
-  document.getElementById('loadBtn').addEventListener('click', async () => {
+  /* ---------------- live status chip ---------------- */
+  function setLiveChip(state, text) {
+    const chip = document.getElementById('liveChip');
+    chip.className = `live-chip ${state}`;
+    document.getElementById('liveChipText').textContent = text;
+  }
+
+  function describeLiveConfig(cfg) {
+    if (cfg.adMode === 'admob') return { state: 'admob', text: '📢 AdMob banner only — personal ad off regardless of Active' };
+    if (cfg.active === false) return { state: 'off', text: '⚪ Inactive — app falls back to the Telegram Shop card' + (cfg.adMode === 'both' ? ' (alternating with AdMob)' : '') };
+    const label = cfg.style === 'image' ? 'Custom image banner' : (cfg.title || 'Simple ad');
+    return { state: 'on', text: `🟢 Live: ${label} → ${cfg.url || 'no link set'}` + (cfg.adMode === 'both' ? ' (alternating with AdMob)' : '') };
+  }
+
+  /* ---------------- load / test / reset / publish ---------------- */
+  async function loadCurrent({ silent } = {}) {
     saveSettings();
     const token = els.ghToken.value.trim();
-    if (!els.ghOwner.value.trim() || !token) { setStatus('err', 'Fill in GitHub username and token first.'); return; }
-    setStatus('loading', 'Loading current config\u2026');
+    if (!els.ghOwner.value.trim() || !token) {
+      if (!silent) setStatus('err', 'Fill in GitHub username and token first (Connection tab).');
+      setLiveChip('off', 'Not checked yet — fill in Connection settings below');
+      return;
+    }
+    if (!silent) setStatus('loading', 'Loading current config\u2026');
+    setLiveChip('off', 'Checking\u2026');
     try {
       const branch = els.ghBranch.value.trim() || 'main';
       const res = await fetch(`${apiUrl(els.ghPath.value.trim())}?ref=${encodeURIComponent(branch)}`, {
         headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' },
       });
-      if (res.status === 404) { setStatus('ok', 'No ad-config.json exists yet — fill in the form and hit Publish to create it.'); return; }
-      if (!res.ok) { setStatus('err', await friendlyGitHubError(res)); return; }
+      if (res.status === 404) {
+        if (!silent) setStatus('ok', 'No ad-config.json exists yet — fill in the form and hit Publish to create it.');
+        setLiveChip('off', '⚪ Nothing published yet');
+        return;
+      }
+      if (!res.ok) {
+        const msg = await friendlyGitHubError(res);
+        if (!silent) setStatus('err', msg);
+        setLiveChip('off', 'Couldn\u2019t check live status — see message below');
+        return;
+      }
       const data = await res.json();
       const cfg = JSON.parse(b64DecodeUnicode(data.content.replace(/\n/g, '')));
       applyConfigToForm(cfg);
-      setStatus('ok', 'Loaded the currently-live config.');
+      if (!silent) setStatus('ok', 'Loaded the currently-live config.');
+      const desc = describeLiveConfig(cfg);
+      setLiveChip(desc.state, desc.text);
     } catch (e) {
-      setStatus('err', 'Failed to load: ' + e.message);
+      if (!silent) setStatus('err', 'Failed to load: ' + e.message);
+      setLiveChip('off', 'Couldn\u2019t reach GitHub — check your connection');
+    }
+  }
+
+  document.getElementById('loadBtn').addEventListener('click', () => { if (!busy) loadCurrent(); });
+  document.getElementById('liveChipRefresh').addEventListener('click', () => { if (!busy) loadCurrent(); });
+
+  document.getElementById('testConnBtn').addEventListener('click', async () => {
+    if (busy) return;
+    saveSettings();
+    const token = els.ghToken.value.trim();
+    const owner = els.ghOwner.value.trim();
+    const repo = els.ghRepo.value.trim();
+    if (!owner || !token) { setStatus('err', 'Fill in GitHub username and token first.'); return; }
+    setBusy(true);
+    setStatus('loading', 'Testing connection\u2026');
+    try {
+      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' },
+      });
+      if (!res.ok) { setStatus('err', await friendlyGitHubError(res)); return; }
+      const info = await res.json();
+      const perms = info.permissions || {};
+      if (!perms.push) {
+        setStatus('err', '🚫 Connected, but this token can only READ this repo — it needs "Contents: Read and write" to publish.');
+        return;
+      }
+      setStatus('ok', `✅ Connected to ${info.full_name} with write access. You're good to publish.`);
+    } catch (e) {
+      setStatus('err', 'Connection test failed: ' + e.message);
+    } finally {
+      setBusy(false);
     }
   });
 
@@ -435,10 +615,11 @@
   });
 
   document.getElementById('publishBtn').addEventListener('click', async () => {
+    if (busy) return;
     saveSettings();
     const token = els.ghToken.value.trim();
-    if (!els.ghOwner.value.trim() || !token) { setStatus('err', 'Fill in GitHub username and token first.'); return; }
-    if (els.fActive.checked && !/^https:\/\//i.test(els.fUrl.value.trim())) {
+    if (!els.ghOwner.value.trim() || !token) { setStatus('err', 'Fill in GitHub username and token first (Connection tab).'); return; }
+    if (!validateUrl()) {
       setStatus('err', 'Link must start with https:// before you can publish an active ad.');
       return;
     }
@@ -447,6 +628,7 @@
       return;
     }
 
+    setBusy(true);
     setStatus('loading', 'Publishing\u2026');
     try {
       const branch = els.ghBranch.value.trim() || 'main';
@@ -458,18 +640,37 @@
       if (existing.ok) sha = (await existing.json()).sha;
       else if (existing.status !== 404) { setStatus('err', await friendlyGitHubError(existing)); return; }
 
-      const content = JSON.stringify(currentConfigObject(), null, 2);
+      const cfg = currentConfigObject();
+      const content = JSON.stringify(cfg, null, 2);
       const res = await fetch(apiUrl(path), {
         method: 'PUT',
         headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: `Update promo banner (${new Date().toISOString()})`, content: b64EncodeUnicode(content), branch, ...(sha ? { sha } : {}) }),
       });
       if (!res.ok) { setStatus('err', await friendlyGitHubError(res)); return; }
-      setStatus('ok', '✅ Published! Open the app and pull-to-refresh the Dashboard to see it live within seconds.');
+      setStatus('ok', '✅ Published! The app will pick this up within a couple minutes (it waits for GitHub\u2019s CDN to catch up before it counts as live).');
+      const desc = describeLiveConfig(cfg);
+      setLiveChip(desc.state, desc.text);
     } catch (e) {
       setStatus('err', 'Failed to publish: ' + e.message);
+    } finally {
+      setBusy(false);
     }
   });
+
+  /* ---------------- init ---------------- */
+  updateSimplePreview();
+  updateImagePreview();
+  updateRawJson();
+  // Auto-load whatever's currently live if credentials are already saved,
+  // so opening the panel immediately answers "what's actually running
+  // right now" instead of showing blank/default fields until you
+  // remember to hit Load Current.
+  if (els.ghOwner.value.trim() && els.ghToken.value.trim()) {
+    loadCurrent({ silent: true });
+  } else {
+    document.querySelector('[data-tab="connection"]').click();
+  }
 </script>
 </body>
 </html>

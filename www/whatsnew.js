@@ -11,6 +11,9 @@ const WhatsNew = (() => {
   // Add a new entry here each release; oldest-first doesn't matter since
   // only the current version's list is ever shown.
   const ITEMS = [
+    { icon: '🩺', text: 'AdMob status is now visible in More \u2192 About This App \u2192 Run Diagnostics \u2014 no computer needed to see what\u2019s happening with ads.' },
+    { icon: '🔐', text: 'Fixed a missing consent step that was silently blocking every AdMob ad request.' },
+    { icon: '🎛️', text: 'Control panel rebuilt \u2014 tabs, auto-loads what\u2019s currently live, a connection test button, and a raw JSON preview.' },
     { icon: '📢', text: 'New "Ad Source" control in the panel \u2014 run your own ad, real AdMob ads, or alternate between both, from one switch.' },
     { icon: '🎯', text: 'Fixed a race condition where the push notification could arrive before the app was actually able to see the new ad it was announcing.' },
     { icon: '🔄', text: 'Opening the app (including from a new-offer notification) now always shows the latest ad right away, instead of a stale cached one.' },

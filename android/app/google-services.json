@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "335774636576",
+    "project_id": "betterstore-cd4b5",
+    "storage_bucket": "betterstore-cd4b5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:335774636576:android:2b0092d01dbe15f415ba45",
+        "android_client_info": {
+          "package_name": "com.mohaab.storeapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAv54xaZuWvVZiS8GwOO-SDFFNjIVoEkqU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

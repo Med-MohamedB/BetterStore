@@ -101,7 +101,7 @@
   .stat-box { background: var(--surface-2); border-radius: var(--radius-sm); padding: 14px 10px; text-align: center; }
   .stat-num { font-size: 24px; font-weight: 800; color: var(--text); line-height: 1.1; }
   .stat-label { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
-  #statsAuthStatus code { user-select: all; display: inline-block; margin-top: 6px; word-break: break-all; }
+  #authStatus code { user-select: all; display: inline-block; margin-top: 6px; word-break: break-all; }
 
   /* ---------------- sticky footer ---------------- */
   .footer-bar { position: fixed; left: 0; right: 0; bottom: 0; background: linear-gradient(0deg, var(--bg) 75%, transparent); padding: 10px 16px 16px; z-index: 30; }
@@ -113,6 +113,26 @@
 </style>
 </head>
 <body>
+
+  <!-- ==================================================================
+       Full-page auth gate — the ONLY thing visible until GitHub sign-in
+       succeeds AND matches the one authorized account. Everything below
+       (#panelRoot) starts hidden and is only revealed after that check
+       passes, in the module script near the bottom of this file.
+       ================================================================== -->
+  <div id="authGate" style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;">
+    <div class="wrap" style="width:100%;">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:34px; margin-bottom:6px;">🔒</div>
+        <h1 style="font-size:18px; margin:0 0 4px;">Better Store Admin</h1>
+        <div class="sub" style="color:var(--text-dim); font-size:12.5px; margin-bottom:16px;">Restricted to one GitHub account.</div>
+        <button class="btn-primary" id="authSigninBtn" style="width:100%;">🔑 Sign in with GitHub</button>
+        <div class="hint" id="authStatus" style="margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="panelRoot" hidden>
 
   <div class="topbar wrap">
     <h1>🎯 Promo Control Panel</h1>
@@ -284,26 +304,14 @@
 
     <!-- ============================= TAB: STATISTICS ============================= -->
     <section data-tab-panel="stats" hidden>
-
-      <div class="card" id="statsGate">
-        <h2>Admin Statistics</h2>
-        <div class="hint" style="margin-top:0;">
-          Restricted to one GitHub account — anyone else who signs in is rejected automatically.
-          This login screen is just a convenience; the actual lock lives in Firestore's own security rules, not here.
-        </div>
-        <button class="btn-secondary" id="statsSigninBtn" style="width:100%; margin-top:12px;">🔑 Sign in with GitHub</button>
-        <div class="hint" id="statsAuthStatus" style="margin-top:10px;"></div>
-      </div>
-
-      <div class="card" id="statsContent" hidden>
+      <div class="card">
         <h2>Across All Installs</h2>
         <div class="hint" style="margin-top:0; margin-bottom:10px;">
           Aggregate only — no shop names, no customer data, no individual sale amounts. Just combined totals.
         </div>
         <div id="statsBody">Loading…</div>
-        <button class="btn-secondary" id="statsSignoutBtn" style="width:100%; margin-top:14px;">Sign out</button>
+        <button class="btn-secondary" id="authSignoutBtn" style="width:100%; margin-top:14px;">Sign out</button>
       </div>
-
     </section>
 
   </main>
@@ -320,6 +328,8 @@
   </div>
 
   <input type="file" id="fileInput" accept="image/*" style="display:none;">
+
+  </div><!-- /#panelRoot -->
 
 <script>
   const LS_KEY = 'promoControlSettings';
@@ -705,16 +715,21 @@
 </script>
 
 <!-- ==================================================================== -->
-<!-- Statistics tab — entirely separate auth system from the GitHub PAT   -->
-<!-- above. This gates access to aggregate cross-install numbers using    -->
-<!-- Firebase Auth (GitHub sign-in). IMPORTANT: this login screen is NOT  -->
-<!-- itself the security boundary — Firestore's own rules are, keyed to  -->
-<!-- ALLOWED_UID below. Someone could disable this whole script and      -->
-<!-- still get nothing, because the rules check auth.uid server-side.    -->
+<!-- Auth gate for the ENTIRE panel (not just Statistics) — Firebase Auth -->
+<!-- with GitHub as the provider. Uses signInWithRedirect rather than     -->
+<!-- signInWithPopup: popups get silently blocked on mobile browsers      -->
+<!-- inconsistently (works once, then mysteriously stops) — a redirect    -->
+<!-- flow (navigate to GitHub, then back) is what Firebase itself         -->
+<!-- recommends for mobile web and doesn't have that problem.             -->
+<!--                                                                      -->
+<!-- IMPORTANT: this page's gate is a convenience UI, not the actual      -->
+<!-- security boundary — Firestore's own rules (keyed to ALLOWED_UID)     -->
+<!-- are what really block reads server-side, regardless of what this     -->
+<!-- script does or whether someone bypasses it entirely.                 -->
 <!-- ==================================================================== -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-  import { getAuth, GithubAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+  import { getAuth, GithubAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDND_hv-6bXX8yvJNSEIkvdbqLg6wwn5eI",
@@ -725,64 +740,55 @@
     appId: "1:335774636576:web:b93a3bd81c3821d815ba45",
   };
 
-  // ↓↓↓ First time you sign in below, this page will show you your own
-  // UID on screen — paste it here (replacing the placeholder) AND into
-  // the Firestore rules' ALLOWED_UID, then republish this file. Until
-  // then, Firestore rejects every read regardless of who's signed in —
-  // safe default.
-  const ALLOWED_UID = 'PASTE_YOUR_UID_HERE';
+  const ALLOWED_UID = '4lNIcLadHVMpfaJAFmSG0aAszvD2';
   const PROJECT_ID = 'betterstore-cd4b5';
 
   const fbApp = initializeApp(firebaseConfig);
   const auth = getAuth(fbApp);
   const provider = new GithubAuthProvider();
 
-  const gate = document.getElementById('statsGate');
-  const content = document.getElementById('statsContent');
-  const statusEl = document.getElementById('statsAuthStatus');
+  const authGate = document.getElementById('authGate');
+  const panelRoot = document.getElementById('panelRoot');
+  const statusEl = document.getElementById('authStatus');
 
-  document.getElementById('statsSigninBtn').addEventListener('click', async () => {
-    statusEl.textContent = 'Opening GitHub sign-in…';
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (e) {
-      statusEl.textContent = 'Sign-in failed: ' + e.message;
-    }
+  document.getElementById('authSigninBtn').addEventListener('click', () => {
+    statusEl.textContent = 'Redirecting to GitHub…';
+    signInWithRedirect(auth, provider);
   });
-  document.getElementById('statsSignoutBtn').addEventListener('click', () => signOut(auth));
+
+  // Catches the result of coming BACK from GitHub's redirect. Errors here
+  // (e.g. popup/redirect cancelled) show up before onAuthStateChanged
+  // would otherwise silently just show the sign-in button again.
+  getRedirectResult(auth).catch((e) => {
+    statusEl.textContent = 'Sign-in failed: ' + e.message;
+  });
 
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
-      gate.hidden = false;
-      content.hidden = true;
-      statusEl.textContent = '';
-      return;
-    }
-
-    if (ALLOWED_UID === 'PASTE_YOUR_UID_HERE') {
-      gate.hidden = false;
-      content.hidden = true;
-      statusEl.innerHTML = `Signed in as ${user.displayName || user.email || user.uid}.<br><br>
-        <b>Copy this UID</b> into ALLOWED_UID near the top of this file's script tag (and into the Firestore rules), then republish:<br>
-        <code>${user.uid}</code>`;
+      authGate.hidden = false;
+      panelRoot.hidden = true;
       return;
     }
 
     if (user.uid !== ALLOWED_UID) {
-      statusEl.textContent = 'Access denied — this isn\u2019t the authorized account. Signing out.';
-      gate.hidden = false;
-      content.hidden = true;
+      statusEl.textContent = `Access denied — signed in as ${user.displayName || user.email || user.uid}, which isn\u2019t the authorized account. Signing out…`;
+      authGate.hidden = false;
+      panelRoot.hidden = true;
       await signOut(auth);
       return;
     }
 
-    gate.hidden = true;
-    content.hidden = false;
-    await loadStats(user);
+    authGate.hidden = true;
+    panelRoot.hidden = false;
+    loadStats(user);
   });
+
+  const signoutBtn = document.getElementById('authSignoutBtn');
+  if (signoutBtn) signoutBtn.addEventListener('click', () => signOut(auth));
 
   async function loadStats(user) {
     const el = document.getElementById('statsBody');
+    if (!el) return;
     el.textContent = 'Loading…';
     try {
       const idToken = await user.getIdToken();

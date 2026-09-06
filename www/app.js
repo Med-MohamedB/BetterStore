@@ -1123,7 +1123,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // the next actual feature). Bump this on every single patch, however
 // small, so What's New / the About screen always reflects exactly what's
 // installed.
-const CURRENT_VERSION = '1.9.6';
+const CURRENT_VERSION = '1.9.7';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -1507,7 +1507,6 @@ async function renderDashboard(container) {
 
   const todayStart = Fmt.startOfToday().getTime();
   const todaysSales = sales.filter((s) => new Date(s.date).getTime() >= todayStart);
-
   const todaysRevenue = todaysSales.reduce((sum, s) => sum + saleNetTotal(s), 0);
   const transactionCount = todaysSales.filter((s) => s.status !== 'refunded').length;
   const productCount = products.length;
@@ -1519,22 +1518,62 @@ async function renderDashboard(container) {
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 5);
 
+  // --- Yesterday, for the trend badge on the hero card ---
+  const yesterdayStart = todayStart - 86400000;
+  const yesterdaysRevenue = sales
+    .filter((s) => { const t = new Date(s.date).getTime(); return t >= yesterdayStart && t < todayStart; })
+    .reduce((sum, s) => sum + saleNetTotal(s), 0);
+  const trendPct = yesterdaysRevenue > 0
+    ? Math.round(((todaysRevenue - yesterdaysRevenue) / yesterdaysRevenue) * 100)
+    : (todaysRevenue > 0 ? 100 : 0);
+  const trendUp = trendPct >= 0;
+
+  // --- Last 7 days, for the sparkline under the hero card ---
+  const dailyTotals = [];
+  for (let i = 6; i >= 0; i--) {
+    const dayStart = todayStart - i * 86400000;
+    const dayEnd = dayStart + 86400000;
+    const total = sales
+      .filter((s) => { const t = new Date(s.date).getTime(); return t >= dayStart && t < dayEnd; })
+      .reduce((sum, s) => sum + saleNetTotal(s), 0);
+    dailyTotals.push(total);
+  }
+  const sparklineSvg = renderSparkline(dailyTotals);
+
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 18) return 'Good afternoon';
+    return 'Good evening';
+  })();
+
   container.innerHTML = `
-    <div class="section-title">Today</div>
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-card__label">Sales</div>
-        <div class="stat-card__value num">${transactionCount}</div>
+    <div class="dash-greeting">
+      <div class="dash-greeting__text">${greeting}</div>
+      <div class="dash-greeting__date">${Fmt.date(new Date())}</div>
+    </div>
+
+    <div class="hero-card">
+      <div class="hero-card__top">
+        <div class="hero-card__label">Today\u2019s Revenue</div>
+        <div class="hero-card__trend ${trendUp ? 'up' : 'down'}">
+          ${trendUp ? '▲' : '▼'} ${Math.abs(trendPct)}%
+        </div>
       </div>
+      <div class="hero-card__value num">${Fmt.money(todaysRevenue)}</div>
+      <div class="hero-card__sub">${transactionCount} sale${transactionCount === 1 ? '' : 's'} today</div>
+      <div class="hero-card__spark">${sparklineSvg}</div>
+      <div class="hero-card__spark-label">Last 7 days</div>
+    </div>
+
+    <div class="stat-grid stat-grid--secondary">
       <div class="stat-card">
-        <div class="stat-card__label">Revenue</div>
-        <div class="stat-card__value accent num">${Fmt.money(todaysRevenue)}</div>
-      </div>
-      <div class="stat-card">
+        <div class="stat-card__icon-badge">${Icon('package', '📦')}</div>
         <div class="stat-card__label">Products</div>
         <div class="stat-card__value num">${productCount}</div>
       </div>
       <div class="stat-card">
+        <div class="stat-card__icon-badge teal">${Icon('bar-chart', '📊')}</div>
         <div class="stat-card__label">Inventory Value</div>
         <div class="stat-card__value teal num">${Fmt.money(inventoryValue)}</div>
       </div>
@@ -1545,7 +1584,7 @@ async function renderDashboard(container) {
       <div class="list stagger">
         ${lowStock.slice(0, 5).map((p) => `
           <div class="list-row">
-            <div class="list-row__icon">${Icon('alert-triangle', '⚠️')}</div>
+            <div class="list-row__icon warn">${Icon('alert-triangle', '⚠️')}</div>
             <div class="list-row__body">
               <div class="list-row__title">${escapeHTML(p.name)}</div>
               <div class="list-row__subtitle">Minimum: ${p.minStock ?? 0}</div>
@@ -1570,7 +1609,10 @@ async function renderDashboard(container) {
       ${quickAction('reports', Icon('trending-up', '📈'), 'Reports')}
     </div>
 
-    <div class="section-title">Recent Sales</div>
+    <div class="section-title-row">
+      <div class="section-title" style="margin:0;">Recent Sales</div>
+      ${recentSales.length ? `<a href="#sales" class="section-title-row__link">View All ›</a>` : ''}
+    </div>
     ${recentSales.length ? `
       <div class="list stagger">
         ${recentSales.map((s) => `
@@ -1593,6 +1635,36 @@ async function renderDashboard(container) {
         <div class="empty-state__hint">Sales will show up here as soon as you make one.</div>
       </div>
     `}
+  `;
+}
+
+/** A tiny inline SVG line chart — no charting library needed for 7 data
+ *  points. Flat/zero data still renders a sensible flat line instead of
+ *  collapsing to nothing. */
+function renderSparkline(values) {
+  const W = 300, H = 56, PAD = 4;
+  const max = Math.max(...values, 1);
+  const min = Math.min(...values, 0);
+  const range = max - min || 1;
+  const stepX = (W - PAD * 2) / (values.length - 1 || 1);
+  const points = values.map((v, i) => {
+    const x = PAD + i * stepX;
+    const y = H - PAD - ((v - min) / range) * (H - PAD * 2);
+    return [x, y];
+  });
+  const linePath = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  const areaPath = `${linePath} L${points[points.length - 1][0].toFixed(1)},${H} L${points[0][0].toFixed(1)},${H} Z`;
+  return `
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="sparkline-svg">
+      <defs>
+        <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d="${areaPath}" fill="url(#sparkFill)" stroke="none"/>
+      <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
   `;
 }
 

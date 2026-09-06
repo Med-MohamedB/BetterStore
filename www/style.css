@@ -443,6 +443,109 @@ main#view {
 }
 .section-title:first-child { margin-top: 0; }
 
+.section-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 22px 0 10px;
+}
+.section-title-row__link {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* --- Dashboard greeting --- */
+.dash-greeting {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.dash-greeting__text {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--text);
+}
+.dash-greeting__date {
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+/* --- Dashboard hero card (today's revenue) --- */
+.hero-card {
+  position: relative;
+  overflow: hidden;
+  background-color: color-mix(in srgb, var(--surface) 82%, transparent);
+  background-image: var(--glass-sheen);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, var(--radius));
+  padding: 18px 18px 14px;
+  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge), var(--shadow);
+  margin-bottom: 12px;
+}
+.hero-card::before {
+  content: '';
+  position: absolute;
+  top: -40%; right: -20%;
+  width: 60%; height: 140%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 16%, transparent), transparent);
+  pointer-events: none;
+}
+.hero-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+.hero-card__label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.hero-card__trend {
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.hero-card__trend.up { color: var(--success, #6fcf97); background: color-mix(in srgb, var(--success, #6fcf97) 16%, transparent); }
+.hero-card__trend.down { color: var(--coral); background: var(--danger-bg); }
+.hero-card__value {
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--text);
+  margin-top: 6px;
+  position: relative;
+  z-index: 1;
+}
+.hero-card__sub {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  position: relative;
+  z-index: 1;
+}
+.hero-card__spark {
+  margin-top: 10px;
+  line-height: 0;
+  position: relative;
+  z-index: 1;
+}
+.sparkline-svg { width: 100%; height: 52px; display: block; }
+.hero-card__spark-label {
+  font-size: 10.5px;
+  color: var(--text-faint, var(--text-dim));
+  margin-top: 4px;
+  position: relative;
+  z-index: 1;
+}
+
 /* --- Dashboard stat grid --- */
 
 .stat-grid {
@@ -450,6 +553,7 @@ main#view {
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
+.stat-grid--secondary { margin-bottom: 4px; }
 
 .stat-card {
   background-color: color-mix(in srgb, var(--surface) 82%, transparent);
@@ -461,6 +565,20 @@ main#view {
   padding: 14px;
   box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge), var(--shadow);
 }
+
+.stat-card__icon-badge {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+.stat-card__icon-badge.teal { background: color-mix(in srgb, var(--teal) 14%, transparent); color: var(--teal); }
 
 .stat-card__label {
   font-size: 12px;
@@ -610,6 +728,7 @@ main#view {
   flex-shrink: 0;
   overflow: hidden;
 }
+.list-row__icon.warn { background: var(--danger-bg); color: var(--coral); }
 .list-row__icon img { width: 100%; height: 100%; object-fit: cover; }
 
 .list-row__body { flex: 1; min-width: 0; }

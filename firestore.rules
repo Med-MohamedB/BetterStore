@@ -1,0 +1,58 @@
+rules_version = '2';
+
+// This file is a REFERENCE COPY for version control. It is not deployed
+// automatically — paste its contents into Firebase Console → Firestore
+// Database → Rules → and hit Publish there directly (no CLI needed).
+//
+// What this enforces:
+//   - Any device can write its OWN stats document, but ONLY with this
+//     exact set of fields, in these exact types, within sane size limits.
+//     No arbitrary data can ever be smuggled in.
+//   - Nobody can ever DELETE a stats document.
+//   - Reading anything at all requires being signed in as the one
+//     specific GitHub-linked account below (ALLOWED_UID) — this is the
+//     REAL lock; the admin panel's login screen is just a convenience UI
+//     on top of this, not the actual security boundary.
+//   - Everything else in the database (any other collection) is denied
+//     entirely, by default.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /deviceStats/{deviceId} {
+      // ↓↓↓ Replace with your real UID after your first sign-in on the
+      // Statistics tab (it will show you this value on screen).
+      allow read: if request.auth != null
+        && request.auth.uid == 'PASTE_YOUR_UID_HERE';
+
+      allow create, update: if request.resource.data.keys().hasOnly([
+          'salesCount', 'productsCount', 'customersCount', 'suppliersCount',
+          'lastSeen', 'appVersion', 'theme', 'currency', 'adMode'
+        ])
+        && request.resource.data.salesCount is int
+        && request.resource.data.salesCount >= 0
+        && request.resource.data.productsCount is int
+        && request.resource.data.productsCount >= 0
+        && request.resource.data.customersCount is int
+        && request.resource.data.customersCount >= 0
+        && request.resource.data.suppliersCount is int
+        && request.resource.data.suppliersCount >= 0
+        && request.resource.data.lastSeen is timestamp
+        && request.resource.data.appVersion is string
+        && request.resource.data.appVersion.size() < 40
+        && request.resource.data.theme is string
+        && request.resource.data.theme.size() < 40
+        && request.resource.data.currency is string
+        && request.resource.data.currency.size() < 10
+        && request.resource.data.adMode is string
+        && request.resource.data.adMode.size() < 20;
+
+      allow delete: if false;
+    }
+
+    // Deny everything else in the database by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

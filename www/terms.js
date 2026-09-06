@@ -9,10 +9,10 @@
 
 const Terms = (() => {
   const KEY = 'sa_terms_accepted';
-  const TERMS_VERSION = '1';
+  const TERMS_VERSION = '2';
 
   const TERMS_TEXT = `
-Last updated: September 2, 2026
+Last updated: September 6, 2026
 
 1. ACCEPTANCE OF TERMS
 By installing, accessing, or using Better Store ("the App"), you agree to be
@@ -46,14 +46,19 @@ your device. The developer does not access, view, or claim ownership of
 Your Data.
 
 5. USAGE DATA WE COLLECT
-Separately from Your Data described above, the App may collect limited,
-aggregate, non-identifying usage statistics — for example, that a sale or
-refund occurred and its amount, or that the App was opened — for the sole
-purpose of understanding overall app usage and improving the App. This
-data is collected in aggregate form, is not linked to your name, your
-customers, or the specific contents of Your Data, and is not sold to third
-parties. See the in-app "Privacy" section for the current, specific list
-of what is collected.
+Separately from Your Data described above, the App periodically reports a
+small set of anonymous, aggregate counters to the developer, tied only to
+a random identifier generated on your device (not your name, email, or
+any account). Specifically: how many sales, products, customers, and
+suppliers exist in the App, when the App was last opened, which app
+version and display theme are in use, and the current Ad Source setting.
+This does NOT include revenue or sale amounts, product names, customer or
+supplier details, or anything else about the specific contents of Your
+Data. This reporting happens at most a few times a day and is designed to
+have no noticeable effect on the App's speed. The developer only ever
+views this data combined across all installs (e.g. "12,000 total sales
+made across every shop using the App this month") — never broken out for
+an individual shop or device. This data is not sold to third parties.
 
 6. NO WARRANTY
 THE APP IS PROVIDED "AS IS" AND "AS AVAILABLE," WITHOUT WARRANTY OF ANY
@@ -75,9 +80,14 @@ The developer may terminate or suspend your license to use the App at any
 time if you violate these Terms. Sections 3, 4, 6, 7, and 9 survive
 termination.
 
-9. GOVERNING LAW
-These Terms are governed by the laws of [Your Jurisdiction], without
-regard to its conflict-of-law provisions.
+9. AVAILABILITY & GOVERNING LAW
+The App is offered globally and is not restricted to, or intended
+specifically for, users in any single country. It is your responsibility
+to ensure your use of the App complies with the laws applicable to you
+and your business in your own location. These Terms are otherwise
+governed by general principles of contract law, interpreted in good
+faith, without regard to any single jurisdiction's conflict-of-law
+provisions.
 
 10. CHANGES TO THESE TERMS
 The developer may update these Terms from time to time. If changes are

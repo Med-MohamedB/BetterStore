@@ -77,6 +77,7 @@ const Onboarding = (() => {
     // isn't shown mid-tour where it'd interrupt the walkthrough.
     if (window.AdNotify) setTimeout(() => AdNotify.requestPermission(), 600);
     if (window.AdPush) setTimeout(() => AdPush.init(), 700);
+    if (window.Stats) setTimeout(() => Stats.reportIfDue(), 4000);
   }
 
   /* ---------------------------------------------------------------- */

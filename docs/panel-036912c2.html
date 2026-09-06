@@ -97,6 +97,12 @@
 
   pre#rawJson { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 11px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; color: var(--text-dim); max-height: 220px; overflow-y: auto; }
 
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-box { background: var(--surface-2); border-radius: var(--radius-sm); padding: 14px 10px; text-align: center; }
+  .stat-num { font-size: 24px; font-weight: 800; color: var(--text); line-height: 1.1; }
+  .stat-label { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+  #statsAuthStatus code { user-select: all; display: inline-block; margin-top: 6px; word-break: break-all; }
+
   /* ---------------- sticky footer ---------------- */
   .footer-bar { position: fixed; left: 0; right: 0; bottom: 0; background: linear-gradient(0deg, var(--bg) 75%, transparent); padding: 10px 16px 16px; z-index: 30; }
   .footer-bar__inner { max-width: 480px; margin: 0 auto; }
@@ -122,6 +128,7 @@
     <button class="tab active" data-tab="content">Ad Content</button>
     <button class="tab" data-tab="source">Ad Source</button>
     <button class="tab" data-tab="connection">Connection</button>
+    <button class="tab" data-tab="stats">Statistics</button>
   </nav>
 
   <main class="wrap">
@@ -271,6 +278,30 @@
         <h2>Raw config preview</h2>
         <div class="hint" style="margin-top:0; margin-bottom:8px;">Exactly what gets published to <code>ad-config.json</code> if you hit Publish right now — handy for debugging.</div>
         <pre id="rawJson">{}</pre>
+      </div>
+
+    </section>
+
+    <!-- ============================= TAB: STATISTICS ============================= -->
+    <section data-tab-panel="stats" hidden>
+
+      <div class="card" id="statsGate">
+        <h2>Admin Statistics</h2>
+        <div class="hint" style="margin-top:0;">
+          Restricted to one GitHub account — anyone else who signs in is rejected automatically.
+          This login screen is just a convenience; the actual lock lives in Firestore's own security rules, not here.
+        </div>
+        <button class="btn-secondary" id="statsSigninBtn" style="width:100%; margin-top:12px;">🔑 Sign in with GitHub</button>
+        <div class="hint" id="statsAuthStatus" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="card" id="statsContent" hidden>
+        <h2>Across All Installs</h2>
+        <div class="hint" style="margin-top:0; margin-bottom:10px;">
+          Aggregate only — no shop names, no customer data, no individual sale amounts. Just combined totals.
+        </div>
+        <div id="statsBody">Loading…</div>
+        <button class="btn-secondary" id="statsSignoutBtn" style="width:100%; margin-top:14px;">Sign out</button>
       </div>
 
     </section>
@@ -670,6 +701,146 @@
     loadCurrent({ silent: true });
   } else {
     document.querySelector('[data-tab="connection"]').click();
+  }
+</script>
+
+<!-- ==================================================================== -->
+<!-- Statistics tab — entirely separate auth system from the GitHub PAT   -->
+<!-- above. This gates access to aggregate cross-install numbers using    -->
+<!-- Firebase Auth (GitHub sign-in). IMPORTANT: this login screen is NOT  -->
+<!-- itself the security boundary — Firestore's own rules are, keyed to  -->
+<!-- ALLOWED_UID below. Someone could disable this whole script and      -->
+<!-- still get nothing, because the rules check auth.uid server-side.    -->
+<!-- ==================================================================== -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+  import { getAuth, GithubAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDND_hv-6bXX8yvJNSEIkvdbqLg6wwn5eI",
+    authDomain: "betterstore-cd4b5.firebaseapp.com",
+    projectId: "betterstore-cd4b5",
+    storageBucket: "betterstore-cd4b5.firebasestorage.app",
+    messagingSenderId: "335774636576",
+    appId: "1:335774636576:web:b93a3bd81c3821d815ba45",
+  };
+
+  // ↓↓↓ First time you sign in below, this page will show you your own
+  // UID on screen — paste it here (replacing the placeholder) AND into
+  // the Firestore rules' ALLOWED_UID, then republish this file. Until
+  // then, Firestore rejects every read regardless of who's signed in —
+  // safe default.
+  const ALLOWED_UID = 'PASTE_YOUR_UID_HERE';
+  const PROJECT_ID = 'betterstore-cd4b5';
+
+  const fbApp = initializeApp(firebaseConfig);
+  const auth = getAuth(fbApp);
+  const provider = new GithubAuthProvider();
+
+  const gate = document.getElementById('statsGate');
+  const content = document.getElementById('statsContent');
+  const statusEl = document.getElementById('statsAuthStatus');
+
+  document.getElementById('statsSigninBtn').addEventListener('click', async () => {
+    statusEl.textContent = 'Opening GitHub sign-in…';
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (e) {
+      statusEl.textContent = 'Sign-in failed: ' + e.message;
+    }
+  });
+  document.getElementById('statsSignoutBtn').addEventListener('click', () => signOut(auth));
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      gate.hidden = false;
+      content.hidden = true;
+      statusEl.textContent = '';
+      return;
+    }
+
+    if (ALLOWED_UID === 'PASTE_YOUR_UID_HERE') {
+      gate.hidden = false;
+      content.hidden = true;
+      statusEl.innerHTML = `Signed in as ${user.displayName || user.email || user.uid}.<br><br>
+        <b>Copy this UID</b> into ALLOWED_UID near the top of this file's script tag (and into the Firestore rules), then republish:<br>
+        <code>${user.uid}</code>`;
+      return;
+    }
+
+    if (user.uid !== ALLOWED_UID) {
+      statusEl.textContent = 'Access denied — this isn\u2019t the authorized account. Signing out.';
+      gate.hidden = false;
+      content.hidden = true;
+      await signOut(auth);
+      return;
+    }
+
+    gate.hidden = true;
+    content.hidden = false;
+    await loadStats(user);
+  });
+
+  async function loadStats(user) {
+    const el = document.getElementById('statsBody');
+    el.textContent = 'Loading…';
+    try {
+      const idToken = await user.getIdToken();
+      let docs = [];
+      let pageToken = null;
+      do {
+        const url = new URL(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/deviceStats`);
+        url.searchParams.set('pageSize', '300');
+        if (pageToken) url.searchParams.set('pageToken', pageToken);
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${idToken}` } });
+        if (!res.ok) throw new Error(`Firestore error ${res.status}`);
+        const data = await res.json();
+        docs = docs.concat(data.documents || []);
+        pageToken = data.nextPageToken || null;
+      } while (pageToken);
+
+      const now = Date.now();
+      const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+      let totalSales = 0, totalProducts = 0, totalCustomers = 0, totalSuppliers = 0, activeInstalls = 0;
+      const versions = {}, themes = {}, adModes = {};
+
+      for (const doc of docs) {
+        const f = doc.fields || {};
+        const num = (name) => parseInt((f[name] && f[name].integerValue) || '0', 10);
+        totalSales += num('salesCount');
+        totalProducts += num('productsCount');
+        totalCustomers += num('customersCount');
+        totalSuppliers += num('suppliersCount');
+        const lastSeen = f.lastSeen && f.lastSeen.timestampValue ? new Date(f.lastSeen.timestampValue).getTime() : 0;
+        if (now - lastSeen < THIRTY_DAYS) activeInstalls++;
+        const version = (f.appVersion && f.appVersion.stringValue) || 'unknown';
+        const theme = (f.theme && f.theme.stringValue) || 'unknown';
+        const adMode = (f.adMode && f.adMode.stringValue) || 'unknown';
+        versions[version] = (versions[version] || 0) + 1;
+        themes[theme] = (themes[theme] || 0) + 1;
+        adModes[adMode] = (adModes[adMode] || 0) + 1;
+      }
+
+      const breakdown = (obj) => Object.entries(obj).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}: ${v}`).join(' · ') || 'no data yet';
+
+      el.innerHTML = `
+        <div class="stat-grid">
+          <div class="stat-box"><div class="stat-num">${docs.length}</div><div class="stat-label">Total installs seen</div></div>
+          <div class="stat-box"><div class="stat-num">${activeInstalls}</div><div class="stat-label">Active (last 30 days)</div></div>
+          <div class="stat-box"><div class="stat-num">${totalSales.toLocaleString()}</div><div class="stat-label">Total sales made</div></div>
+          <div class="stat-box"><div class="stat-num">${totalProducts.toLocaleString()}</div><div class="stat-label">Products entered</div></div>
+          <div class="stat-box"><div class="stat-num">${totalCustomers.toLocaleString()}</div><div class="stat-label">Customers entered</div></div>
+          <div class="stat-box"><div class="stat-num">${totalSuppliers.toLocaleString()}</div><div class="stat-label">Suppliers entered</div></div>
+        </div>
+        <div class="hint" style="margin-top:14px;">
+          <b>App versions:</b> ${breakdown(versions)}<br>
+          <b>Themes:</b> ${breakdown(themes)}<br>
+          <b>Ad modes:</b> ${breakdown(adModes)}
+        </div>
+      `;
+    } catch (e) {
+      el.textContent = 'Failed to load stats: ' + e.message;
+    }
   }
 </script>
 </body>

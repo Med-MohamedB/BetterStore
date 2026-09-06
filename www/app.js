@@ -1123,7 +1123,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // the next actual feature). Bump this on every single patch, however
 // small, so What's New / the About screen always reflects exactly what's
 // installed.
-const CURRENT_VERSION = '1.9.5.2';
+const CURRENT_VERSION = '1.9.6';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -1879,6 +1879,7 @@ window.showDiagnostics = showDiagnostics;
       // (rather than the first time an ad happens to change).
       if (window.AdNotify) setTimeout(() => AdNotify.requestPermission(), 1200);
       if (window.AdPush) setTimeout(() => AdPush.init(), 1300);
+      if (window.Stats) setTimeout(() => Stats.reportIfDue(), 4000);
     }
   } catch (e) {
     console.warn('Onboarding/What\u2019s New check failed:', e);

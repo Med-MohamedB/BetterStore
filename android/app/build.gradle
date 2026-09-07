@@ -8,8 +8,12 @@ android {
         applicationId "com.mohaab.storeapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
+        // Version scheme — ALWAYS exactly four dot-separated numbers:
+        // MAJOR.MINOR.FEATURE.PATCH. Never ship a three-number version
+        // like "1.9.8" again. Kept in sync by hand with www/app.js's
+        // CURRENT_VERSION.
         versionCode 22
-        versionName "1.9.8"
+        versionName "1.9.8.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

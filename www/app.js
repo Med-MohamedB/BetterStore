@@ -1117,13 +1117,13 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // every release — used by WhatsNew to detect "this device just updated"
 // without depending on the native App plugin (which isn't available on
 // every platform this runs on).
-// Version scheme: X.Y.Z for real features, X.Y.Z.N for small fixes/tweaks
-// that don't warrant a full feature bump — N goes 1→99, then the next
-// real feature bump resets it (e.g. 1.9.5.1, 1.9.5.2, ... then 1.9.6 for
-// the next actual feature). Bump this on every single patch, however
-// small, so What's New / the About screen always reflects exactly what's
-// installed.
-const CURRENT_VERSION = '1.9.8';
+//
+// VERSION SCHEME — ALWAYS EXACTLY FOUR DOT-SEPARATED NUMBERS, NEVER THREE:
+//   MAJOR.MINOR.FEATURE.PATCH
+// FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
+// PATCH bumps (0→99) for literally any other change, however tiny — never
+// skip this, never ship three-number versions like "1.9.8" again.
+const CURRENT_VERSION = '1.9.8.0';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via

@@ -171,13 +171,13 @@
     <div class="auth-card">
       <div class="auth-card__badge">🔒</div>
       <div class="auth-card__title">Better Store Admin</div>
-      <div class="auth-card__sub">Restricted to one GitHub account.</div>
-      <button class="auth-btn" id="authSigninBtn">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-        Sign in with GitHub
-      </button>
+      <div class="auth-card__sub">Paste your GitHub Personal Access Token to continue \u2014 checked directly against GitHub, only the account this token belongs to gets in.</div>
+      <input type="password" id="gateTokenInput" placeholder="github_pat_..." style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-family:monospace; font-size:13px; margin-bottom:10px;">
+      <button class="auth-btn" id="gateSubmitBtn" style="background:linear-gradient(135deg,var(--teal),var(--accent)); color:var(--accent-ink);">Continue</button>
       <div class="auth-status" id="authStatus"></div>
-      <div class="auth-debug" id="authDebug"></div>
+      <div class="hint" style="margin-top:14px; text-align:left;">
+        Same token as the Connection tab \u2014 fine-grained, scoped to this repo, with <b>Contents: Read and write</b> and <b>Actions: Read-only</b>.
+      </div>
     </div>
   </div>
 
@@ -309,10 +309,20 @@
       </section>
 
       <section data-tab-panel="stats" hidden>
-        <div class="card">
+        <div class="card" id="statsAuthCard">
+          <h2>Sign In For Statistics</h2>
+          <div class="hint" style="margin-top:0;">
+            Stats live in a separate database (Firestore) that needs its own one-time GitHub sign-in \u2014 different from the token above. This is the ONLY part of the panel that needs it.
+          </div>
+          <button class="btn-secondary" id="statsSigninBtn" style="width:100%; margin-top:12px;">🔑 Sign in with GitHub</button>
+          <div class="hint" id="statsAuthStatus" style="margin-top:10px;"></div>
+          <div class="auth-debug" id="statsAuthDebug" style="margin-top:10px;"></div>
+        </div>
+        <div class="card" id="statsContentCard" hidden>
           <h2>Across All Installs</h2>
           <div class="hint" style="margin-top:0; margin-bottom:10px;">Aggregate only — no shop names, no customer data, no individual sale amounts.</div>
           <div id="statsBody">Loading…</div>
+          <button class="btn-secondary" id="statsSignoutBtn" style="width:100%; margin-top:14px;">Sign out of Stats</button>
         </div>
       </section>
 
@@ -858,12 +868,99 @@
   updateSimplePreview();
   updateImagePreview();
   updateRawJson();
+
+  /* ==================================================================== */
+  /* Primary login gate — verified directly against the GitHub API using  */
+  /* a Personal Access Token. No OAuth redirect/popup involved at all, so */
+  /* none of the mobile-browser storage-partitioning issues that broke    */
+  /* the old Firebase-redirect flow apply here. This is the SAME kind of  */
+  /* token already used for publishing — one token, two places it's used. */
+  /* ==================================================================== */
+  const GATE_TOKEN_KEY = 'sa_admin_gate_token';
+  const AUTHORIZED_USERNAME = 'med-mohamedb'; // case-insensitive compare below
+
+  function enterPanel(user) {
+    document.getElementById('authGate').hidden = true;
+    document.getElementById('panelRoot').hidden = false;
+    document.getElementById('userAvatarImg').src = user.avatar_url || '';
+  }
+
+  async function verifyAndEnter(token, { silent } = {}) {
+    const statusEl = document.getElementById('authStatus');
+    if (!silent) statusEl.textContent = 'Verifying\u2026';
+    try {
+      const res = await fetch('https://api.github.com/user', {
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' },
+      });
+      if (!res.ok) {
+        localStorage.removeItem(GATE_TOKEN_KEY);
+        statusEl.textContent = res.status === 401
+          ? '🔑 That token was rejected by GitHub \u2014 check it\u2019s correct and hasn\u2019t expired.'
+          : `GitHub error ${res.status} \u2014 could not verify this token.`;
+        return;
+      }
+      const user = await res.json();
+      if ((user.login || '').toLowerCase() !== AUTHORIZED_USERNAME) {
+        localStorage.removeItem(GATE_TOKEN_KEY);
+        statusEl.textContent = `Access denied \u2014 this token belongs to "${user.login}", not the authorized account.`;
+        return;
+      }
+      localStorage.setItem(GATE_TOKEN_KEY, token);
+      // Same credential the Connection tab uses — prefill it so there's
+      // only ever one token to manage, not two.
+      els.ghToken.value = token;
+      if (!els.ghOwner.value.trim()) els.ghOwner.value = user.login;
+      saveSettings();
+      statusEl.textContent = '';
+      enterPanel(user);
+    } catch (e) {
+      statusEl.textContent = 'Verification failed: ' + e.message;
+    }
+  }
+
+  document.getElementById('gateSubmitBtn').addEventListener('click', () => {
+    const token = document.getElementById('gateTokenInput').value.trim();
+    if (!token) { document.getElementById('authStatus').textContent = 'Paste your token first.'; return; }
+    verifyAndEnter(token);
+  });
+
+  document.getElementById('authSignoutBtn').addEventListener('click', () => {
+    localStorage.removeItem(GATE_TOKEN_KEY);
+    document.getElementById('panelRoot').hidden = true;
+    document.getElementById('authGate').hidden = false;
+    document.getElementById('gateTokenInput').value = '';
+  });
+
+  // Re-enter automatically if we already have a token verified in a
+  // previous visit — still re-checked against GitHub (not just trusted
+  // blindly), in case it was revoked or expired since.
+  (function tryAutoEnter() {
+    const stored = localStorage.getItem(GATE_TOKEN_KEY);
+    if (stored) {
+      document.getElementById('gateTokenInput').value = stored;
+      verifyAndEnter(stored, { silent: true });
+    }
+  })();
 </script>
 
 <script type="module">
+  /* ======================================================================
+     Firebase Auth — used ONLY for the Statistics tab's Firestore access.
+     Everything else in the panel is gated by the GitHub-PAT check in the
+     classic script above, which doesn't depend on this at all.
+
+     Uses signInWithPopup as the PRIMARY method here: signInWithRedirect
+     was tried first (Firebase's usual mobile recommendation) but proved
+     unreliable on this device specifically — the redirect round-trip
+     never resolved to a signed-in user, likely due to storage isolation
+     between the tab that starts the redirect and the tab GitHub sends it
+     back to on some Android browser configurations. A popup keeps
+     everything in one window/context, which sidesteps that entirely.
+     A redirect fallback button is offered if popups are blocked instead.
+     ====================================================================== */
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
   import {
-    getAuth, GithubAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult,
+    getAuth, GithubAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
     onAuthStateChanged, signOut, setPersistence, browserLocalPersistence,
   } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 
@@ -883,10 +980,10 @@
   const auth = getAuth(fbApp);
   const provider = new GithubAuthProvider();
 
-  const authGate = document.getElementById('authGate');
-  const panelRoot = document.getElementById('panelRoot');
-  const statusEl = document.getElementById('authStatus');
-  const debugEl = document.getElementById('authDebug');
+  const statsAuthCard = document.getElementById('statsAuthCard');
+  const statsContentCard = document.getElementById('statsContentCard');
+  const statusEl = document.getElementById('statsAuthStatus');
+  const debugEl = document.getElementById('statsAuthDebug');
 
   function debugLine(msg) {
     const time = new Date().toLocaleTimeString();
@@ -895,73 +992,63 @@
 
   await setPersistence(auth, browserLocalPersistence).catch((e) => debugLine('setPersistence failed: ' + e.message));
 
-  document.getElementById('authSigninBtn').addEventListener('click', () => {
-    statusEl.textContent = 'Redirecting to GitHub…';
-    debugLine('signInWithRedirect started');
-    signInWithRedirect(auth, provider);
+  document.getElementById('statsSigninBtn').addEventListener('click', async () => {
+    statusEl.textContent = 'Opening GitHub sign-in\u2026';
+    debugLine('signInWithPopup started');
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (e) {
+      debugLine('signInWithPopup failed: ' + e.message);
+      statusEl.textContent = 'Popup sign-in failed \u2014 try the redirect option below, or check if your browser is blocking popups.';
+      showRedirectFallback();
+    }
   });
 
-  function showPopupFallback() {
-    if (document.getElementById('authPopupFallbackBtn')) return;
+  function showRedirectFallback() {
+    if (document.getElementById('statsRedirectFallbackBtn')) return;
     const btn = document.createElement('button');
-    btn.id = 'authPopupFallbackBtn';
-    btn.className = 'auth-btn auth-btn--alt';
-    btn.textContent = 'Redirect not working? Try popup sign-in instead';
-    btn.addEventListener('click', async () => {
-      debugLine('signInWithPopup attempted');
-      try {
-        await signInWithPopup(auth, provider);
-      } catch (e) {
-        debugLine('signInWithPopup failed: ' + e.message);
-        statusEl.textContent = 'Popup sign-in failed: ' + e.message;
-      }
+    btn.id = 'statsRedirectFallbackBtn';
+    btn.className = 'btn-secondary';
+    btn.style.cssText = 'width:100%; margin-top:10px;';
+    btn.textContent = 'Try redirect sign-in instead';
+    btn.addEventListener('click', () => {
+      debugLine('signInWithRedirect started');
+      signInWithRedirect(auth, provider);
     });
-    document.querySelector('.auth-card').insertBefore(btn, statusEl);
+    statsAuthCard.insertBefore(btn, statusEl);
   }
 
   debugLine('Checking for redirect result…');
   try {
     const result = await getRedirectResult(auth);
-    debugLine(result ? `Redirect result: signed in as ${result.user.uid}` : 'Redirect result: none (normal on first load)');
+    debugLine(result ? `Redirect result: signed in as ${result.user.uid}` : 'Redirect result: none');
   } catch (e) {
     debugLine('getRedirectResult error: ' + e.message);
   }
 
-  let sawAnyAuthState = false;
-  const fallbackTimer = setTimeout(() => {
-    if (!sawAnyAuthState) {
-      debugLine('No auth state seen after 4s — showing popup fallback.');
-      showPopupFallback();
-    }
-  }, 4000);
-
   onAuthStateChanged(auth, async (user) => {
-    sawAnyAuthState = true;
-    clearTimeout(fallbackTimer);
     debugLine(`onAuthStateChanged: ${user ? user.uid : 'signed out'}`);
 
     if (!user) {
-      authGate.hidden = false;
-      panelRoot.hidden = true;
+      statsAuthCard.hidden = false;
+      statsContentCard.hidden = true;
       return;
     }
 
     if (user.uid !== ALLOWED_UID) {
-      statusEl.innerHTML = `Access denied — signed in as ${user.displayName || user.email || user.uid}, which isn\u2019t the authorized account.<br>Your UID: <code>${user.uid}</code><br>Signing out…`;
-      authGate.hidden = false;
-      panelRoot.hidden = true;
+      statusEl.innerHTML = `Access denied — signed in as ${user.displayName || user.email || user.uid}, which isn\u2019t the authorized account.<br>Signing out…`;
+      statsAuthCard.hidden = false;
+      statsContentCard.hidden = true;
       await signOut(auth);
       return;
     }
 
-    authGate.hidden = true;
-    panelRoot.hidden = false;
-    document.getElementById('userAvatarImg').src = user.photoURL || '';
+    statsAuthCard.hidden = true;
+    statsContentCard.hidden = false;
     loadStats(user);
   });
 
-  const signoutBtn = document.getElementById('authSignoutBtn');
-  if (signoutBtn) signoutBtn.addEventListener('click', () => signOut(auth));
+  document.getElementById('statsSignoutBtn').addEventListener('click', () => signOut(auth));
 
   async function loadStats(user) {
     const el = document.getElementById('statsBody');

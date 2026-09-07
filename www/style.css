@@ -2155,57 +2155,161 @@ body.swipe-active .topbar {
   justify-content: center;
   padding: 24px;
   background: color-mix(in srgb, var(--bg) 92%, transparent);
-  backdrop-filter: blur(12px) saturate(1.1);
-  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
   animation: numPopupFadeIn var(--dur-fast) var(--ease-out) forwards;
 }
+
+/* Soft ambient glow drifting behind the card, matching the app's accent
+   gradient — purely decorative, sits behind everything else. */
+.update-block__glow {
+  position: absolute;
+  width: 340px; height: 340px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 35%, transparent), transparent 70%);
+  filter: blur(10px);
+  animation: updateGlowDrift 6s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes updateGlowDrift {
+  from { transform: translate(-30px, -20px) scale(1); }
+  to { transform: translate(30px, 20px) scale(1.15); }
+}
+
 .update-block__card {
+  position: relative;
   width: 100%;
   max-width: 340px;
-  background-color: color-mix(in srgb, var(--surface) 94%, transparent);
-  background-image: var(--glass-sheen);
+  background:
+    linear-gradient(color-mix(in srgb, var(--surface) 96%, transparent), color-mix(in srgb, var(--surface) 96%, transparent)) padding-box,
+    linear-gradient(135deg, var(--accent), var(--teal), var(--accent)) border-box;
+  border: 1.5px solid transparent;
+  border-radius: 24px;
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg, var(--radius));
-  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-lg);
-  padding: 30px 24px 24px;
+  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-lg), 0 0 50px -12px color-mix(in srgb, var(--accent) 55%, transparent);
+  padding: 32px 24px 24px;
   text-align: center;
   transform: scale(0.92);
   animation: numPopupPop var(--dur-fast) var(--ease-spring) forwards;
+  overflow: hidden;
 }
-.update-block__icon { font-size: 38px; margin-bottom: 10px; }
-.update-block__title { font-size: 18px; font-weight: 800; color: var(--text); }
-.update-block__version { font-size: 13px; color: var(--text-dim); margin-top: 4px; font-weight: 600; }
-.update-block__sub { font-size: 12px; color: var(--text-faint); margin-top: 10px; line-height: 1.5; }
+/* Light sweep drifting across the card — same motif used on the custom
+   ad banners elsewhere, for visual consistency across the app. */
+.update-block__card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, color-mix(in srgb, var(--teal) 22%, transparent) 45%, transparent 60%);
+  background-size: 250% 250%;
+  animation: spotlightSheen 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.update-block__ring {
+  position: relative;
+  width: 68px; height: 68px;
+  margin: 0 auto 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.update-block__ring-spin {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--accent), var(--teal), transparent 60%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  animation: updateRingSpin 2.2s linear infinite;
+}
+@keyframes updateRingSpin { to { transform: rotate(360deg); } }
+.update-block__icon {
+  position: relative; z-index: 1;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  animation: updateIconBob 1.8s ease-in-out infinite;
+}
+@keyframes updateIconBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.update-block__title { font-size: 19px; font-weight: 800; color: var(--text); position: relative; z-index: 1; }
+.update-block__version-chip {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px; font-weight: 800;
+  color: var(--accent-ink, #1D1721);
+  background: linear-gradient(135deg, var(--teal), var(--accent));
+  position: relative; z-index: 1;
+}
+.update-block__sub { font-size: 12px; color: var(--text-faint); margin-top: 12px; line-height: 1.5; position: relative; z-index: 1; }
 .update-block__link { color: var(--accent); font-weight: 700; }
 
-.update-block__progress-wrap { margin-top: 18px; }
+.update-block__progress-wrap { margin-top: 20px; position: relative; z-index: 1; }
 .update-block__progress-track {
-  height: 8px;
+  height: 10px;
   border-radius: 999px;
   background: var(--surface-2);
   overflow: hidden;
+  position: relative;
 }
 .update-block__progress-fill {
+  position: relative;
   height: 100%;
   width: 0%;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--accent), var(--teal));
-  transition: width 0.2s ease;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 60%, transparent);
+  transition: width 0.25s ease;
+  overflow: hidden;
 }
-.update-block__progress-fill.done { background: var(--success); }
-.update-block__progress-pct { font-size: 11px; color: var(--text-dim); margin-top: 6px; font-weight: 700; }
+.update-block__progress-shimmer {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+  animation: updateShimmer 1.3s linear infinite;
+}
+@keyframes updateShimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+.update-block__progress-fill.indeterminate {
+  animation: updateIndeterminate 1.4s ease-in-out infinite;
+}
+@keyframes updateIndeterminate {
+  0% { transform: translateX(-60%); }
+  100% { transform: translateX(160%); }
+}
+.update-block__progress-fill.done {
+  background: var(--success);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--success) 70%, transparent);
+  animation: updateDonePulse 0.5s var(--ease-spring, ease) both;
+}
+.update-block__progress-fill.done .update-block__progress-shimmer { display: none; }
+@keyframes updateDonePulse {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.4); }
+  100% { filter: brightness(1); }
+}
+.update-block__progress-pct { font-size: 11px; color: var(--text-dim); margin-top: 8px; font-weight: 700; }
 
 .update-block__btn {
+  position: relative; z-index: 1;
   width: 100%;
-  margin-top: 20px;
-  padding: 13px;
+  margin-top: 22px;
+  padding: 14px;
   border-radius: var(--radius-sm, 12px);
   background: linear-gradient(135deg, var(--teal), var(--accent));
   color: var(--accent-ink, #1D1721);
   font-weight: 800;
   font-size: 15px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--accent) 60%, transparent);
 }
-.update-block__btn:disabled { opacity: 0.7; }
-.update-block__note { font-size: 11.5px; color: var(--text-faint); margin-top: 10px; line-height: 1.5; min-height: 1px; }
+.update-block__btn:active:not(:disabled) { transform: scale(0.98); }
+.update-block__btn:disabled { opacity: 0.7; box-shadow: none; }
+.update-block__btn-icon { font-size: 15px; }
+.update-block__note { font-size: 11.5px; color: var(--text-faint); margin-top: 10px; line-height: 1.5; min-height: 1px; position: relative; z-index: 1; }
+

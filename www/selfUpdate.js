@@ -111,26 +111,34 @@ const SelfUpdate = (() => {
     if (overlayEl) { overlayEl.remove(); overlayEl = null; }
   }
 
+  function setBtnContent(btn, icon, text) {
+    btn.innerHTML = `<span class="update-block__btn-icon">${icon}</span><span class="update-block__btn-text">${escapeHTML(text)}</span>`;
+  }
+
   function showBlockingScreen(cfg) {
     if (overlayEl) return; // already showing
     const changelogUrl = cfg.changelogUrl || DEFAULT_CHANGELOG_URL;
+    const version = escapeHTML(cfg.versionLabel || cfg.minVersion);
 
     overlayEl = document.createElement('div');
     overlayEl.className = 'update-block';
     overlayEl.innerHTML = `
+      <div class="update-block__glow"></div>
       <div class="update-block__card">
-        <div class="update-block__icon">⬆️</div>
+        <div class="update-block__ring">
+          <div class="update-block__ring-spin"></div>
+          <div class="update-block__icon">⬆️</div>
+        </div>
         <div class="update-block__title">Better Store Update</div>
-        <div class="update-block__version">Version ${escapeHTML(cfg.versionLabel || cfg.minVersion)}</div>
+        <div class="update-block__version-chip">Version ${version}</div>
         <div class="update-block__sub">
-          v${escapeHTML(cfg.versionLabel || cfg.minVersion)} changelog —
-          <a href="#" class="update-block__link">click here</a>
+          v${version} changelog — <a href="#" class="update-block__link">click here</a>
         </div>
         <div class="update-block__progress-wrap" hidden>
-          <div class="update-block__progress-track"><div class="update-block__progress-fill"></div></div>
+          <div class="update-block__progress-track"><div class="update-block__progress-fill"><div class="update-block__progress-shimmer"></div></div></div>
           <div class="update-block__progress-pct">0%</div>
         </div>
-        <button class="update-block__btn">Update</button>
+        <button class="update-block__btn"><span class="update-block__btn-icon">⬇️</span><span class="update-block__btn-text">Update Now</span></button>
         <div class="update-block__note"></div>
       </div>
     `;
@@ -168,7 +176,7 @@ const SelfUpdate = (() => {
     }
 
     btn.disabled = true;
-    btn.textContent = 'Downloading…';
+    setBtnContent(btn, '⬇️', 'Downloading…');
     progressWrap.hidden = false;
     note.textContent = '';
 
@@ -178,10 +186,22 @@ const SelfUpdate = (() => {
       const destPath = uriResult.uri;
 
       const progressHandle = await ft.addListener('progress', (status) => {
-        if (!status.lengthComputable) return;
-        const pct = Math.min(100, Math.round((status.bytes / status.contentLength) * 100));
-        fill.style.width = `${pct}%`;
-        pctEl.textContent = `${pct}%`;
+        if (status.lengthComputable && status.contentLength > 0) {
+          const pct = Math.min(100, Math.round((status.bytes / status.contentLength) * 100));
+          fill.classList.remove('indeterminate');
+          fill.style.width = `${pct}%`;
+          pctEl.textContent = `${pct}%`;
+        } else {
+          // GitHub's release asset serving doesn't always hand back a
+          // Content-Length up front (chunked transfer through the CDN
+          // redirect) — the download is still progressing normally in
+          // that case, there's just no known total to compute a percent
+          // against. Show a moving indeterminate bar plus a running byte
+          // count instead of leaving it looking frozen at 0%.
+          fill.classList.add('indeterminate');
+          fill.style.width = '40%';
+          pctEl.textContent = `${(status.bytes / 1048576).toFixed(1)} MB downloaded`;
+        }
       });
 
       await ft.downloadFile({ url: cfg.downloadUrl, path: destPath, progress: true });
@@ -190,15 +210,16 @@ const SelfUpdate = (() => {
       localStorage.setItem(PENDING_VERSION_KEY, cfg.versionLabel || cfg.minVersion);
       localStorage.setItem(PENDING_PATH_KEY, fileName);
 
+      fill.classList.remove('indeterminate');
       fill.style.width = '100%';
       fill.classList.add('done');
       pctEl.textContent = '100%';
       btn.disabled = false;
-      btn.textContent = 'Install Update';
+      setBtnContent(btn, '📲', 'Install Update');
       btn.onclick = () => attemptInstall(fileName, note, btn);
     } catch (e) {
       btn.disabled = false;
-      btn.textContent = 'Update';
+      setBtnContent(btn, '⬇️', 'Update Now');
       note.textContent = 'Download failed — check your connection and try again.';
       console.warn('Update download failed:', e);
     }

@@ -23,6 +23,7 @@
   a { color: inherit; }
 
   #authGate { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  #authGate[hidden] { display: none !important; }
   .auth-card {
     width: 100%; max-width: 340px; text-align: center;
     background: linear-gradient(160deg, var(--surface-2), var(--surface));
@@ -46,6 +47,14 @@
   .auth-debug { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 10.5px; color: var(--text-faint); text-align: left; line-height: 1.7; }
 
   #panelRoot { min-height: 100vh; display: flex; flex-direction: column; }
+  /* CRITICAL: the plain #panelRoot rule above sets display:flex, which
+     has enough specificity to silently override the [hidden] attribute's
+     own display:none — meaning the panel content was ALWAYS actually
+     rendered in the page layout regardless of whether hidden was set,
+     just visually below the login card, reachable by scrolling straight
+     past it without ever authenticating. This rule forces hidden to
+     always win, full stop. */
+  #panelRoot[hidden] { display: none !important; }
 
   .app-header {
     position: sticky; top: 0; z-index: 20;

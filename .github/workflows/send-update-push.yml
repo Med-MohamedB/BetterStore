@@ -50,6 +50,45 @@ jobs:
           print("CDN still hasn't caught up after 6 minutes — sending the push anyway.")
           PY
 
+      - name: Wait for the APK download to actually be live
+        run: |
+          python3 - <<'PY'
+          import json, time, urllib.request, urllib.error
+
+          with open("update-config.json") as f:
+              cfg = json.load(f)
+          download_url = cfg.get("downloadUrl")
+          if not download_url:
+              print("No downloadUrl in update-config.json — skipping this check.")
+              raise SystemExit(0)
+
+          # This is the actual thing devices will try to download once the
+          # notification lands — checking update-config.json's own CDN
+          # freshness (previous step) isn't enough on its own, since the
+          # GitHub Release asset it POINTS TO is a separate resource with
+          # its own propagation timing. Sending the push before this URL
+          # is genuinely downloadable is exactly what caused the
+          # notification to arrive well before the app could act on it.
+          deadline = time.time() + 6 * 60
+          attempt = 0
+          while time.time() < deadline:
+              attempt += 1
+              try:
+                  req = urllib.request.Request(download_url, method="HEAD")
+                  with urllib.request.urlopen(req, timeout=15) as resp:
+                      if resp.status == 200:
+                          print(f"APK download confirmed live after {attempt} check(s).")
+                          raise SystemExit(0)
+                      print(f"Check {attempt}: got HTTP {resp.status}, retrying...")
+              except urllib.error.HTTPError as e:
+                  print(f"Check {attempt}: HTTP {e.code}, retrying...")
+              except urllib.error.URLError as e:
+                  print(f"Check {attempt}: {e}, retrying...")
+              time.sleep(10)
+
+          print("APK still not confirmed live after 6 minutes — sending the push anyway.")
+          PY
+
       - name: Authenticate to Firebase
         id: auth
         uses: google-github-actions/auth@v2

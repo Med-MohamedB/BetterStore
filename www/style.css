@@ -553,7 +553,10 @@ main#view {
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
-.stat-grid--secondary { margin-bottom: 4px; }
+.stat-grid--secondary {
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 4px;
+}
 
 .stat-card {
   background-color: color-mix(in srgb, var(--surface) 82%, transparent);
@@ -579,6 +582,7 @@ main#view {
   margin-bottom: 8px;
 }
 .stat-card__icon-badge.teal { background: color-mix(in srgb, var(--teal) 14%, transparent); color: var(--teal); }
+.stat-card__icon-badge.coral { background: color-mix(in srgb, var(--coral) 14%, transparent); color: var(--coral); }
 
 .stat-card__label {
   font-size: 12px;
@@ -591,6 +595,11 @@ main#view {
   font-weight: 700;
   margin-top: 6px;
 }
+
+.stat-grid--secondary .stat-card { padding: 12px 10px; }
+.stat-grid--secondary .stat-card__icon-badge { width: 26px; height: 26px; font-size: 12px; margin-bottom: 6px; }
+.stat-grid--secondary .stat-card__label { font-size: 10.5px; }
+.stat-grid--secondary .stat-card__value { font-size: 17px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .stat-card__value.accent { color: var(--accent); }
 .stat-card__value.teal { color: var(--teal); }
@@ -2131,3 +2140,72 @@ body.swipe-active .topbar {
 .icon-svg { display: none; color: currentColor; }
 [data-icon-style="line"] .icon-emoji { display: none; }
 [data-icon-style="line"] .icon-svg { display: inline-block; }
+
+/* ==================================================================== */
+/* Forced update — full-screen, unclosable until updated. Sits above     */
+/* absolutely everything else in the app (see SelfUpdate.checkForUpdate  */
+/* in selfUpdate.js for when this appears).                              */
+/* ==================================================================== */
+.update-block {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  animation: numPopupFadeIn var(--dur-fast) var(--ease-out) forwards;
+}
+.update-block__card {
+  width: 100%;
+  max-width: 340px;
+  background-color: color-mix(in srgb, var(--surface) 94%, transparent);
+  background-image: var(--glass-sheen);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, var(--radius));
+  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-lg);
+  padding: 30px 24px 24px;
+  text-align: center;
+  transform: scale(0.92);
+  animation: numPopupPop var(--dur-fast) var(--ease-spring) forwards;
+}
+.update-block__icon { font-size: 38px; margin-bottom: 10px; }
+.update-block__title { font-size: 18px; font-weight: 800; color: var(--text); }
+.update-block__version { font-size: 13px; color: var(--text-dim); margin-top: 4px; font-weight: 600; }
+.update-block__sub { font-size: 12px; color: var(--text-faint); margin-top: 10px; line-height: 1.5; }
+.update-block__link { color: var(--accent); font-weight: 700; }
+
+.update-block__progress-wrap { margin-top: 18px; }
+.update-block__progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.update-block__progress-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--teal));
+  transition: width 0.2s ease;
+}
+.update-block__progress-fill.done { background: var(--success); }
+.update-block__progress-pct { font-size: 11px; color: var(--text-dim); margin-top: 6px; font-weight: 700; }
+
+.update-block__btn {
+  width: 100%;
+  margin-top: 20px;
+  padding: 13px;
+  border-radius: var(--radius-sm, 12px);
+  background: linear-gradient(135deg, var(--teal), var(--accent));
+  color: var(--accent-ink, #1D1721);
+  font-weight: 800;
+  font-size: 15px;
+}
+.update-block__btn:disabled { opacity: 0.7; }
+.update-block__note { font-size: 11.5px; color: var(--text-faint); margin-top: 10px; line-height: 1.5; min-height: 1px; }

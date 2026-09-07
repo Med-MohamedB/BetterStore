@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write  # needed to publish the GitHub Release below
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -38,8 +41,34 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
-      - name: Upload APK
+      - name: Upload APK (workflow artifact — for browsing individual CI runs)
         uses: actions/upload-artifact@v4
         with:
           name: store-app-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      # A workflow artifact needs GitHub auth to download, so it isn't
+      # something the app itself (or any end user's device) can fetch. A
+      # GitHub Release asset, on the other hand, is a stable, public URL
+      # with no auth needed — that's what the in-app forced-update flow
+      # and the panel's Update tab both actually download from.
+      - name: Read app version
+        id: appver
+        run: |
+          VERSION=$(grep -oP 'versionName\s+"\K[^"]+' android/app/build.gradle)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release with APK attached
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ steps.appver.outputs.version }}"
+          # Re-running a build at the same app version (e.g. iterating on
+          # a fix before bumping) would otherwise fail the second time
+          # with "release already exists" — replace it instead.
+          gh release delete "$TAG" --yes --repo "${{ github.repository }}" || true
+          gh release create "$TAG" \
+            android/app/build/outputs/apk/debug/app-debug.apk \
+            --title "Better Store $TAG" \
+            --notes "Automated build from commit ${{ github.sha }}" \
+            --repo "${{ github.repository }}"

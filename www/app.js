@@ -1123,7 +1123,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // the next actual feature). Bump this on every single patch, however
 // small, so What's New / the About screen always reflects exactly what's
 // installed.
-const CURRENT_VERSION = '1.9.7';
+const CURRENT_VERSION = '1.9.8';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -1160,6 +1160,11 @@ function watchAppResumeForFreshAds() {
     if (!isActive) return;
     if (window.ShopPromo) ShopPromo.invalidateCache();
     Router.refresh();
+    // A forced update can be published while the app is already open in
+    // the background — re-check every time it's brought back to front,
+    // not just at cold boot, so it can never be dodged by just not fully
+    // closing the app.
+    if (window.SelfUpdate) SelfUpdate.checkForUpdate();
   });
 }
 
@@ -1568,6 +1573,11 @@ async function renderDashboard(container) {
 
     <div class="stat-grid stat-grid--secondary">
       <div class="stat-card">
+        <div class="stat-card__icon-badge coral">${Icon('cart', '🧾')}</div>
+        <div class="stat-card__label">Sales</div>
+        <div class="stat-card__value coral num">${transactionCount}</div>
+      </div>
+      <div class="stat-card">
         <div class="stat-card__icon-badge">${Icon('package', '📦')}</div>
         <div class="stat-card__label">Products</div>
         <div class="stat-card__value num">${productCount}</div>
@@ -1926,6 +1936,12 @@ window.showDiagnostics = showDiagnostics;
   initTabSwipeGesture();
   initPullToRefresh();
   watchAppResumeForFreshAds();
+  // Checked once here at cold boot too (not just on resume) — a fresh
+  // launch is also a moment someone could be behind on a forced update.
+  // Runs in parallel with the rest of boot rather than blocking it; if
+  // it turns out an update IS required, the blocking screen appears the
+  // moment that's confirmed, over whatever's already on screen.
+  if (window.SelfUpdate) SelfUpdate.checkForUpdate();
 
   // Onboarding is for a genuinely empty, fresh install only — gating on
   // the flag alone would wrongly trigger it for an existing user who's

@@ -11,7 +11,8 @@ const WhatsNew = (() => {
   // Add a new entry here each release; oldest-first doesn't matter since
   // only the current version's list is ever shown.
   const ITEMS = [
-    { icon: '📈', text: 'Dashboard redesigned \u2014 a proper revenue hero card with a 7-day trend chart, plus a cleaner overall layout.' },
+    { icon: '🔄', text: 'Sales box is back on the Dashboard, alongside the new revenue hero card.' },
+    { icon: '⬆️', text: 'Forced update system \u2014 the admin can now push a required update that the app can download and install without leaving the app.' },
     { icon: '📊', text: 'Anonymous, aggregate-only usage counters (sales made, products/customers/suppliers entered) now report to the developer \u2014 see the updated Terms of Use for exactly what\u2019s included.' },
     { icon: '🌍', text: 'Terms of Use clarified: the App is offered globally, not tied to any single country.' },
     { icon: '🩺', text: 'AdMob status is now visible in More \u2192 About This App \u2192 Run Diagnostics \u2014 no computer needed to see what\u2019s happening with ads.' },

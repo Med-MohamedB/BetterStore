@@ -1,0 +1,110 @@
+name: Send Update Push Notification
+
+# Fires the instant update-config.json changes on main (published from the
+# control panel's Update tab). Sends one push to every installed copy of
+# the app (they're all subscribed to the "app-updates" FCM topic — see
+# android/app/src/main/java/com/mohaab/storeapp/MainActivity.kt), which
+# triggers an immediate re-check of the forced-update screen even for
+# people who already have the app open.
+#
+# Uses the same Firebase service account secret as send-ad-push.yml
+# (FCM_SERVICE_ACCOUNT_KEY) — no separate setup needed.
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'update-config.json'
+  workflow_dispatch:
+
+jobs:
+  send-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for the CDN to actually serve the new content
+        run: |
+          python3 - <<'PY'
+          import json, time, urllib.request, urllib.error
+
+          with open("update-config.json") as f:
+              expected = json.load(f)
+
+          url = "https://raw.githubusercontent.com/Med-MohamedB/BetterStore/main/update-config.json"
+          deadline = time.time() + 6 * 60
+          attempt = 0
+          while time.time() < deadline:
+              attempt += 1
+              try:
+                  req = urllib.request.Request(f"{url}?_={int(time.time())}")
+                  with urllib.request.urlopen(req, timeout=10) as resp:
+                      live = json.loads(resp.read().decode())
+                  if live == expected:
+                      print(f"CDN caught up after {attempt} check(s).")
+                      raise SystemExit(0)
+              except (urllib.error.URLError, json.JSONDecodeError) as e:
+                  print(f"Check {attempt}: fetch/parse failed ({e}), retrying...")
+              time.sleep(10)
+
+          print("CDN still hasn't caught up after 6 minutes — sending the push anyway.")
+          PY
+
+      - name: Authenticate to Firebase
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FCM_SERVICE_ACCOUNT_KEY }}
+          token_format: 'access_token'
+
+      - name: Send push to the app-updates topic
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          PROJECT_ID: ${{ steps.auth.outputs.project_id }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+
+          with open("update-config.json") as f:
+              cfg = json.load(f)
+
+          version_label = cfg.get("versionLabel") or cfg.get("minVersion") or "new version"
+          message = {
+              "message": {
+                  "topic": "app-updates",
+                  "notification": {
+                      "title": "Better Store Update",
+                      "body": f"Version {version_label} is available. Tap to update.",
+                  },
+                  "android": {
+                      "notification": {
+                          "channel_id": "ad-alerts",
+                          "notification_priority": "PRIORITY_HIGH",
+                      }
+                  },
+                  "data": {
+                      "minVersion": str(cfg.get("minVersion") or ""),
+                      "versionLabel": str(version_label),
+                      "downloadUrl": str(cfg.get("downloadUrl") or ""),
+                      "changelogUrl": str(cfg.get("changelogUrl") or ""),
+                  },
+              }
+          }
+
+          project_id = os.environ["PROJECT_ID"]
+          req = urllib.request.Request(
+              f"https://fcm.googleapis.com/v1/projects/{project_id}/messages:send",
+              data=json.dumps(message).encode(),
+              headers={
+                  "Authorization": f"Bearer {os.environ['ACCESS_TOKEN']}",
+                  "Content-Type": "application/json; charset=UTF-8",
+              },
+              method="POST",
+          )
+          try:
+              with urllib.request.urlopen(req) as resp:
+                  print("FCM response:", resp.status, resp.read().decode())
+          except urllib.error.HTTPError as e:
+              print("FCM send failed:", e.code, e.read().decode())
+              raise SystemExit(1)
+          PY

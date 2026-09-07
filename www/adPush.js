@@ -128,6 +128,14 @@ const AdPush = (() => {
 
       // Only fires while the app is in the foreground — see file header.
       await p.addListener('pushNotificationReceived', (notification) => {
+        const data = notification.data || {};
+        // Forced-update pushes (app-updates topic) carry minVersion —
+        // that's a different flow entirely (see selfUpdate.js), not an
+        // ad to render as a local notification.
+        if (data.minVersion) {
+          if (window.SelfUpdate) SelfUpdate.checkForUpdate();
+          return;
+        }
         showForegroundNotification(notification);
       });
     } catch (e) {

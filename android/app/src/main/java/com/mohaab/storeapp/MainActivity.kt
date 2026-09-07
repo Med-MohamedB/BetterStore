@@ -22,6 +22,7 @@ class MainActivity : BridgeActivity() {
     init {
         registerPlugin(BiometricAuthPlugin::class.java)
         registerPlugin(NativePrintPlugin::class.java)
+        registerPlugin(SelfUpdatePlugin::class.java)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,6 +74,7 @@ class MainActivity : BridgeActivity() {
     private fun subscribeToAdUpdates() {
         try {
             FirebaseMessaging.getInstance().subscribeToTopic("ad-updates")
+            FirebaseMessaging.getInstance().subscribeToTopic("app-updates")
         } catch (e: Throwable) {
             // Firebase not set up yet (no google-services.json committed) —
             // safe to ignore, ad notifications just fall back to local-only

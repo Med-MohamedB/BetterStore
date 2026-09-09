@@ -1124,7 +1124,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.8.5';
+const CURRENT_VERSION = '1.9.8.6';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -1245,6 +1245,14 @@ function initTabSwipeGesture() {
     }
     if (!horizontal) return;
 
+    // Once this is a horizontal tab-swipe, take exclusive control of the
+    // gesture — without this, Android's own edge-swipe-back gesture (which
+    // shares the same 28px EDGE zone this feature starts from) competes
+    // with the transform below for the same touch, which is what makes a
+    // technically-correct direct-manipulation drag still feel broken or
+    // laggy on-device.
+    if (e.cancelable) e.preventDefault();
+
     // Direct 1:1 tracking every frame — the view moves exactly with the
     // finger, not after it. translate3d promotes this to its own GPU layer.
     const idx = tabOrder.indexOf(Router.current);
@@ -1253,7 +1261,7 @@ function initTabSwipeGesture() {
     const atEnd = idx === tabOrder.length - 1 && dx < 0;
     const followDx = dx * (atStart || atEnd ? 0.25 : 1);
     view.style.transform = `translate3d(${followDx}px, 0, 0)`;
-  }, { passive: true });
+  }, { passive: false });
 
   view.addEventListener('touchend', () => {
     if (!tracking) return;

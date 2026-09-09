@@ -53,7 +53,7 @@ const Onboarding = (() => {
 
     const skipBtn = document.createElement('button');
     skipBtn.className = 'onboard-skip-corner tappable';
-    skipBtn.textContent = '✕';
+    skipBtn.innerHTML = Icon('x');
     skipBtn.addEventListener('click', finish);
     overlayEl.appendChild(skipBtn);
 

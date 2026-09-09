@@ -129,7 +129,7 @@ const Reports = (() => {
         <div class="list">
           ${bestSellers.map((p, i) => `
             <div class="list-row">
-              <div class="list-row__icon">${['🥇','🥈','🥉','🏅','🏅'][i] || '🏅'}</div>
+              <div class="list-row__icon">${Icon('award')}</div>
               <div class="list-row__body">
                 <div class="list-row__title">${escapeHTML(p.name)}</div>
                 <div class="list-row__subtitle">${p.qty} sold</div>
@@ -138,7 +138,7 @@ const Reports = (() => {
             </div>
           `).join('')}
         </div>
-      ` : `<div class="empty-state"><div class="empty-state__icon">🏅</div><div class="empty-state__title">No sales in this period</div></div>`}
+      ` : `<div class="empty-state"><div class="empty-state__icon">${Icon('award', { size: 32 })}</div><div class="empty-state__title">No sales in this period</div></div>`}
 
       ${categoryRows.length ? `
         <div class="section-title">By Category</div>

@@ -261,7 +261,7 @@ const ShopPromo = (() => {
           <span class="feature-spotlight__sub">${escapeHTML(config.subtitle)}</span>
         </span>
         <span class="feature-spotlight__chevron">›</span>
-        <button class="feature-spotlight__dismiss tappable" aria-label="Dismiss">✕</button>
+        <button class="feature-spotlight__dismiss tappable" aria-label="Dismiss">${Icon('x')}</button>
       </a>
     `;
     const card = slot.querySelector('.feature-spotlight');
@@ -288,7 +288,7 @@ const ShopPromo = (() => {
       <a href="#" class="image-spotlight tappable" style="height:${config.bannerHeight}px;">
         <img src="${config.bannerImage}" alt="" referrerpolicy="no-referrer" loading="lazy">
         <span class="image-spotlight__sheen"></span>
-        <button class="feature-spotlight__dismiss image-spotlight__dismiss tappable" aria-label="Dismiss">✕</button>
+        <button class="feature-spotlight__dismiss image-spotlight__dismiss tappable" aria-label="Dismiss">${Icon('x')}</button>
       </a>
     `;
     const card = slot.querySelector('.image-spotlight');

@@ -12,7 +12,7 @@ const Suppliers = (() => {
 
   async function render(container) {
     const actions = document.getElementById('topbarActions');
-    actions.innerHTML = `<button class="icon-btn tappable" id="addSupplierBtn">➕</button>`;
+    actions.innerHTML = `<button class="icon-btn tappable" id="addSupplierBtn">${Icon('plus')}</button>`;
     actions.querySelector('#addSupplierBtn').addEventListener('click', () => openForm());
     await renderList(container);
   }
@@ -27,9 +27,9 @@ const Suppliers = (() => {
 
     container.innerHTML = `
       <div class="search-bar">
-        <span class="search-bar__icon">🔍</span>
+        <span class="search-bar__icon">${Icon('search')}</span>
         <input type="text" id="supplierSearch" placeholder="Search name, phone, email..." value="${escapeHTML(searchQuery)}">
-        ${searchQuery ? `<button class="search-bar__clear tappable" id="clearSupplierSearch">✕</button>` : ''}
+        ${searchQuery ? `<button class="search-bar__clear tappable" id="clearSupplierSearch">${Icon('x', { size: 14 })}</button>` : ''}
       </div>
 
       ${filtered.length ? `
@@ -38,7 +38,7 @@ const Suppliers = (() => {
         </div>
       ` : `
         <div class="empty-state">
-          <div class="empty-state__icon">🚚</div>
+          <div class="empty-state__icon">${Icon('truck', { size: 32 })}</div>
           <div class="empty-state__title">${suppliers.length ? 'No suppliers match' : 'No suppliers yet'}</div>
           <div class="empty-state__hint">${suppliers.length ? 'Try a different search.' : 'Tap + to add your first supplier.'}</div>
         </div>
@@ -66,7 +66,7 @@ const Suppliers = (() => {
     const linked = productsFor(s.name, products);
     return `
       <div class="list-row tappable" data-supplier-row="${s.id}">
-        <div class="list-row__icon">🚚</div>
+        <div class="list-row__icon">${Icon('truck')}</div>
         <div class="list-row__body">
           <div class="list-row__title">${escapeHTML(s.name)}</div>
           <div class="list-row__subtitle">${escapeHTML(s.phone || 'No phone')}</div>
@@ -114,7 +114,7 @@ const Suppliers = (() => {
 
     const bodyHTML = `
       <div style="text-align:center;">
-        <div style="width:56px;height:56px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 10px;">🚚</div>
+        <div style="width:56px;height:56px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 10px;">${Icon('truck', { size: 26 })}</div>
         <div style="font-weight:700; font-size:17px;">${escapeHTML(s.name)}</div>
         ${s.phone ? `<div class="text-dim text-sm mt-8">${escapeHTML(s.phone)}</div>` : ''}
         ${s.email ? `<div class="text-dim text-sm">${escapeHTML(s.email)}</div>` : ''}
@@ -130,7 +130,7 @@ const Suppliers = (() => {
         <div class="list">
           ${linked.map((p) => `
             <div class="list-row">
-              <div class="list-row__icon">${p.image ? `<img src="${p.image}" alt="">` : '📦'}</div>
+              <div class="list-row__icon">${p.image ? `<img src="${p.image}" alt="">` : Icon('package')}</div>
               <div class="list-row__body"><div class="list-row__title">${escapeHTML(p.name)}</div><div class="list-row__subtitle">${p.quantity} ${escapeHTML(p.unit || 'pcs')} in stock</div></div>
               <div class="list-row__trailing"><div class="list-row__amount num">${Fmt.money(p.sellingPrice)}</div></div>
             </div>
@@ -141,7 +141,7 @@ const Suppliers = (() => {
     const footerHTML = `
       <div class="flex gap-8">
         <button class="btn btn-secondary tappable" id="editSupplierBtn">Edit</button>
-        <button class="btn btn-danger tappable" id="deleteSupplierBtn" style="max-width:60px;">🗑️</button>
+        <button class="btn btn-danger tappable" id="deleteSupplierBtn" style="max-width:60px;">${Icon('trash')}</button>
       </div>`;
     const sheetEl = Sheet.open({ title: 'Supplier', bodyHTML, footerHTML });
 
@@ -149,7 +149,8 @@ const Suppliers = (() => {
       Sheet.close();
       setTimeout(() => openForm(s), 260);
     });
-    sheetEl.querySelector('#deleteSupplierBtn').addEventListener('click', async () => {
+    sheetEl.querySelector('#deleteSupplierBtn').addEventListener('click', async (e) => {
+      Icon.shake(e.currentTarget.querySelector('.icon-svg'));
       if (!confirm(`Delete "${s.name}"? Linked products keep their supplier name as text.`)) return;
       await DB.delete('suppliers', s.id);
       Toast.success('Supplier deleted');

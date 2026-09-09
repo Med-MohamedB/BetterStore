@@ -157,11 +157,11 @@ const Scanner = (() => {
     currentHintText = continuous ? 'Scan as many items as you like, then tap ✕ when done' : 'Point the camera at a barcode';
     overlayEl.innerHTML = `
       <div class="scanner-topbar">
-        <button class="icon-btn tappable" id="scanCancelBtn">✕</button>
+        <button class="icon-btn tappable" id="scanCancelBtn">${Icon('x')}</button>
         <div class="scanner-topbar__title">${title}</div>
         <div class="scanner-topbar__actions">
-          <button class="icon-btn tappable" id="scanSwitchBtn" style="display:none;">🔄</button>
-          <button class="icon-btn tappable" id="scanTorchBtn">🔦</button>
+          <button class="icon-btn tappable" id="scanSwitchBtn" style="display:none;">${Icon('refresh')}</button>
+          <button class="icon-btn tappable" id="scanTorchBtn">${Icon('zap')}</button>
         </div>
       </div>
       <video id="scanVideo" playsinline muted autoplay></video>
@@ -324,7 +324,7 @@ const Scanner = (() => {
     // button rather than declaring the whole device unsupported.
     console.warn('Torch unsupported: capabilities were', capabilities);
     if (availableCameras.length > 1) {
-      Toast.error('This camera has no flash — try 🔄 to switch cameras');
+      Toast.error('This camera has no flash — try switching cameras');
     } else {
       Toast.error('Flashlight isn\u2019t supported on this browser/device');
     }
@@ -495,12 +495,12 @@ const Scanner = (() => {
       const label = device.label || `Camera ${i + 1}`;
       return `
         <div class="list-row tappable" data-camera-index="${i}" style="${isCurrent ? 'background:var(--surface-2);' : ''}">
-          <div class="list-row__icon">📷</div>
+          <div class="list-row__icon">${Icon('camera')}</div>
           <div class="list-row__body">
             <div class="list-row__title">${escapeHTML(label)}</div>
             ${isCurrent ? '<div class="list-row__subtitle">Currently in use</div>' : ''}
           </div>
-          ${isCurrent ? '<div class="list-row__trailing text-faint">✓</div>' : ''}
+          ${isCurrent ? `<div class="list-row__trailing text-faint">${Icon('check', { size: 16 })}</div>` : ''}
         </div>`;
     }).join('');
 

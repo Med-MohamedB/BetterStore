@@ -215,7 +215,7 @@ const SelfUpdate = (() => {
       fill.classList.add('done');
       pctEl.textContent = '100%';
       btn.disabled = false;
-      setBtnContent(btn, '📲', 'Install Update');
+      setBtnContent(btn, Icon('download'), 'Install Update');
       btn.onclick = () => attemptInstall(fileName, note, btn);
     } catch (e) {
       btn.disabled = false;

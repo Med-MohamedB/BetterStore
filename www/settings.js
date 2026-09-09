@@ -19,7 +19,7 @@ const SettingsScreen = (() => {
     container.innerHTML = `
       <div class="section-title">Store</div>
       <div class="image-picker tappable" id="logoPicker" style="height:100px;">
-        ${store.logo ? `<img src="${store.logo}" alt="">` : `<span class="image-picker__icon">🏬</span><span>Store logo</span>`}
+        ${store.logo ? `<img src="${store.logo}" alt="">` : `<span class="image-picker__icon">${Icon('building', { size: 28 })}</span><span>Store logo</span>`}
       </div>
       <input type="file" accept="image/*" id="logoInput" style="display:none">
       <div class="field mt-16"><label>Store name</label><input type="text" id="s_name" value="${escapeHTML(store.name)}"></div>
@@ -31,7 +31,7 @@ const SettingsScreen = (() => {
 
       <div class="section-title">Appearance</div>
       <div class="chip-row" id="themeChips">
-        ${[['light', '☀️ Light'], ['dark', '🌙 Dark'], ['system', '⚙️ System']].map(([k, label]) => `
+        ${[['light', `${Icon('sun', { size: 15 })} Light`], ['dark', `${Icon('moon', { size: 15 })} Dark`], ['system', `${Icon('monitor', { size: 15 })} System`]].map(([k, label]) => `
           <button class="chip tappable${appearance.theme === k ? ' active' : ''}" data-theme-choice="${k}">${label}</button>
         `).join('')}
       </div>
@@ -39,8 +39,8 @@ const SettingsScreen = (() => {
       <div class="theme-pack-grid" id="themePackGrid">
         ${Object.entries(THEME_PACKS).map(([key, pack]) => `
           <button class="theme-pack-card tappable${appearance.themePack === key ? ' active' : ''}" data-theme-pack="${key}">
-            <span class="theme-pack-card__swatch" style="background:linear-gradient(135deg, ${pack.accent} 0%, ${pack.blue} 55%, ${pack.teal} 100%);">
-              ${appearance.themePack === key ? '<span class="theme-pack-card__check">✓</span>' : ''}
+            <span class="theme-pack-card__swatch" style="background:linear-gradient(135deg, ${pack.accent} 0%, ${pack.accentDim} 100%);">
+              ${appearance.themePack === key ? `<span class="theme-pack-card__check">${Icon('check', { size: 14, className: 'icon-draw', strokeWidth: 3 })}</span>` : ''}
             </span>
             <span class="theme-pack-card__label">${pack.name}</span>
           </button>
@@ -85,7 +85,7 @@ const SettingsScreen = (() => {
 
       <div class="section-title">Data</div>
       <a class="list-row tappable" href="#backup">
-        <div class="list-row__icon">💾</div>
+        <div class="list-row__icon">${Icon('database')}</div>
         <div class="list-row__body"><div class="list-row__title">Backup & Restore</div><div class="list-row__subtitle">Export, import, clear data</div></div>
         <div class="list-row__trailing text-faint">›</div>
       </a>
@@ -169,7 +169,8 @@ const SettingsScreen = (() => {
           c.classList.toggle('active', c === card);
           const check = c.querySelector('.theme-pack-card__check');
           if (c === card && !check) {
-            c.querySelector('.theme-pack-card__swatch').insertAdjacentHTML('beforeend', '<span class="theme-pack-card__check">✓</span>');
+            c.querySelector('.theme-pack-card__swatch').insertAdjacentHTML('beforeend', `<span class="theme-pack-card__check">${Icon('check', { size: 14, strokeWidth: 3 })}</span>`);
+            Icon.draw(c.querySelector('.theme-pack-card__check .icon-svg'));
           } else if (c !== card && check) {
             check.remove();
           }
@@ -271,9 +272,9 @@ const Security = (() => {
     const overlay = document.createElement('div');
     overlay.className = 'pin-overlay open';
     overlay.innerHTML = `
-      <div class="pin-lock-icon">🔑</div>
+      <div class="pin-lock-icon">${Icon('lock', { size: 32 })}</div>
       <div class="pin-title" id="pinTitle">Set a PIN</div>
-      <div class="pin-sub">Choose a 4-6 digit PIN, then tap ✓ to confirm</div>
+      <div class="pin-sub">Choose a 4-6 digit PIN, then tap ${Icon('check', { size: 12 })} to confirm</div>
       ${keypadHTML(0, true)}
       <button class="btn btn-secondary mt-16 tappable" id="pinCancel" style="max-width:200px;">Cancel</button>
     `;
@@ -301,7 +302,7 @@ const Security = (() => {
       if (stage === 'first') {
         firstPin = entered;
         stage = 'confirm';
-        reset('Confirm your PIN, then tap ✓');
+        reset('Confirm your PIN, then tap \u2713');
         overlay.querySelector('#pinTitle').textContent = 'Confirm PIN';
       } else if (entered === firstPin) {
         await Settings.set('security', { pinEnabled: true, pin: firstPin });
@@ -449,11 +450,11 @@ const Security = (() => {
       const overlay = document.createElement('div');
       overlay.className = 'pin-overlay open';
       overlay.innerHTML = `
-        <div class="pin-lock-icon">🔒</div>
+        <div class="pin-lock-icon">${Icon('lock', { size: 32 })}</div>
         <div class="pin-title">Enter PIN</div>
         <div class="pin-sub" id="pinLockSub">Enter your PIN to unlock</div>
         ${keypadHTML(0)}
-        ${canBiometric ? `<button class="btn btn-secondary mt-16 tappable" id="bioBtn" style="max-width:240px;">👆 Use Face/Fingerprint</button>` : ''}
+        ${canBiometric ? `<button class="btn btn-secondary mt-16 tappable" id="bioBtn" style="max-width:240px;">${Icon('shield')} Use Face/Fingerprint</button>` : ''}
       `;
       document.body.appendChild(overlay);
 
@@ -492,10 +493,10 @@ const Security = (() => {
       const bioBtn = overlay.querySelector('#bioBtn');
       async function tryBiometric() {
         if (!bioBtn) return;
-        bioBtn.textContent = '👆 Checking\u2026';
+        bioBtn.innerHTML = `${Icon('shield')} Checking\u2026`;
         const ok = await verifyBiometric(security.biometricCredentialId);
         if (ok) { unlock(); return; }
-        bioBtn.textContent = '👆 Use Face/Fingerprint';
+        bioBtn.innerHTML = `${Icon('shield')} Use Face/Fingerprint`;
       }
       if (bioBtn) {
         bioBtn.addEventListener('click', tryBiometric);
@@ -528,7 +529,7 @@ const Security = (() => {
       const overlay = document.createElement('div');
       overlay.className = 'pin-overlay open';
       overlay.innerHTML = `
-        <div class="pin-lock-icon">⚠️</div>
+        <div class="pin-lock-icon">${Icon('alert-triangle', { size: 32 })}</div>
         <div class="pin-title">Confirm PIN</div>
         <div class="pin-sub" id="pinConfirmSub">${escapeHTML(reason || 'Enter your PIN to continue')}</div>
         ${keypadHTML(0)}

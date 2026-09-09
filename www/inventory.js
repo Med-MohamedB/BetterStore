@@ -13,7 +13,7 @@ const Inventory = (() => {
 
   async function render(container) {
     const actions = document.getElementById('topbarActions');
-    actions.innerHTML = `<button class="icon-btn tappable" id="historyBtn" title="Adjustment history">🕘</button>`;
+    actions.innerHTML = `<button class="icon-btn tappable" id="historyBtn" title="Adjustment history">${Icon('history')}</button>`;
     actions.querySelector('#historyBtn').addEventListener('click', openHistory);
 
     await renderList(container);
@@ -57,8 +57,8 @@ const Inventory = (() => {
 
       <div class="chip-row mt-16">
         <button class="chip tappable${statusFilter === 'all' ? ' active' : ''}" data-filter="all">All · ${counts.all}</button>
-        <button class="chip tappable${statusFilter === 'low' ? ' active' : ''}" data-filter="low">⚠️ Low · ${counts.low}</button>
-        <button class="chip tappable${statusFilter === 'out' ? ' active' : ''}" data-filter="out">⛔ Out · ${counts.out}</button>
+        <button class="chip tappable${statusFilter === 'low' ? ' active' : ''}" data-filter="low">${Icon('alert-triangle', { size: 14 })} Low · ${counts.low}</button>
+        <button class="chip tappable${statusFilter === 'out' ? ' active' : ''}" data-filter="out">${Icon('x-circle', { size: 14 })} Out · ${counts.out}</button>
       </div>
 
       ${filtered.length ? `
@@ -67,7 +67,7 @@ const Inventory = (() => {
         </div>
       ` : `
         <div class="empty-state">
-          <div class="empty-state__icon">📊</div>
+          <div class="empty-state__icon">${Icon('bar-chart', { size: 32 })}</div>
           <div class="empty-state__title">Nothing here</div>
           <div class="empty-state__hint">${products.length ? 'No products match this filter.' : 'Add products to start tracking inventory.'}</div>
         </div>
@@ -96,7 +96,7 @@ const Inventory = (() => {
 
     return `
       <div class="list-row tappable" data-inv-row="${p.id}">
-        <div class="list-row__icon">${p.image ? `<img src="${p.image}" alt="">` : '📦'}</div>
+        <div class="list-row__icon">${p.image ? `<img src="${p.image}" alt="">` : Icon('package')}</div>
         <div class="list-row__body">
           <div class="list-row__title">${escapeHTML(p.name)}</div>
           <div class="list-row__subtitle">Min ${p.minStock ?? 0} · ${Fmt.money(p.sellingPrice)}</div>
@@ -114,7 +114,7 @@ const Inventory = (() => {
       <div class="list stagger">
         ${log.slice(0, 100).map((entry) => `
           <div class="list-row">
-            <div class="list-row__icon">${entry.change > 0 ? '📈' : '📉'}</div>
+            <div class="list-row__icon">${entry.change > 0 ? Icon('trending-up') : Icon('trending-down')}</div>
             <div class="list-row__body">
               <div class="list-row__title">${escapeHTML(entry.productName)}</div>
               <div class="list-row__subtitle">${escapeHTML(entry.reason)} · ${Fmt.dateTime(entry.date)}</div>
@@ -128,7 +128,7 @@ const Inventory = (() => {
       </div>
     ` : `
       <div class="empty-state">
-        <div class="empty-state__icon">🕘</div>
+        <div class="empty-state__icon">${Icon('history', { size: 32 })}</div>
         <div class="empty-state__title">No adjustments yet</div>
         <div class="empty-state__hint">Stock changes from sales and manual adjustments will show up here.</div>
       </div>

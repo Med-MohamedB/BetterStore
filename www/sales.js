@@ -56,9 +56,9 @@ const Sales = (() => {
       </div>
 
       <div class="search-bar mt-16">
-        <span class="search-bar__icon">🔍</span>
+        <span class="search-bar__icon">${Icon('search')}</span>
         <input type="text" id="salesSearch" placeholder="Search receipt number..." value="${escapeHTML(searchQuery)}">
-        ${searchQuery ? `<button class="search-bar__clear tappable" id="clearSalesSearch">✕</button>` : ''}
+        ${searchQuery ? `<button class="search-bar__clear tappable" id="clearSalesSearch">${Icon('x', { size: 14 })}</button>` : ''}
       </div>
 
       <div class="chip-row" id="dateChips">
@@ -78,7 +78,7 @@ const Sales = (() => {
         </div>
       ` : `
         <div class="empty-state">
-          <div class="empty-state__icon">🧾</div>
+          <div class="empty-state__icon">${Icon('receipt', { size: 32 })}</div>
           <div class="empty-state__title">No sales found</div>
           <div class="empty-state__hint">Try a different filter, or make your first sale from the POS tab.</div>
         </div>
@@ -110,7 +110,7 @@ const Sales = (() => {
     const partial = s.status === 'partially_refunded';
     return `
       <div class="list-row tappable" data-sale-row="${s.id}" style="${refunded ? 'opacity:0.55;' : ''}">
-        <div class="list-row__icon">${refunded ? '↩️' : partial ? '↩️' : '🧾'}</div>
+        <div class="list-row__icon">${refunded ? Icon('undo') : partial ? Icon('undo') : Icon('receipt')}</div>
         <div class="list-row__body">
           <div class="list-row__title">${s.receiptNumber}</div>
           <div class="list-row__subtitle">${Fmt.dateTime(s.date)} · ${s.paymentMethod}</div>
@@ -132,8 +132,8 @@ const Sales = (() => {
 
     const footerHTML = `
       <div class="flex gap-8">
-        <button class="btn btn-secondary tappable" id="reprintBtn">🖨️ Reprint</button>
-        <button class="btn btn-secondary tappable" id="shareSaleBtn">📤 Share</button>
+        <button class="btn btn-secondary tappable" id="reprintBtn">${Icon('printer')} Reprint</button>
+        <button class="btn btn-secondary tappable" id="shareSaleBtn">${Icon('share')} Share</button>
       </div>
       ${!refunded ? `<button class="btn btn-danger mt-8 tappable" id="refundBtn">${partial ? 'Refund More Items' : 'Refund Items'}</button>` : ''}
     `;

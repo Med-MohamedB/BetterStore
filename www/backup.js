@@ -36,8 +36,8 @@ const Backup = (() => {
       </div>
 
       <div class="section-title">Backup</div>
-      <button class="btn btn-primary tappable" id="exportBtn">📤 Export Backup (JSON)</button>
-      <button class="btn btn-secondary mt-8 tappable" id="importBtn">📥 Import Backup</button>
+      <button class="btn btn-primary tappable" id="exportBtn">${Icon('upload')} Export Backup (JSON)</button>
+      <button class="btn btn-secondary mt-8 tappable" id="importBtn">${Icon('download')} Import Backup</button>
       <input type="file" accept="application/json" id="importFile" style="display:none">
 
       <div class="section-title">CSV Export</div>

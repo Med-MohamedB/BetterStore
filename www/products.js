@@ -95,8 +95,8 @@ const Products = (() => {
     `;
     const footerHTML = `
       <div class="flex gap-8">
-        <button class="btn btn-secondary tappable" id="printBarcodeBtn">🖨️ Print</button>
-        <button class="btn btn-secondary tappable" id="shareBarcodeBtn">📤 Share</button>
+        <button class="btn btn-secondary tappable" id="printBarcodeBtn">${Icon('printer')} Print</button>
+        <button class="btn btn-secondary tappable" id="shareBarcodeBtn">${Icon('share')} Share</button>
       </div>`;
 
     const sheetEl = Sheet.open({ title: 'Barcode', bodyHTML, footerHTML });
@@ -147,9 +147,9 @@ const Products = (() => {
   function setProductsTopbar() {
     const actions = document.getElementById('topbarActions');
     actions.innerHTML = `
-      <button class="icon-btn tappable" id="categoriesBtn" title="Manage categories">🏷️</button>
+      <button class="icon-btn tappable" id="categoriesBtn" title="Manage categories">${Icon('tag')}</button>
       <button class="icon-btn tappable" id="sortBtn" title="Sort">⇅</button>
-      <button class="icon-btn tappable" id="addProductBtn" title="Add product">➕</button>
+      <button class="icon-btn tappable" id="addProductBtn" title="Add product">${Icon('plus')}</button>
     `;
     actions.querySelector('#categoriesBtn').addEventListener('click', openCategoryManager);
     actions.querySelector('#sortBtn').addEventListener('click', cycleSortMode);
@@ -178,7 +178,7 @@ const Products = (() => {
       <div class="list" id="categoryManagerList">
         ${categories.length ? categories.map((cat) => categoryRowHTML(cat, products)).join('') : `
           <div class="empty-state">
-            <div class="empty-state__icon">🏷️</div>
+            <div class="empty-state__icon">${Icon('tag', { size: 32 })}</div>
             <div class="empty-state__title">No categories yet</div>
             <div class="empty-state__hint">Categories appear here once a product uses one.</div>
           </div>
@@ -206,7 +206,7 @@ const Products = (() => {
     const count = products.filter((p) => (p.category || 'Uncategorized') === cat).length;
     return `
       <div class="list-row" data-category-row="${escapeHTML(cat)}">
-        <div class="list-row__icon">🏷️</div>
+        <div class="list-row__icon">${Icon('tag')}</div>
         <div class="list-row__body">
           <div class="list-row__title">${escapeHTML(cat)}</div>
           <div class="list-row__subtitle">${count} product${count !== 1 ? 's' : ''}</div>
@@ -268,9 +268,9 @@ const Products = (() => {
 
     container.innerHTML = `
       <div class="search-bar">
-        <span class="search-bar__icon">🔍</span>
+        <span class="search-bar__icon">${Icon('search')}</span>
         <input type="text" id="productSearch" placeholder="Search name, barcode, SKU..." value="${escapeHTML(searchQuery)}">
-        <button class="search-bar__clear tappable" id="clearSearch" style="${searchQuery ? '' : 'display:none;'}">✕</button>
+        <button class="search-bar__clear tappable" id="clearSearch" style="${searchQuery ? '' : 'display:none;'}">${Icon('x', { size: 14 })}</button>
       </div>
 
       <div class="chip-row" id="categoryChips">
@@ -342,7 +342,7 @@ const Products = (() => {
       </div>
     ` : `
       <div class="empty-state">
-        <div class="empty-state__icon">📦</div>
+        <div class="empty-state__icon">${Icon('package', { size: 32 })}</div>
         <div class="empty-state__title">${products.length ? 'No products match' : 'No products yet'}</div>
         <div class="empty-state__hint">${products.length ? 'Try a different search or category.' : 'Tap the + button above to add your first product.'}</div>
       </div>
@@ -388,7 +388,7 @@ const Products = (() => {
   function productRowHTML(p) {
     const thumb = p.image
       ? `<img src="${p.image}" alt="">`
-      : '📦';
+      : Icon('package');
     const inner = `
       <div class="list-row tappable" data-open-detail="${p.id}">
         <div class="list-row__icon">${thumb}</div>
@@ -430,7 +430,7 @@ const Products = (() => {
 
     const bodyHTML = `
       <div class="image-picker tappable" id="imagePicker">
-        ${p.image ? `<img src="${p.image}" alt="">` : `<span class="image-picker__icon">📷</span><span>Add photo</span>`}
+        ${p.image ? `<img src="${p.image}" alt="">` : `<span class="image-picker__icon">${Icon('camera', { size: 28 })}</span><span>Add photo</span>`}
       </div>
       <input type="file" accept="image/*" capture="environment" id="imageInput" style="display:none">
 
@@ -445,7 +445,7 @@ const Products = (() => {
           <input type="text" id="f_barcode" value="${escapeHTML(p.barcode)}" placeholder="Scan or type">
         </div>
         <div class="field" style="flex:0 0 auto; align-self:flex-end;">
-          <button class="btn btn-secondary btn-sm tappable" id="scanBarcodeFieldBtn" type="button" title="Scan barcode">📷</button>
+          <button class="btn btn-secondary btn-sm tappable" id="scanBarcodeFieldBtn" type="button" title="Scan barcode">${Icon('camera')}</button>
         </div>
         <div class="field" style="flex:0 0 auto; align-self:flex-end;">
           <button class="btn btn-secondary btn-sm tappable" id="genBarcodeBtn" type="button">Generate</button>
@@ -645,7 +645,7 @@ const Products = (() => {
   function openDetail(p) {
     const bodyHTML = `
       <div class="image-picker" style="height:150px; border-style:solid;">
-        ${p.image ? `<img src="${p.image}" alt="">` : `<span class="image-picker__icon">📦</span>`}
+        ${p.image ? `<img src="${p.image}" alt="">` : `<span class="image-picker__icon">${Icon('package', { size: 28 })}</span>`}
       </div>
       <div class="mt-16 flex-between">
         <div>
@@ -692,7 +692,7 @@ const Products = (() => {
         <button class="btn btn-secondary tappable" id="barcodeBtn">Barcode</button>
         <button class="btn btn-secondary tappable" id="dupBtn">Duplicate</button>
         <button class="btn btn-secondary tappable" id="editBtn">Edit</button>
-        <button class="btn btn-danger tappable" id="delBtn" style="max-width:52px; padding:0;">🗑️</button>
+        <button class="btn btn-danger tappable" id="delBtn" style="max-width:52px; padding:0;">${Icon('trash')}</button>
       </div>`;
 
     const sheetEl = Sheet.open({ title: 'Product Details', bodyHTML, footerHTML });
@@ -748,7 +748,8 @@ const Products = (() => {
       setTimeout(() => openForm(p), 260);
     });
 
-    sheetEl.querySelector('#delBtn').addEventListener('click', async () => {
+    sheetEl.querySelector('#delBtn').addEventListener('click', async (e) => {
+      Icon.shake(e.currentTarget.querySelector('.icon-svg'));
       if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
       await DB.delete('products', p.id);
       Toast.success(`${p.name} deleted`);

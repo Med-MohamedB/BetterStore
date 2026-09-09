@@ -1,67 +1,74 @@
 /* ==========================================================================
-   Store App — Design System
-   Neutrals (bg/surface/border/dim-text) are true grays tinted by a slice
-   of whichever accent color is active — see the color-mix() tokens below
-   — so switching theme packs re-hues the whole app, not just buttons.
-   Semantic danger/success/warn ride on the pack's coral/teal/accent too,
-   so the whole app reads as one coherent, coordinated surface no matter
-   which pack is picked.
-   Liquid-glass treatment throughout (Apple-style): strong blur+saturate,
-   a bright hairline top edge, a soft inset bottom edge for concavity, and
-   a faint diagonal sheen — layered translucency, not flat panels.
+   Store App — Design System: "Stockroom"
+   Inventory-tag / kraft-paper identity. Two independent settings, same as
+   before: Appearance (light kraft paper vs dark charcoal stockroom) sets
+   the neutrals below; Theme pack sets only --accent (+ --accent-ink for
+   text sitting on a solid accent fill). Danger/success are fixed hues,
+   shared by every pack, so alerts stay legible no matter which pack or
+   appearance is active.
+   Flat paper-card surfaces (hairline border + a very short soft shadow)
+   replace the old glass/blur system — a physical tag sitting on a shelf,
+   not a pane of frosted glass. The --glass-* var names are kept (down-
+   stream rules still reference them ahead of the Stage 3 component pass)
+   but now resolve to flat/near-zero values.
    Numbers (prices, totals, quantities) use tabular figures throughout —
    this is a cash-handling app and digits must never jitter or misalign.
    ========================================================================== */
 
 :root {
-  /* --- Color tokens (dark, default) --- */
-  /* Neutrals are true grays tinted with a slice of the active pack's
-     accent via color-mix(), so switching packs actually re-hues every
-     surface/border/dim-text token, not just the accent-colored bits.
-     (Previously these were fixed lilac literals baked in for "Neon
-     Orchid" specifically, which is why other packs still looked purple
-     around cards, inputs, and the nav bar no matter what was picked.) */
-  --bg: color-mix(in srgb, var(--accent) 6%, #262626);
-  --surface: color-mix(in srgb, var(--accent) 9%, #2E2E2E);
-  --surface-2: color-mix(in srgb, var(--accent) 11%, #383838);
-  --surface-3: color-mix(in srgb, var(--accent) 13%, #454545);
-  --border: color-mix(in srgb, var(--accent) 16%, #565656);
+  /* --- Neutrals: kraft paper (light, default) --- */
+  --bg: #EFE6D8;
+  --surface: #FBF7EF;
+  --surface-2: #F5EEE0;
+  --surface-3: #EDE3D0;
+  --border: #D8CBA8;
 
-  --text: color-mix(in srgb, var(--accent) 3%, #F2F2F2);
-  --text-dim: color-mix(in srgb, var(--accent) 10%, #A8A8A8);
-  --text-faint: color-mix(in srgb, var(--accent) 8%, #7A7A7A);
+  --text: #2B2A25;
+  --text-dim: #746A52;
+  --text-faint: #9C927A;
 
-  --accent: #AC5FDB;
-  --accent-dim: #8A46B3;
-  --accent-ink: #1D1721;
+  /* --- Theme pack: Standard (forest green), the shipped default --- */
+  --accent: #2F5233;
+  --accent-dim: #24402A;
+  --accent-ink: #FBF7EF;
 
-  --teal: #E3A2EE;
-  --coral: #D9527A;
-  --blue: #8A7AE0;
+  /* --- Fixed semantic hues: same across every pack/appearance --- */
+  --danger: #A6472E;
+  --danger-bg: color-mix(in srgb, var(--danger) 16%, var(--surface));
+  --success: #3F7A4A;
+  --success-bg: color-mix(in srgb, var(--success) 16%, var(--surface));
+  --warn: #A6741B;
+  --warn-bg: color-mix(in srgb, var(--warn) 16%, var(--surface));
+  --info: #2E4560;
 
-  --danger: var(--coral);
-  --danger-bg: color-mix(in srgb, var(--coral) 20%, var(--surface));
-  --success: var(--teal);
-  --success-bg: color-mix(in srgb, var(--teal) 20%, var(--surface));
-  --warn: var(--accent);
-  --warn-bg: color-mix(in srgb, var(--accent) 20%, var(--surface));
+  /* Stopgap aliases so the ~30 rules further down this file that still say
+     var(--coral)/var(--teal)/var(--blue) (mostly old glass-era decorative
+     gradients — ambient background blobs, avatar rings, achievement glow)
+     keep resolving to something sane until Stage 3 rebuilds each of those
+     components for Stockroom and these old names get retired for good. */
+  --coral: var(--danger);
+  --teal: var(--success);
+  --blue: var(--info);
 
-  --radius-sm: 10px;
-  --radius: 18px;
-  --radius-lg: 26px;
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --radius-tag: 50%; /* the stamped-hole punch detail on tag cards */
 
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-num: "SF Mono", "Roboto Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
 
-  --shadow: 0 1px 2px rgba(10, 6, 12, 0.35), 0 6px 20px rgba(10, 6, 12, 0.4);
-  --shadow-lg: 0 2px 4px rgba(10, 6, 12, 0.4), 0 20px 44px rgba(10, 6, 12, 0.5);
-  --shadow-glow: 0 8px 22px -6px color-mix(in srgb, var(--accent) 55%, transparent);
+  --shadow: 0 1px 2px rgba(43, 42, 37, 0.06), 0 2px 6px rgba(43, 42, 37, 0.05);
+  --shadow-lg: 0 2px 4px rgba(43, 42, 37, 0.08), 0 8px 20px rgba(43, 42, 37, 0.08);
+  --shadow-glow: 0 0 0 0 transparent;
 
-  --glass-highlight: color-mix(in srgb, var(--text) 14%, transparent);
-  --glass-edge: rgba(0, 0, 0, 0.2);
-  --glass-blur: 24px;
-  --glass-sat: 180%;
-  --glass-sheen: linear-gradient(135deg, color-mix(in srgb, var(--teal) 10%, transparent) 0%, color-mix(in srgb, var(--accent) 3%, transparent) 30%, transparent 55%, color-mix(in srgb, var(--teal) 5%, transparent) 100%);
+  /* Retained for components not yet migrated off the old blur rules
+     (Stage 3) — flattened to a no-op so nothing renders foggy purple. */
+  --glass-highlight: transparent;
+  --glass-edge: var(--border);
+  --glass-blur: 0px;
+  --glass-sat: 100%;
+  --glass-sheen: none;
 
   --nav-h: 76px;
   --topbar-h: 56px;
@@ -69,31 +76,32 @@
   --safe-top: env(safe-area-inset-top, 0px);
 }
 
-[data-theme="light"] {
-  --bg: color-mix(in srgb, var(--accent) 5%, #FAFAFA);
-  --surface: color-mix(in srgb, var(--accent) 3%, #FFFFFF);
-  --surface-2: color-mix(in srgb, var(--accent) 10%, #EFEFEF);
-  --surface-3: color-mix(in srgb, var(--accent) 15%, #E0E0E0);
-  --border: color-mix(in srgb, var(--accent) 18%, #CBCBCB);
+[data-theme="dark"] {
+  --bg: #1B1C22;
+  --surface: #24252D;
+  --surface-2: #2A2C36;
+  --surface-3: #33353F;
+  --border: #3A3C48;
 
-  --text: color-mix(in srgb, var(--accent) 4%, #232323);
-  --text-dim: color-mix(in srgb, var(--accent) 9%, #666666);
-  --text-faint: color-mix(in srgb, var(--accent) 7%, #949494);
+  --text: #ECEBEF;
+  --text-dim: #A3A5B0;
+  --text-faint: #797C88;
 
-  --accent-ink: #1D1721;
-
-  --danger-bg: color-mix(in srgb, var(--coral) 14%, var(--surface));
-  --success-bg: color-mix(in srgb, var(--teal) 16%, var(--surface));
-  --warn-bg: color-mix(in srgb, var(--accent) 12%, var(--surface));
-
-  --glass-highlight: rgba(29, 23, 33, 0.07);
-  --glass-edge: rgba(29, 23, 33, 0.08);
-  --glass-sheen: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, color-mix(in srgb, var(--teal) 12%, transparent) 30%, transparent 55%, rgba(255,255,255,0.2) 100%);
-
-  --shadow: 0 1px 2px rgba(20, 20, 20, 0.08), 0 6px 20px rgba(20, 20, 20, 0.12);
-  --shadow-lg: 0 2px 4px rgba(20, 20, 20, 0.1), 0 20px 44px rgba(20, 20, 20, 0.18);
-  --shadow-glow: 0 8px 20px -6px color-mix(in srgb, var(--accent) 40%, transparent);
+  --glass-edge: var(--border);
 }
+
+/* --- Theme packs: pick a card in Settings → Appearance → Theme.
+   Each only sets --accent / --accent-dim / --accent-ink; neutrals above
+   are untouched, so packs stay legible in both light and dark mode. --- */
+[data-pack="standard"] { --accent: #2F5233; --accent-dim: #24402A; --accent-ink: #FBF7EF; }
+[data-pack="orchid"]   { --accent: #6B4C7A; --accent-dim: #543A61; --accent-ink: #FBF7EF; }
+[data-pack="ocean"]    { --accent: #1F5F63; --accent-dim: #17494C; --accent-ink: #FBF7EF; }
+[data-pack="sunset"]   { --accent: #C1502C; --accent-dim: #9C3F22; --accent-ink: #FBF7EF; }
+[data-pack="forest"]   { --accent: #24402A; --accent-dim: #1A2F1F; --accent-ink: #FBF7EF; }
+[data-pack="rosegold"] { --accent: #8C5A66; --accent-dim: #6E4550; --accent-ink: #FBF7EF; }
+[data-pack="midnight"] { --accent: #5A6FD8; --accent-dim: #4658B0; --accent-ink: #14151B; }
+[data-pack="amber"]    { --accent: #A6741B; --accent-dim: #825A14; --accent-ink: #FBF7EF; }
+[data-pack="cherry"]   { --accent: #8C2A3A; --accent-dim: #6E202D; --accent-ink: #FBF7EF; }
 
 * { box-sizing: border-box; }
 /* The document itself never scrolls — #view (below) is the ONLY
@@ -215,9 +223,7 @@ a { color: inherit; text-decoration: none; }
   padding-left: 16px;
   padding-right: 16px;
   background: color-mix(in srgb, var(--bg) 80%, transparent);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  border-bottom: 1px solid var(--border);
+  -webkit-  border-bottom: 1px solid var(--border);
   overflow: hidden;
 }
 /* A faint, slow-drifting accent sheen behind the title — the "alive"
@@ -312,10 +318,7 @@ main#view {
   position: absolute;
   inset: 0;
   background-color: color-mix(in srgb, var(--surface) 78%, transparent);
-  background-image: var(--glass-sheen);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  border: 1px solid var(--border);
+  -webkit-  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge);
   z-index: -1;
@@ -424,10 +427,7 @@ main#view {
 
 .card {
   background-color: color-mix(in srgb, var(--surface) 82%, transparent);
-  background-image: var(--glass-sheen);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  border: 1px solid var(--border);
+  -webkit-  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px;
   box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge), var(--shadow);
@@ -476,22 +476,24 @@ main#view {
 .hero-card {
   position: relative;
   overflow: hidden;
-  background-color: color-mix(in srgb, var(--surface) 82%, transparent);
-  background-image: var(--glass-sheen);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg, var(--radius));
   padding: 18px 18px 14px;
-  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge), var(--shadow);
+  box-shadow: var(--shadow);
   margin-bottom: 12px;
 }
+/* The stamped-hole punch — the one recurring physical detail that ties
+   every "tag" card in the app back to the inventory-tag identity. Sits
+   opposite the label so it never collides with real content. */
 .hero-card::before {
   content: '';
   position: absolute;
-  top: -40%; right: -20%;
-  width: 60%; height: 140%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 16%, transparent), transparent);
+  bottom: 14px; right: 16px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--border);
   pointer-events: none;
 }
 .hero-card__top {
@@ -560,10 +562,7 @@ main#view {
 
 .stat-card {
   background-color: color-mix(in srgb, var(--surface) 82%, transparent);
-  background-image: var(--glass-sheen);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  border: 1px solid var(--border);
+  -webkit-  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px;
   box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge), var(--shadow);
@@ -639,9 +638,7 @@ main#view {
 
 .num-popup-card {
   background: color-mix(in srgb, var(--surface) 92%, transparent);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  border-radius: 20px;
+  -webkit-  border-radius: 20px;
   border: 1px solid var(--border);
   box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-lg);
   padding: 28px 24px 20px;
@@ -674,10 +671,7 @@ main#view {
 
 .quick-action {
   background-color: color-mix(in srgb, var(--surface) 82%, transparent);
-  background-image: var(--glass-sheen);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  border: 1px solid var(--border);
+  -webkit-  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 12px 6px;
   display: flex;
@@ -713,10 +707,7 @@ main#view {
 
 .list-row {
   background-color: color-mix(in srgb, var(--surface) 82%, transparent);
-  background-image: var(--glass-sheen);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  border: 1px solid var(--border);
+  -webkit-  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 12px 14px;
   display: flex;
@@ -797,9 +788,7 @@ main#view {
 .btn-primary:active { background: var(--accent-dim); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
 .btn-secondary {
   background: color-mix(in srgb, var(--surface-2) 82%, transparent);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  color: var(--text);
+  -webkit-  color: var(--text);
   border: 1px solid var(--border);
   box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge);
 }
@@ -1023,10 +1012,7 @@ main#view {
   max-width: 640px;
   margin: 0 auto;
   background-color: color-mix(in srgb, var(--surface) 88%, transparent);
-  background-image: var(--glass-sheen);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  -webkit-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   border: 1px solid var(--border);
   border-bottom: none;
   box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge);
@@ -1181,9 +1167,7 @@ main#view {
   padding: 0 12px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface-2) 78%, transparent);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  border: 1px solid var(--border);
+  -webkit-  border: 1px solid var(--border);
   margin-bottom: 12px;
   transition: border-color var(--dur-fast) var(--ease-out);
 }
@@ -1442,10 +1426,7 @@ main#view {
   border-radius: 50%;
   border: 1px solid var(--border);
   background-color: color-mix(in srgb, var(--surface) 82%, transparent);
-  background-image: var(--glass-sheen);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  color: var(--text);
+  -webkit-  color: var(--text);
   box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge), var(--shadow);
   animation: pinKeyIn var(--dur) var(--ease-out) both;
 }
@@ -2123,12 +2104,13 @@ body.swipe-active .topbar {
 }
 
 /* ==========================================================================
-   Icon system — every functional icon in the app is rendered by Icon() in
-   icons.js as BOTH an emoji and a line-icon SVG, side by side; this block
-   is what actually decides which one is visible, based on the active
-   theme pack's data-icon-style attribute (set in applyTheme()). Switching
-   themes just flips that one attribute — every icon everywhere swaps
-   instantly, no re-render needed anywhere.
+   Icon system — every functional icon in the app is a single animated
+   line-icon SVG, rendered by Icon() in icons.js (no emoji fallback — that
+   layer is gone). Every icon gets baseline press/settle motion for free;
+   the utility classes below (icon-pop / icon-bump / icon-shake / icon-draw
+   / icon-spin) are added and removed by JS at the moment something
+   actually happens (item added, row deleted, save confirmed, data
+   loading), so icons feel alive rather than statically decorative.
    ========================================================================== */
 
 .icon-wrap {
@@ -2137,9 +2119,73 @@ body.swipe-active .topbar {
   justify-content: center;
   line-height: 1;
 }
-.icon-svg { display: none; color: currentColor; }
-[data-icon-style="line"] .icon-emoji { display: none; }
-[data-icon-style="line"] .icon-svg { display: inline-block; }
+.icon-svg {
+  display: inline-block;
+  color: currentColor;
+  transform-origin: 50% 50%;
+  transition: transform var(--dur-fast) var(--ease-spring), stroke-width var(--dur-fast) var(--ease-out);
+}
+/* Any icon sitting inside something tappable settles with a spring the
+   instant the touch lifts — this alone makes the whole app's icons feel
+   responsive instead of inert, before any JS-triggered class is added. */
+button:active .icon-svg,
+.list-row:active .icon-svg,
+a:active .icon-svg {
+  transform: scale(0.82);
+}
+
+/* icon-pop — a small thing just appeared or became active (nav selection,
+   a newly-checked checkbox, a filter chip turning on). Overshoots slightly
+   past 1 then settles, like a printed tag being pressed into place. */
+@keyframes iconPop {
+  0%   { transform: scale(0.5); }
+  60%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+.icon-pop { animation: iconPop var(--dur) var(--ease-spring); }
+
+/* icon-bump — something was added to a running total (cart, stock count).
+   A quick double-beat rather than a single bounce, so repeated rapid taps
+   (scanning several items in a row) each read as a distinct confirmation. */
+@keyframes iconBump {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  30%      { transform: scale(1.28) rotate(-6deg); }
+  55%      { transform: scale(0.94) rotate(3deg); }
+  75%      { transform: scale(1.08) rotate(0deg); }
+}
+.icon-bump { animation: iconBump 480ms var(--ease-spring); }
+
+/* icon-shake — a destructive action needs a beat of hesitation (delete,
+   clear cart, a validation error) before it visually settles back down. */
+@keyframes iconShake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  20%      { transform: translateX(-3px) rotate(-8deg); }
+  40%      { transform: translateX(3px) rotate(8deg); }
+  60%      { transform: translateX(-2px) rotate(-5deg); }
+  80%      { transform: translateX(2px) rotate(5deg); }
+}
+.icon-shake { animation: iconShake 420ms var(--ease-out); }
+
+/* icon-draw — a stroke-based icon (check, undo) draws itself on rather
+   than popping in. Requires the SVG to set stroke-dasharray inline to its
+   own path length (see Icon.draw() in icons.js), so this class alone is a
+   no-op on an icon that hasn't been prepared for it. */
+@keyframes iconDraw { to { stroke-dashoffset: 0; } }
+.icon-draw path,
+.icon-draw polyline {
+  animation: iconDraw 420ms var(--ease-out) forwards;
+}
+
+/* icon-spin — indeterminate loading/refresh/sync state. */
+@keyframes iconSpin { to { transform: rotate(360deg); } }
+.icon-spin { animation: iconSpin 900ms linear infinite; }
+
+/* Nav bar: the active tab's icon gets a heavier stroke and a spring pop
+   the moment it becomes current — paired with the existing translateY
+   +scale on .nav-item.active .nav-item__icon above, so the whole icon
+   both lifts and visibly "presses in" like a stamped tag being flipped
+   face-up. */
+.nav-item.active .icon-svg { stroke-width: 2.4; animation: iconPop var(--dur) var(--ease-spring); }
 
 /* ==================================================================== */
 /* Forced update — full-screen, unclosable until updated. Sits above     */
@@ -2185,9 +2231,7 @@ body.swipe-active .topbar {
     linear-gradient(135deg, var(--accent), var(--teal), var(--accent)) border-box;
   border: 1.5px solid transparent;
   border-radius: 24px;
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-lg), 0 0 50px -12px color-mix(in srgb, var(--accent) 55%, transparent);
+  -webkit-  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-lg), 0 0 50px -12px color-mix(in srgb, var(--accent) 55%, transparent);
   padding: 32px 24px 24px;
   text-align: center;
   transform: scale(0.92);

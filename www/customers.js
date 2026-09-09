@@ -14,7 +14,7 @@ const Customers = (() => {
 
   async function render(container) {
     const actions = document.getElementById('topbarActions');
-    actions.innerHTML = `<button class="icon-btn tappable" id="addCustomerBtn">➕</button>`;
+    actions.innerHTML = `<button class="icon-btn tappable" id="addCustomerBtn">${Icon('plus')}</button>`;
     actions.querySelector('#addCustomerBtn').addEventListener('click', () => openForm());
     await renderList(container);
   }
@@ -29,9 +29,9 @@ const Customers = (() => {
 
     container.innerHTML = `
       <div class="search-bar">
-        <span class="search-bar__icon">🔍</span>
+        <span class="search-bar__icon">${Icon('search')}</span>
         <input type="text" id="customerSearch" placeholder="Search name, phone, email..." value="${escapeHTML(searchQuery)}">
-        ${searchQuery ? `<button class="search-bar__clear tappable" id="clearCustomerSearch">✕</button>` : ''}
+        ${searchQuery ? `<button class="search-bar__clear tappable" id="clearCustomerSearch">${Icon('x', { size: 14 })}</button>` : ''}
       </div>
 
       ${filtered.length ? `
@@ -40,7 +40,7 @@ const Customers = (() => {
         </div>
       ` : `
         <div class="empty-state">
-          <div class="empty-state__icon">👤</div>
+          <div class="empty-state__icon">${Icon('user', { size: 32 })}</div>
           <div class="empty-state__title">${customers.length ? 'No customers match' : 'No customers yet'}</div>
           <div class="empty-state__hint">${customers.length ? 'Try a different search.' : 'Tap + to add your first customer.'}</div>
         </div>
@@ -72,7 +72,7 @@ const Customers = (() => {
     const { total, count } = statsFor(c.id, sales);
     return `
       <div class="list-row tappable" data-customer-row="${c.id}">
-        <div class="list-row__icon">👤</div>
+        <div class="list-row__icon">${Icon('user')}</div>
         <div class="list-row__body">
           <div class="list-row__title">${escapeHTML(c.name)}</div>
           <div class="list-row__subtitle">${escapeHTML(c.phone || 'No phone')} · ${count} order${count !== 1 ? 's' : ''}</div>
@@ -116,7 +116,7 @@ const Customers = (() => {
     const { total, count, last } = statsFor(c.id, sales);
     const bodyHTML = `
       <div style="text-align:center;">
-        <div style="width:56px;height:56px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 10px;">👤</div>
+        <div style="width:56px;height:56px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 10px;">${Icon('user', { size: 26 })}</div>
         <div style="font-weight:700; font-size:17px;">${escapeHTML(c.name)}</div>
         ${c.phone ? `<div class="text-dim text-sm mt-8">${escapeHTML(c.phone)}</div>` : ''}
         ${c.email ? `<div class="text-dim text-sm">${escapeHTML(c.email)}</div>` : ''}
@@ -131,7 +131,7 @@ const Customers = (() => {
     const footerHTML = `
       <div class="flex gap-8">
         <button class="btn btn-secondary tappable" id="editCustomerBtn">Edit</button>
-        <button class="btn btn-danger tappable" id="deleteCustomerBtn" style="max-width:60px;">🗑️</button>
+        <button class="btn btn-danger tappable" id="deleteCustomerBtn" style="max-width:60px;">${Icon('trash')}</button>
       </div>`;
     const sheetEl = Sheet.open({ title: 'Customer', bodyHTML, footerHTML });
 
@@ -139,7 +139,8 @@ const Customers = (() => {
       Sheet.close();
       setTimeout(() => openForm(c), 260);
     });
-    sheetEl.querySelector('#deleteCustomerBtn').addEventListener('click', async () => {
+    sheetEl.querySelector('#deleteCustomerBtn').addEventListener('click', async (e) => {
+      Icon.shake(e.currentTarget.querySelector('.icon-svg'));
       if (!confirm(`Delete "${c.name}"? Their past sales stay on record.`)) return;
       await DB.delete('customers', c.id);
       Toast.success('Customer deleted');
@@ -152,7 +153,7 @@ const Customers = (() => {
   function openPicker(onPick) {
     const bodyHTML = `
       <div class="search-bar">
-        <span class="search-bar__icon">🔍</span>
+        <span class="search-bar__icon">${Icon('search')}</span>
         <input type="text" id="custPickerSearch" placeholder="Search or add a customer...">
       </div>
       <div id="custPickerResults" class="list"></div>
@@ -165,10 +166,10 @@ const Customers = (() => {
       const all = await DB.getAll('customers');
       const filtered = !q ? all : all.filter((c) => [c.name, c.phone].filter(Boolean).some((f) => f.toLowerCase().includes(q.toLowerCase())));
       resultsEl.innerHTML = `
-        ${q ? `<div class="list-row tappable" data-new-customer="1"><div class="list-row__icon">➕</div><div class="list-row__body"><div class="list-row__title">Add "${escapeHTML(q)}" as new customer</div></div></div>` : ''}
+        ${q ? `<div class="list-row tappable" data-new-customer="1"><div class="list-row__icon">${Icon('plus')}</div><div class="list-row__body"><div class="list-row__title">Add "${escapeHTML(q)}" as new customer</div></div></div>` : ''}
         ${filtered.map((c) => `
           <div class="list-row tappable" data-pick-customer="${c.id}">
-            <div class="list-row__icon">👤</div>
+            <div class="list-row__icon">${Icon('user')}</div>
             <div class="list-row__body"><div class="list-row__title">${escapeHTML(c.name)}</div><div class="list-row__subtitle">${escapeHTML(c.phone || '')}</div></div>
           </div>
         `).join('')}

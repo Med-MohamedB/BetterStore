@@ -19,10 +19,11 @@ const POS = (() => {
   async function render(container) {
     const actions = document.getElementById('topbarActions');
     actions.innerHTML = `
-      <button class="icon-btn tappable" id="posClearBtn" title="Clear cart">🗑️</button>
+      <button class="icon-btn tappable" id="posClearBtn" title="Clear cart">${Icon('trash')}</button>
     `;
-    actions.querySelector('#posClearBtn').addEventListener('click', () => {
+    actions.querySelector('#posClearBtn').addEventListener('click', (e) => {
       if (!cart.length) return;
+      Icon.shake(e.currentTarget.querySelector('.icon-svg'));
       if (confirm('Clear the current cart?')) {
         cart = []; totalDiscount = 0;
         updateCartBadge(0);
@@ -78,12 +79,12 @@ const POS = (() => {
 
     container.innerHTML = `
       <div class="flex gap-8">
-        <button class="btn btn-secondary tappable" id="scanAddBtn" style="flex:1;">📷 Scan</button>
-        <button class="btn btn-secondary tappable" id="searchAddBtn" style="flex:1;">🔍 Add Product</button>
+        <button class="btn btn-secondary tappable" id="scanAddBtn" style="flex:1;">${Icon('scan')} Scan</button>
+        <button class="btn btn-secondary tappable" id="searchAddBtn" style="flex:1;">${Icon('search')} Add Product</button>
       </div>
 
       <button class="list-row tappable mt-16" id="customerRow" style="width:100%; border:1px solid var(--border); cursor:pointer;">
-        <div class="list-row__icon">👤</div>
+        <div class="list-row__icon">${Icon('user')}</div>
         <div class="list-row__body">
           <div class="list-row__title">${selectedCustomer ? escapeHTML(selectedCustomer.name) : 'Walk-in customer'}</div>
           <div class="list-row__subtitle">${selectedCustomer ? 'Tap to change' : 'Tap to attach a customer'}</div>
@@ -99,7 +100,7 @@ const POS = (() => {
         </div>
       ` : `
         <div class="empty-state">
-          <div class="empty-state__icon">🛒</div>
+          <div class="empty-state__icon">${Icon('cart', { size: 32, className: 'icon-pop' })}</div>
           <div class="empty-state__title">Cart is empty</div>
           <div class="empty-state__hint">Scan a barcode or tap "Add Product" to start a sale.</div>
         </div>
@@ -202,7 +203,7 @@ const POS = (() => {
   }
 
   function cartRowHTML(item) {
-    const thumb = item.image ? `<img src="${item.image}" alt="">` : '🛒';
+    const thumb = item.image ? `<img src="${item.image}" alt="">` : Icon('package');
     const lineTotal = item.price * item.qty - (item.discount || 0);
     const inner = `
       <div class="list-row">
@@ -252,7 +253,7 @@ const POS = (() => {
   function openProductPicker() {
     const bodyHTML = `
       <div class="search-bar">
-        <span class="search-bar__icon">🔍</span>
+        <span class="search-bar__icon">${Icon('search')}</span>
         <input type="text" id="pickerSearch" placeholder="Search name, barcode, SKU...">
       </div>
       <div id="pickerResults" class="list"></div>
@@ -267,14 +268,14 @@ const POS = (() => {
         [p.name, p.barcode, p.sku].filter(Boolean).some((f) => f.toLowerCase().includes(q.toLowerCase())));
       resultsEl.innerHTML = filtered.slice(0, 30).map((p) => `
         <div class="list-row tappable" data-pick="${p.id}">
-          <div class="list-row__icon">${p.image ? `<img src="${p.image}" alt="">` : '📦'}</div>
+          <div class="list-row__icon">${p.image ? `<img src="${p.image}" alt="">` : Icon('package')}</div>
           <div class="list-row__body">
             <div class="list-row__title">${escapeHTML(p.name)}</div>
             <div class="list-row__subtitle">${p.quantity} ${escapeHTML(p.unit || 'pcs')} in stock</div>
           </div>
           <div class="list-row__trailing"><div class="list-row__amount num">${Fmt.money(p.discountPrice ?? p.sellingPrice)}</div></div>
         </div>
-      `).join('') || `<div class="empty-state"><div class="empty-state__icon">🔍</div><div class="empty-state__title">No products found</div></div>`;
+      `).join('') || `<div class="empty-state"><div class="empty-state__icon">${Icon('search', { size: 32 })}</div><div class="empty-state__title">No products found</div></div>`;
 
       resultsEl.querySelectorAll('[data-pick]').forEach((row) => {
         row.addEventListener('click', async () => {
@@ -466,8 +467,8 @@ const POS = (() => {
     const bodyHTML = Receipt.html(sale, store);
     const footerHTML = `
       <div class="flex gap-8">
-        <button class="btn btn-secondary tappable" id="printReceiptBtn">🖨️ Print</button>
-        <button class="btn btn-secondary tappable" id="shareReceiptBtn">📤 Share</button>
+        <button class="btn btn-secondary tappable" id="printReceiptBtn">${Icon('printer')} Print</button>
+        <button class="btn btn-secondary tappable" id="shareReceiptBtn">${Icon('share')} Share</button>
       </div>
       <button class="btn btn-primary mt-8 tappable" id="newSaleBtn">New Sale</button>
     `;

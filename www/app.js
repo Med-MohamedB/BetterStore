@@ -137,7 +137,7 @@ const Router = (() => {
     const label = name.charAt(0).toUpperCase() + name.slice(1);
     return `
       <div class="empty-state">
-        <div class="empty-state__icon">🛠️</div>
+        <div class="empty-state__icon">${Icon('settings', { size: 32 })}</div>
         <div class="empty-state__title">${label} is coming in a later build stage</div>
         <div class="empty-state__hint">The dashboard, navigation, and database are live now. This screen gets built next.</div>
       </div>`;
@@ -146,7 +146,7 @@ const Router = (() => {
   function errorHTML() {
     return `
       <div class="empty-state">
-        <div class="empty-state__icon">⚠️</div>
+        <div class="empty-state__icon">${Icon('alert-triangle', { size: 32 })}</div>
         <div class="empty-state__title">Something went wrong loading this screen</div>
         <div class="empty-state__hint">Check the console for details.</div>
       </div>`;
@@ -381,7 +381,7 @@ const Sheet = (() => {
       <div class="sheet__handle"></div>
       <div class="sheet__header">
         <div class="sheet__title">${title}</div>
-        <button class="icon-btn tappable" id="sheetCloseBtn">✕</button>
+        <button class="icon-btn tappable" id="sheetCloseBtn">${Icon('x')}</button>
       </div>
       <div class="sheet__body">${bodyHTML}</div>
       ${footerHTML ? `<div class="sheet__footer">${footerHTML}</div>` : ''}
@@ -482,8 +482,8 @@ function swipeRowHTML(innerRowHTML, { editable = true, deletable = true, id } = 
   return `
     <div class="swipe-row" data-swipe-id="${id}">
       <div class="swipe-row__actions">
-        ${editable ? `<button class="swipe-row__action swipe-row__action--edit" data-swipe-edit="${id}"><span>✏️</span>Edit</button>` : ''}
-        ${deletable ? `<button class="swipe-row__action swipe-row__action--delete" data-swipe-delete="${id}"><span>🗑️</span>Delete</button>` : ''}
+        ${editable ? `<button class="swipe-row__action swipe-row__action--edit" data-swipe-edit="${id}"><span>${Icon('edit', { size: 16 })}</span>Edit</button>` : ''}
+        ${deletable ? `<button class="swipe-row__action swipe-row__action--delete" data-swipe-delete="${id}"><span>${Icon('trash', { size: 16 })}</span>Delete</button>` : ''}
       </div>
       <div class="swipe-row__content">${innerRowHTML}</div>
     </div>`;
@@ -1111,7 +1111,7 @@ window.copyToClipboard = copyToClipboard;
 /* Bump this alongside versionName/versionCode in android/app/build.gradle
    every time a new build goes out — there's no native "build date" field
    to read this from automatically, so it's tracked by hand here. */
-const APP_BUILD_DATE = '2026-09-05';
+const APP_BUILD_DATE = '2026-09-09';
 window.APP_BUILD_DATE = APP_BUILD_DATE;
 // Kept in sync by hand with android/app/build.gradle's versionName on
 // every release — used by WhatsNew to detect "this device just updated"
@@ -1123,7 +1123,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.8.3';
+const CURRENT_VERSION = '1.9.8.4';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -1185,7 +1185,10 @@ function updateCartBadge(count) {
     // (display:none -> flex retriggers its animation); this covers every
     // *subsequent* quantity change too, so each add-to-cart still gets a
     // little tick of feedback instead of only the very first item.
-    if (wasVisible) Fx.animate(badge, { scale: [1, 1.35, 1] }, { type: 'spring', stiffness: 500, damping: 12 });
+    if (wasVisible) {
+      Fx.animate(badge, { scale: [1, 1.35, 1] }, { type: 'spring', stiffness: 500, damping: 12 });
+      Icon.bump(fab.querySelector('.icon-svg'));
+    }
   } else {
     badge.classList.remove('show');
     fab.classList.remove('has-items');
@@ -1383,22 +1386,22 @@ function initPullToRefresh() {
 /* Theming                                                                 */
 /* ---------------------------------------------------------------------- */
 
-/* Curated theme packs — each swaps the whole accent family (accent, its
-   dim/pressed variant, and the three semantic hues teal/coral/blue) as a
-   coordinated set, not just a single dot color, so switching actually
-   reskins the app instead of just recoloring one button. Base surfaces
-   (bg/surface/border/text) stay put — see the "Neon Orchid" note at the
-   top of style.css for why that foundation is deliberately fixed. */
+/* Curated theme packs — the "Stockroom" identity (kraft-paper / charcoal
+   tag cards, see style.css) stays fixed across every pack; a pack only
+   swaps --accent / --accent-dim / --accent-ink, matching the [data-pack]
+   selectors already defined in style.css exactly. Danger/success/warn are
+   fixed semantic hues shared by every pack (also in style.css) so alerts
+   never depend on which pack is active. */
 const THEME_PACKS = {
-  orchid:   { name: 'Orchid',    accent: '#AC5FDB', accentDim: '#8A46B3', teal: '#E3A2EE', coral: '#D9527A', blue: '#8A7AE0' },
-  standard: { name: 'Standard',  accent: '#4A4A4A', accentDim: '#333333', teal: '#9B9B9B', coral: '#5C5C5C', blue: '#7A7A7A', accentInk: '#FFFFFF', iconStyle: 'line' },
-  ocean:    { name: 'Ocean',     accent: '#22B8CF', accentDim: '#1A8FA3', teal: '#7FE0D6', coral: '#FF6B81', blue: '#5B8DEF' },
-  sunset:   { name: 'Sunset',    accent: '#FF8A3D', accentDim: '#E06A1F', teal: '#FFC46B', coral: '#FF4D6D', blue: '#A66BFF' },
-  forest:   { name: 'Forest',    accent: '#43B274', accentDim: '#2E8A57', teal: '#8FE3B0', coral: '#E8A33D', blue: '#4C8DFF' },
-  rosegold: { name: 'Rose Gold', accent: '#E38FA0', accentDim: '#C1667A', teal: '#F4C7A1', coral: '#D9527A', blue: '#9A7AE0' },
-  midnight: { name: 'Midnight',  accent: '#5B7FFF', accentDim: '#3E5CD1', teal: '#7FA8FF', coral: '#FF6B81', blue: '#7C6BFF' },
-  amber:    { name: 'Amber',     accent: '#F2A93B', accentDim: '#C7841F', teal: '#FFD98A', coral: '#E4574F', blue: '#7C7CE0' },
-  cherry:   { name: 'Cherry',    accent: '#E84368', accentDim: '#B92E4E', teal: '#FF9EB3', coral: '#FF6B81', blue: '#7A6BE0' },
+  standard: { name: 'Standard',  accent: '#2F5233', accentDim: '#24402A', accentInk: '#FBF7EF' },
+  orchid:   { name: 'Orchid',    accent: '#6B4C7A', accentDim: '#543A61', accentInk: '#FBF7EF' },
+  ocean:    { name: 'Ocean',     accent: '#1F5F63', accentDim: '#17494C', accentInk: '#FBF7EF' },
+  sunset:   { name: 'Sunset',    accent: '#C1502C', accentDim: '#9C3F22', accentInk: '#FBF7EF' },
+  forest:   { name: 'Forest',    accent: '#24402A', accentDim: '#1A2F1F', accentInk: '#FBF7EF' },
+  rosegold: { name: 'Rose Gold', accent: '#8C5A66', accentDim: '#6E4550', accentInk: '#FBF7EF' },
+  midnight: { name: 'Midnight',  accent: '#5A6FD8', accentDim: '#4658B0', accentInk: '#14151B' },
+  amber:    { name: 'Amber',     accent: '#A6741B', accentDim: '#825A14', accentInk: '#FBF7EF' },
+  cherry:   { name: 'Cherry',    accent: '#8C2A3A', accentDim: '#6E202D', accentInk: '#FBF7EF' },
 };
 window.THEME_PACKS = THEME_PACKS;
 
@@ -1409,25 +1412,21 @@ async function applyTheme() {
     theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   }
   document.documentElement.setAttribute('data-theme', theme);
+  document.documentElement.setAttribute('data-pack', appearance.themePack || 'standard');
 
-  const pack = THEME_PACKS[appearance.themePack] || THEME_PACKS.orchid;
+  const pack = THEME_PACKS[appearance.themePack] || THEME_PACKS.standard;
   const root = document.documentElement.style;
   root.setProperty('--accent', pack.accent);
   root.setProperty('--accent-dim', pack.accentDim);
-  root.setProperty('--accent-ink', pack.accentInk || '#1D1721');
-  root.setProperty('--teal', pack.teal);
-  root.setProperty('--coral', pack.coral);
-  root.setProperty('--blue', pack.blue);
+  root.setProperty('--accent-ink', pack.accentInk);
 
-  // Standard is the one pack that swaps every functional icon for a clean
-  // monochrome line-icon set instead of emoji (see icons.js) — every
-  // other pack keeps emoji. This attribute is what the CSS in the "Icon
-  // system" block of style.css actually switches on.
-  document.documentElement.setAttribute('data-icon-style', pack.iconStyle || 'emoji');
+  // Every icon in the app is now a single animated line-icon set (see
+  // icons.js) — emoji-as-icon is gone entirely, so this is unconditional.
+  document.documentElement.setAttribute('data-icon-style', 'line');
 
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
-    meta.content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#12161A';
+    meta.content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#EFE6D8';
   }
 }
 
@@ -1573,17 +1572,17 @@ async function renderDashboard(container) {
 
     <div class="stat-grid stat-grid--secondary">
       <div class="stat-card">
-        <div class="stat-card__icon-badge coral">${Icon('cart', '🧾')}</div>
+        <div class="stat-card__icon-badge coral">${Icon('cart')}</div>
         <div class="stat-card__label">Sales</div>
         <div class="stat-card__value coral num">${transactionCount}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-card__icon-badge">${Icon('package', '📦')}</div>
+        <div class="stat-card__icon-badge">${Icon('package')}</div>
         <div class="stat-card__label">Products</div>
         <div class="stat-card__value num">${productCount}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-card__icon-badge teal">${Icon('bar-chart', '📊')}</div>
+        <div class="stat-card__icon-badge teal">${Icon('bar-chart')}</div>
         <div class="stat-card__label">Inventory Value</div>
         <div class="stat-card__value teal num">${Fmt.money(inventoryValue)}</div>
       </div>
@@ -1594,7 +1593,7 @@ async function renderDashboard(container) {
       <div class="list stagger">
         ${lowStock.slice(0, 5).map((p) => `
           <div class="list-row">
-            <div class="list-row__icon warn">${Icon('alert-triangle', '⚠️')}</div>
+            <div class="list-row__icon warn">${Icon('alert-triangle')}</div>
             <div class="list-row__body">
               <div class="list-row__title">${escapeHTML(p.name)}</div>
               <div class="list-row__subtitle">Minimum: ${p.minStock ?? 0}</div>
@@ -1609,14 +1608,14 @@ async function renderDashboard(container) {
 
     <div class="section-title">Quick Actions</div>
     <div class="quick-actions">
-      ${quickAction('scanner', Icon('camera', '📷'), 'Scan')}
-      ${quickAction('pos', Icon('cart', '🧾'), 'New Sale')}
-      ${quickAction('products/new', Icon('plus-circle', '➕'), 'Add Product')}
-      ${quickAction('products', Icon('package', '📦'), 'Products')}
-      ${quickAction('inventory', Icon('bar-chart', '📊'), 'Inventory')}
-      ${quickAction('sales', Icon('history', '🧮'), 'Sales History')}
-      ${quickAction('customers', Icon('users', '👤'), 'Customers')}
-      ${quickAction('reports', Icon('trending-up', '📈'), 'Reports')}
+      ${quickAction('scanner', Icon('camera'), 'Scan')}
+      ${quickAction('pos', Icon('cart'), 'New Sale')}
+      ${quickAction('products/new', Icon('plus-circle'), 'Add Product')}
+      ${quickAction('products', Icon('package'), 'Products')}
+      ${quickAction('inventory', Icon('bar-chart'), 'Inventory')}
+      ${quickAction('sales', Icon('history'), 'Sales History')}
+      ${quickAction('customers', Icon('users'), 'Customers')}
+      ${quickAction('reports', Icon('trending-up'), 'Reports')}
     </div>
 
     <div class="section-title-row">
@@ -1627,7 +1626,7 @@ async function renderDashboard(container) {
       <div class="list stagger">
         ${recentSales.map((s) => `
           <div class="list-row">
-            <div class="list-row__icon">🧾</div>
+            <div class="list-row__icon">${Icon('receipt')}</div>
             <div class="list-row__body">
               <div class="list-row__title">${s.receiptNumber}</div>
               <div class="list-row__subtitle">${Fmt.dateTime(s.date)} · ${s.paymentMethod}</div>
@@ -1640,7 +1639,7 @@ async function renderDashboard(container) {
       </div>
     ` : `
       <div class="empty-state">
-        <div class="empty-state__icon">🧾</div>
+        <div class="empty-state__icon">${Icon('receipt', { size: 32 })}</div>
         <div class="empty-state__title">No sales yet</div>
         <div class="empty-state__hint">Sales will show up here as soon as you make one.</div>
       </div>
@@ -1706,12 +1705,12 @@ window.saleNetTotal = saleNetTotal;
 
 function renderMore(container) {
   const items = [
-    ['inventory', Icon('bar-chart', '📊'), 'Inventory', 'Stock levels & adjustments'],
-    ['reports', Icon('trending-up', '📈'), 'Reports & Statistics', 'Revenue, best sellers, profit'],
-    ['customers', Icon('users', '👤'), 'Customers', 'Customer directory & purchase history'],
-    ['suppliers', Icon('truck', '🚚'), 'Suppliers', 'Supplier directory'],
-    ['backup', Icon('database', '💾'), 'Backup & Restore', 'Export/import your data'],
-    ['settings', Icon('settings', '⚙️'), 'Settings', 'Store, appearance, POS, security'],
+    ['inventory', Icon('bar-chart'), 'Inventory', 'Stock levels & adjustments'],
+    ['reports', Icon('trending-up'), 'Reports & Statistics', 'Revenue, best sellers, profit'],
+    ['customers', Icon('users'), 'Customers', 'Customer directory & purchase history'],
+    ['suppliers', Icon('truck'), 'Suppliers', 'Supplier directory'],
+    ['backup', Icon('database'), 'Backup & Restore', 'Export/import your data'],
+    ['settings', Icon('settings'), 'Settings', 'Store, appearance, POS, security'],
   ];
   container.innerHTML = `
     <div class="list stagger">
@@ -1724,7 +1723,7 @@ function renderMore(container) {
         <div class="list-row__trailing text-faint">›</div>
       </div>
       <div class="list-row tappable" id="replayTourRow">
-        <div class="list-row__icon">${Icon('play-circle', '🎬')}</div>
+        <div class="list-row__icon">${Icon('play-circle')}</div>
         <div class="list-row__body">
           <div class="list-row__title">Replay Interactive Tour</div>
           <div class="list-row__subtitle">See the welcome walkthrough again</div>
@@ -1732,7 +1731,7 @@ function renderMore(container) {
         <div class="list-row__trailing text-faint">›</div>
       </div>
       <div class="list-row tappable" id="viewTermsRow">
-        <div class="list-row__icon">${Icon('scroll', '📜')}</div>
+        <div class="list-row__icon">${Icon('scroll')}</div>
         <div class="list-row__body">
           <div class="list-row__title">Terms of Use</div>
           <div class="list-row__subtitle">What you agreed to when you started using the app</div>
@@ -1772,7 +1771,7 @@ function aboutCopyRow(label, value) {
         <div class="list-row__title">${escapeHTML(label)}</div>
         <div class="list-row__subtitle num num-id">${escapeHTML(value)}</div>
       </div>
-      <div class="list-row__trailing text-faint">📋</div>
+      <div class="list-row__trailing text-faint">${Icon('copy', { size: 16 })}</div>
     </div>
   `;
 }
@@ -1794,12 +1793,12 @@ function openAboutSheet() {
 
     <div class="section-title" style="margin-bottom:12px;">Contact & Shop</div>
     <a class="list-row tappable" id="aboutTelegramLink" href="#" style="margin-bottom:8px;">
-      <div class="list-row__icon">💬</div>
+      <div class="list-row__icon">${Icon('send')}</div>
       <div class="list-row__body"><div class="list-row__title">Telegram</div><div class="list-row__subtitle">t.me/rwgmo</div></div>
       <div class="list-row__trailing text-faint">›</div>
     </a>
     <a class="list-row tappable" id="aboutShopLink" href="#" style="margin-bottom:24px;">
-      <div class="list-row__icon">🛍️</div>
+      <div class="list-row__icon">${Icon('gift')}</div>
       <div class="list-row__body"><div class="list-row__title">Telegram Shop</div><div class="list-row__subtitle">t.me/RwmShop</div></div>
       <div class="list-row__trailing text-faint">›</div>
     </a>
@@ -1816,7 +1815,7 @@ function openAboutSheet() {
 
     <div class="section-title" style="margin-bottom:12px;">Troubleshooting</div>
     <div class="list-row tappable" id="aboutDiagnosticsRow" style="margin-bottom:24px;">
-      <div class="list-row__icon">🩺</div>
+      <div class="list-row__icon">${Icon('stethoscope')}</div>
       <div class="list-row__body">
         <div class="list-row__title">Run Diagnostics</div>
         <div class="list-row__subtitle">Check native features are working</div>

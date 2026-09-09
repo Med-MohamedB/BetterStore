@@ -146,46 +146,12 @@ input, textarea, select, [contenteditable="true"] {
   -webkit-touch-callout: default;
 }
 
-/* Ambient background — two large, softly blurred color blobs drifting
-   slowly behind the whole app. This is what separates a "flat dark
-   screen" from something that reads as premium: real depth in the
-   background instead of a single solid color, without ever competing
-   with foreground content for attention (huge blur radius, low opacity,
-   fixed so it never scrolls, pointer-events disabled). */
-body::before, body::after {
-  content: '';
-  position: fixed;
-  z-index: 0;
-  width: 60vh;
-  height: 60vh;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.16;
-  pointer-events: none;
-}
-body::before {
-  top: -10%;
-  right: -15%;
-  background: var(--accent);
-  animation: ambientDrift1 22s ease-in-out infinite;
-}
-body::after {
-  bottom: -5%;
-  left: -20%;
-  background: var(--teal);
-  animation: ambientDrift2 26s ease-in-out infinite;
-}
-@keyframes ambientDrift1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-6%, 6%) scale(1.12); }
-}
-@keyframes ambientDrift2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(6%, -6%) scale(1.1); }
-}
-@media (prefers-reduced-motion: reduce) {
-  body::before, body::after { animation: none; }
-}
+/* Ambient glow blobs were removed here — they belonged to the old glass
+   aesthetic (soft drifting color behind everything) and don't fit flat
+   kraft-paper tag cards. One of the two blobs also used var(--teal),
+   which is now a fixed color rather than something that varies per pack,
+   which is exactly what was putting a persistent green tint behind every
+   screen regardless of which theme pack was active. */
 
 #app { position: relative; z-index: 1; }
 
@@ -222,8 +188,8 @@ a { color: inherit; text-decoration: none; }
   justify-content: space-between;
   padding-left: 16px;
   padding-right: 16px;
-  background: color-mix(in srgb, var(--bg) 80%, transparent);
-  -webkit-  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
   overflow: hidden;
 }
 /* A faint, slow-drifting accent sheen behind the title — the "alive"
@@ -317,8 +283,8 @@ main#view {
   content: '';
   position: absolute;
   inset: 0;
-  background-color: color-mix(in srgb, var(--surface) 78%, transparent);
-  -webkit-  border: 1px solid var(--border);
+  background-color: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge);
   z-index: -1;
@@ -427,7 +393,7 @@ main#view {
 
 .card {
   background-color: color-mix(in srgb, var(--surface) 82%, transparent);
-  -webkit-  border: 1px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px;
   box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge), var(--shadow);
@@ -562,7 +528,7 @@ main#view {
 
 .stat-card {
   background-color: color-mix(in srgb, var(--surface) 82%, transparent);
-  -webkit-  border: 1px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px;
   box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge), var(--shadow);
@@ -580,8 +546,8 @@ main#view {
   font-size: 14px;
   margin-bottom: 8px;
 }
-.stat-card__icon-badge.teal { background: color-mix(in srgb, var(--teal) 14%, transparent); color: var(--teal); }
-.stat-card__icon-badge.coral { background: color-mix(in srgb, var(--coral) 14%, transparent); color: var(--coral); }
+.stat-card__icon-badge.teal { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.stat-card__icon-badge.coral { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
 
 .stat-card__label {
   font-size: 12px;
@@ -601,8 +567,8 @@ main#view {
 .stat-grid--secondary .stat-card__value { font-size: 17px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .stat-card__value.accent { color: var(--accent); }
-.stat-card__value.teal { color: var(--teal); }
-.stat-card__value.coral { color: var(--coral); }
+.stat-card__value.teal { color: var(--accent); }
+.stat-card__value.coral { color: var(--accent); }
 
 /* --- Big numbers: tap for a popup with the exact value --- */
 /* Any ".num" element gets auto-shortened past 4 digits by JS and marked
@@ -638,7 +604,7 @@ main#view {
 
 .num-popup-card {
   background: color-mix(in srgb, var(--surface) 92%, transparent);
-  -webkit-  border-radius: 20px;
+  border-radius: 20px;
   border: 1px solid var(--border);
   box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-lg);
   padding: 28px 24px 20px;
@@ -671,7 +637,7 @@ main#view {
 
 .quick-action {
   background-color: color-mix(in srgb, var(--surface) 82%, transparent);
-  -webkit-  border: 1px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 12px 6px;
   display: flex;
@@ -707,7 +673,7 @@ main#view {
 
 .list-row {
   background-color: color-mix(in srgb, var(--surface) 82%, transparent);
-  -webkit-  border: 1px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 12px 14px;
   display: flex;
@@ -788,7 +754,7 @@ main#view {
 .btn-primary:active { background: var(--accent-dim); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
 .btn-secondary {
   background: color-mix(in srgb, var(--surface-2) 82%, transparent);
-  -webkit-  color: var(--text);
+  color: var(--text);
   border: 1px solid var(--border);
   box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge);
 }
@@ -1012,7 +978,7 @@ main#view {
   max-width: 640px;
   margin: 0 auto;
   background-color: color-mix(in srgb, var(--surface) 88%, transparent);
-  -webkit-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   border: 1px solid var(--border);
   border-bottom: none;
   box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge);
@@ -1167,7 +1133,7 @@ main#view {
   padding: 0 12px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface-2) 78%, transparent);
-  -webkit-  border: 1px solid var(--border);
+  border: 1px solid var(--border);
   margin-bottom: 12px;
   transition: border-color var(--dur-fast) var(--ease-out);
 }
@@ -1426,7 +1392,7 @@ main#view {
   border-radius: 50%;
   border: 1px solid var(--border);
   background-color: color-mix(in srgb, var(--surface) 82%, transparent);
-  -webkit-  color: var(--text);
+  color: var(--text);
   box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge), var(--shadow);
   animation: pinKeyIn var(--dur) var(--ease-out) both;
 }
@@ -1675,15 +1641,20 @@ main#view {
   top: 6px;
   bottom: 6px;
   width: 58px;
-  border-radius: 16px;
-  background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%);
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
-  transition: left var(--dur) var(--ease-spring), opacity var(--dur-fast) var(--ease-out);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  transition: left var(--dur) var(--ease-spring), width var(--dur) var(--ease-spring), opacity var(--dur-fast) var(--ease-out);
   opacity: 0;
   pointer-events: none;
   z-index: 1;
 }
-.nav-indicator.show { opacity: 1; }
+.nav-indicator.show { opacity: 1; animation: navIndicatorPop var(--dur) var(--ease-spring); }
+@keyframes navIndicatorPop {
+  0% { transform: scaleX(0.7); }
+  60% { transform: scaleX(1.06); }
+  100% { transform: scaleX(1); }
+}
 
 #view {
   transition: transform var(--dur-fast) var(--ease-out);
@@ -2231,7 +2202,7 @@ a:active .icon-svg {
     linear-gradient(135deg, var(--accent), var(--teal), var(--accent)) border-box;
   border: 1.5px solid transparent;
   border-radius: 24px;
-  -webkit-  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-lg), 0 0 50px -12px color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-lg), 0 0 50px -12px color-mix(in srgb, var(--accent) 55%, transparent);
   padding: 32px 24px 24px;
   text-align: center;
   transform: scale(0.92);

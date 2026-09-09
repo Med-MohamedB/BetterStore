@@ -421,6 +421,7 @@ const Sheet = (() => {
     }
     function onMove(e) {
       if (!dragging) return;
+      if (e.cancelable) e.preventDefault();
       currentY = (e.touches ? e.touches[0].clientY : e.clientY) - startY;
       if (currentY < 0) currentY = 0;
       el.style.transform = `translateY(${currentY}px)`;
@@ -438,7 +439,7 @@ const Sheet = (() => {
     }
 
     el.addEventListener('touchstart', onStart, { passive: true });
-    el.addEventListener('touchmove', onMove, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
     el.addEventListener('touchend', onEnd);
     handle.addEventListener('mousedown', onStart);
     header.addEventListener('mousedown', onStart);
@@ -1123,7 +1124,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.8.4';
+const CURRENT_VERSION = '1.9.8.5';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -1908,6 +1909,14 @@ window.showDiagnostics = showDiagnostics;
 /* ---------------------------------------------------------------------- */
 
 (async function boot() {
+  // A no-op touchstart listener anywhere in the ancestor chain is what
+  // makes Android WebView actually apply CSS :active on tap at all — the
+  // existing touchstart listeners in this file are all scoped to specific
+  // elements (sheet drag handles, swipe rows), so most buttons/icons never
+  // had :active fire on this device. This is what every press-feedback
+  // animation on every icon in the app depends on.
+  document.documentElement.addEventListener('touchstart', () => {}, { passive: true });
+
   await DB.openDB();
   await applyTheme();
   await Fmt.init();

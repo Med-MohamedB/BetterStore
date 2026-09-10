@@ -421,9 +421,17 @@ const Sheet = (() => {
     }
     function onMove(e) {
       if (!dragging) return;
+      const rawY = (e.touches ? e.touches[0].clientY : e.clientY) - startY;
+      if (rawY <= 0) {
+        // Not a downward pull — this is the user trying to scroll the
+        // body content instead. Bail out of the dismiss-gesture entirely
+        // for this touch so native scrolling takes over uninterrupted.
+        dragging = false;
+        el.classList.remove('dragging');
+        return;
+      }
       if (e.cancelable) e.preventDefault();
-      currentY = (e.touches ? e.touches[0].clientY : e.clientY) - startY;
-      if (currentY < 0) currentY = 0;
+      currentY = rawY;
       el.style.transform = `translateY(${currentY}px)`;
     }
     function onEnd() {
@@ -1150,7 +1158,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.8.7';
+const CURRENT_VERSION = '1.9.8.8';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via

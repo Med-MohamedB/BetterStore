@@ -584,7 +584,7 @@ const Receipt = (() => {
       <div class="receipt-print">
         <div style="text-align:center;">
           ${store.logo ? `<img src="${store.logo}" style="width:56px;height:56px;object-fit:cover;border-radius:12px;margin-bottom:8px;">` : ''}
-          <div style="font-weight:700; font-size:16px;">${escapeHTML(store.name || 'My Store')}</div>
+          <div style="font-weight:700; font-size:16px; color:var(--accent);">${escapeHTML(store.name || 'My Store')}</div>
           ${store.address ? `<div class="text-dim text-sm">${escapeHTML(store.address)}</div>` : ''}
           ${store.phone ? `<div class="text-dim text-sm">${escapeHTML(store.phone)}</div>` : ''}
         </div>
@@ -603,7 +603,7 @@ const Receipt = (() => {
         <div class="flex-between text-sm"><span class="text-dim">Subtotal</span><span class="num">${Fmt.money(sale.subtotal)}</span></div>
         ${(sale.itemDiscounts || sale.discount) ? `<div class="flex-between text-sm"><span class="text-dim">Discount</span><span class="num">− ${Fmt.money((sale.itemDiscounts || 0) + (sale.discount || 0))}</span></div>` : ''}
         ${sale.tax ? `<div class="flex-between text-sm"><span class="text-dim">Tax</span><span class="num">${Fmt.money(sale.tax)}</span></div>` : ''}
-        <div class="flex-between mt-8" style="font-weight:700;"><span>Total</span><span class="num">${Fmt.money(sale.total)}</span></div>
+        <div class="flex-between mt-8" style="font-weight:700; color:var(--accent); font-size:15px;"><span>Total</span><span class="num">${Fmt.money(sale.total)}</span></div>
         <div class="flex-between text-sm mt-8"><span class="text-dim">Payment</span><span>${sale.paymentMethod}</span></div>
         ${sale.paymentMethod === 'cash' && sale.amountReceived != null ? `
           <div class="flex-between text-sm"><span class="text-dim">Received</span><span class="num">${Fmt.money(sale.amountReceived)}</span></div>
@@ -669,6 +669,16 @@ async function buildReceiptPDF(sale, store) {
     return 'JPEG';
   };
 
+  // Pull the live theme accent so the receipt actually matches whichever
+  // pack is active in the app, instead of being permanently plain gray —
+  // falls back to a neutral ink if for some reason the CSS var isn't
+  // available (e.g. this ever runs before the stylesheet is applied).
+  const hexToRgb = (hex) => {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex).trim());
+    return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [35, 35, 35];
+  };
+  const accentRgb = hexToRgb(getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#2F5233');
+
   // --- Pass 1: measure. A throwaway doc just for splitTextToSize, whose
   // wrapping depends only on font metrics, not on final page height. ---
   const measure = new jsPDF({ unit: 'mm', format: [pageWidth, 200] });
@@ -703,6 +713,7 @@ async function buildReceiptPDF(sale, store) {
   h += lineH; // payment
   if (sale.paymentMethod === 'cash' && sale.amountReceived != null) h += lineH * 2;
   if (footerText) { h += 6; h += wrap(footerText, 8).length * 4; }
+  h += 6; // torn-edge strip
   h += margin;
 
   // --- Pass 2: draw for real, on a doc sized exactly to fit. ---
@@ -711,10 +722,11 @@ async function buildReceiptPDF(sale, store) {
   let y = margin;
 
   const row = (left, right, opts = {}) => {
-    const { size = 9, bold = false, dim = false, indent = 0 } = opts;
+    const { size = 9, bold = false, dim = false, indent = 0, color = null } = opts;
     doc.setFont('helvetica', bold ? 'bold' : 'normal');
     doc.setFontSize(size);
-    doc.setTextColor(dim ? 140 : 25);
+    if (color) doc.setTextColor(...color);
+    else doc.setTextColor(dim ? 140 : 25);
     if (left !== undefined) doc.text(String(left), margin + indent, y);
     if (right !== undefined) doc.text(String(right), pageWidth - margin, y, { align: 'right' });
     doc.setTextColor(25);
@@ -736,7 +748,7 @@ async function buildReceiptPDF(sale, store) {
   }
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13.5);
-  doc.setTextColor(20);
+  doc.setTextColor(...accentRgb);
   doc.text(store.name || 'My Store', cx, y, { align: 'center' });
   y += 6.5;
 
@@ -780,7 +792,7 @@ async function buildReceiptPDF(sale, store) {
   if (discountTotal) { row('Discount', `\u2212 ${Fmt.money(discountTotal)}`, { dim: true }); y += lineH; }
   if (sale.tax) { row('Tax', Fmt.money(sale.tax), { dim: true }); y += lineH; }
   y += 1;
-  row('Total', Fmt.money(sale.total), { size: 11, bold: true });
+  row('Total', Fmt.money(sale.total), { size: 11, bold: true, color: accentRgb });
   y += lineH + 1;
   row('Payment', sale.paymentMethod, { dim: true });
   y += lineH;
@@ -795,6 +807,20 @@ async function buildReceiptPDF(sale, store) {
     doc.setFontSize(8);
     doc.setTextColor(140);
     wrap(footerText, 8).forEach((l) => { doc.text(l, cx, y, { align: 'center' }); y += 4; });
+  }
+
+  // Torn-edge zigzag — echoes tearing the receipt off a thermal roll.
+  y += 4;
+  doc.setDrawColor(190);
+  doc.setLineWidth(0.3);
+  const teeth = Math.round(contentWidth / 3.2);
+  const toothW = contentWidth / teeth;
+  const zig = [];
+  for (let i = 0; i <= teeth; i++) {
+    zig.push([margin + i * toothW, y + (i % 2 === 0 ? 0 : 1.6)]);
+  }
+  for (let i = 0; i < zig.length - 1; i++) {
+    doc.line(zig[i][0], zig[i][1], zig[i + 1][0], zig[i + 1][1]);
   }
 
   return doc;
@@ -1124,7 +1150,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.8.6';
+const CURRENT_VERSION = '1.9.8.7';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via

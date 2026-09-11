@@ -350,6 +350,10 @@ const Products = (() => {
 
     // Swipe actions + tap-to-view
     const listEl = wrap.querySelector('#productList');
+    if (!filtered.length && !products.length) {
+      const addBtn = document.getElementById('addProductBtn');
+      if (addBtn) DoodleHint.show('addFirstProduct', addBtn, 'Add your first product', 'tr');
+    }
     if (listEl) {
       enableSwipeRows(listEl, {
         onEdit: async (id) => openForm(await DB.get('products', Number(id))),
@@ -607,6 +611,7 @@ const Products = (() => {
         record.dateAdded = new Date();
         await DB.add('products', record);
         Toast.success('Product added');
+        DoodleHint.complete('addFirstProduct');
       }
 
       Sheet.close();

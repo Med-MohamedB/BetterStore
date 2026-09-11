@@ -359,6 +359,72 @@ const Toast = (() => {
 window.Toast = Toast;
 
 /* ---------------------------------------------------------------------- */
+/* DoodleHint — a hand-drawn arrow + note pointing at one real element,    */
+/* asking for one real action. Dismissed forever once that action         */
+/* actually happens (call DoodleHint.complete(id)), never by a close      */
+/* button — see the .doodle-hint rules in style.css for the visual.       */
+/* ---------------------------------------------------------------------- */
+const DoodleHint = (() => {
+  const STORAGE_PREFIX = 'doodleHintSeen:';
+  const ARROW_SVG = `<svg class="doodle-hint__arrow" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6c10 2 24 8 30 24 2 6 3 14 3 20" /><path d="M32 42c2 5 5 9 9 12" /><path d="M50 46c-3 4-6 8-9 12" /></svg>`;
+
+  function seen(id) {
+    try { return localStorage.getItem(STORAGE_PREFIX + id) === '1'; } catch { return false; }
+  }
+  function markSeen(id) {
+    try { localStorage.setItem(STORAGE_PREFIX + id, '1'); } catch { /* ignore */ }
+  }
+
+  /**
+   * Shows a doodle hint pointing at `targetEl` (any real element already
+   * on screen — a topbar button, a FAB, anything). Position is computed
+   * from the target's actual current bounding box, `fixed` to the
+   * viewport, so it works no matter where that element physically lives
+   * in the DOM (topbar, nav, inside a scrolled list, etc).
+   * `corner` says which corner of the target the note sits at: 'tr' (note
+   * above-left, arrow curves up-right into the target — for a target near
+   * the top of the screen) or 'br' (note above-left, arrow curves down-
+   * right — for a target lower down, like the reference screenshot).
+   * No-ops silently once this hint id has been completed.
+   */
+  function show(id, targetEl, text, corner = 'br') {
+    if (!id || !targetEl || seen(id)) return null;
+    if (document.querySelector(`[data-hint-id="${id}"]`)) return null; // already showing
+    const r = targetEl.getBoundingClientRect();
+    const el = document.createElement('div');
+    el.className = `doodle-hint doodle-hint--${corner}`;
+    el.dataset.hintId = id;
+    el.style.position = 'fixed';
+    if (corner === 'tr') {
+      // Target is near the top of the screen — note sits below it, arrow
+      // curves up into the target's bottom-left corner.
+      el.style.top = `${r.bottom + 6}px`;
+      el.style.right = `${Math.max(8, window.innerWidth - r.right - 4)}px`;
+    } else {
+      // Target is lower on screen — note sits above it, arrow curves down.
+      el.style.bottom = `${window.innerHeight - r.top + 10}px`;
+      el.style.right = `${Math.max(8, window.innerWidth - r.right - 4)}px`;
+    }
+    el.innerHTML = `<div class="doodle-hint__text">${escapeHTML(text)}</div>${ARROW_SVG}`;
+    document.body.appendChild(el);
+    return el;
+  }
+
+  /** Call when the real action this hint was pointing at actually happens.
+   *  Removes it (with a small fade) and remembers not to show it again. */
+  function complete(id) {
+    markSeen(id);
+    document.querySelectorAll(`[data-hint-id="${id}"]`).forEach((el) => {
+      el.classList.add('leaving');
+      setTimeout(() => el.remove(), 340);
+    });
+  }
+
+  return { show, complete, seen };
+})();
+window.DoodleHint = DoodleHint;
+
+/* ---------------------------------------------------------------------- */
 /* Sheet — draggable bottom sheet used for forms, product detail, etc.     */
 /* ---------------------------------------------------------------------- */
 
@@ -1158,7 +1224,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.8.8';
+const CURRENT_VERSION = '1.9.8.9';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via

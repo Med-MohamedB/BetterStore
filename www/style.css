@@ -265,123 +265,88 @@ main#view {
      WebView bug where fixed elements lose track of the viewport after a
      content-height change below them. */
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: calc(10px + var(--safe-bottom));
-  height: 66px;
-  padding-bottom: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8px 8px calc(8px + var(--safe-bottom));
   display: flex;
+  gap: 6px;
   z-index: 30;
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
 }
 
-/* The blur/border-radius/shadow live on a separate layer behind the nav
-   items. Putting backdrop-filter directly on .bottom-nav (the element that
-   also contains the absolutely-positioned floating FAB) causes several
-   browsers/webviews to clip overflowing children to that rounded box even
-   with no explicit overflow:hidden — this avoids that entirely. */
-.bottom-nav::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 var(--glass-edge);
-  z-index: -1;
-}
-
+/* Punch Card — each tab is its own bordered slot, like a time-clock card.
+   Inactive slots are outlined; the active one goes solid, as if it's just
+   been punched. */
 .nav-item {
   flex: 1;
-  border: none;
-  background: none;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  color: var(--text-faint);
-  font-size: 10.5px;
-  font-weight: 700;
+  gap: 3px;
+  color: var(--text-dim);
+  font-size: 9.5px;
+  font-weight: 800;
   letter-spacing: 0.01em;
-  padding: 8px 0;
+  text-transform: uppercase;
+  padding: 9px 0 7px;
   position: relative;
   z-index: 2;
-  transition: color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-spring);
+  transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-spring);
 }
-.nav-item:active:not(.nav-item--fab) { transform: scale(0.94); }
+.nav-item:active { transform: scale(0.94); }
 
 .nav-item__icon {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 19px;
+  font-size: 18px;
   position: relative;
 }
 
-.nav-item.active { color: var(--accent); }
-.nav-item.active .nav-item__icon { transform: translateY(-1px) scale(1.08); }
+.nav-item.active { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+.nav-item.active .nav-item__icon { transform: translateY(-1px) scale(1.05); }
 .nav-item span:last-child {
-  transition: opacity var(--dur) var(--ease-out), transform var(--dur) var(--ease-out);
-  opacity: 0.85;
+  transition: opacity var(--dur) var(--ease-out);
+  opacity: 0.9;
 }
-.nav-item.active span:last-child { opacity: 1; transform: translateY(0); }
+.nav-item.active span:last-child { opacity: 1; }
 
+/* POS is the primary action — permanently distinct from the other four,
+   not just when it happens to be the active tab. Always solid-filled and
+   a couple pixels taller so it visibly overlaps the top of the row, the
+   way a punched card sits proud of the rest of the stack. No glow: the
+   standout is structural (shape + fill), not a lighting effect, so it
+   reads the same in bright daylight as it does at night. */
 .nav-item--fab {
-  position: relative;
-  overflow: visible;
-  justify-content: flex-end;
-}
-.nav-item--fab .nav-item__icon {
-  position: absolute;
-  top: -24px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 54px;
-  height: 54px;
-  flex-shrink: 0;
-  border-radius: 18px;
   background: var(--accent);
   color: var(--accent-ink);
-  box-shadow: 0 8px 20px -4px color-mix(in srgb, var(--accent) 55%, transparent), 0 2px 8px rgba(0,0,0,0.3);
-  font-size: 23px;
-  z-index: 5;
-  transition: transform var(--dur) var(--ease-spring), box-shadow var(--dur) var(--ease-out);
+  border-color: var(--accent-dim);
+  margin-top: -8px;
+  padding-top: 15px;
+  padding-bottom: 7px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
 }
-/* The halo — a disc in the page background color, slightly larger than
-   the FAB and sitting just behind it (between the FAB and the nav pill),
-   so the FAB reads as seated into a notch in the bar rather than simply
-   floating on top of it. */
-.nav-item--fab::before {
-  content: '';
-  position: absolute;
-  top: -28px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 62px;
-  height: 62px;
-  border-radius: 20px;
-  background: var(--bg);
-  z-index: 4;
-}
-.nav-item--fab span:last-child { margin-bottom: 2px; }
-.nav-item--fab:active .nav-item__icon,
-.nav-item.nav-item--fab:active .nav-item__icon {
-  transform: translateX(-50%) scale(0.9);
-}
-.nav-item--fab.active { color: var(--accent); }
-.nav-item--fab.active .nav-item__icon {
-  transform: translateX(-50%) scale(1.05);
-  box-shadow: 0 10px 26px -4px color-mix(in srgb, var(--accent) 70%, transparent), 0 2px 10px rgba(0,0,0,0.35);
-}
+.nav-item--fab .nav-item__icon { font-size: 20px; }
+.nav-item--fab.active { background: var(--accent-dim); border-color: var(--accent-dim); }
+.nav-item--fab:active .nav-item__icon { transform: scale(0.9); }
 
+/* A quiet pulse (scale only, no shadow) while the cart actually has items
+   waiting — a functional "you have unsaved items" signal, separate from
+   POS's permanent standout treatment above. */
 .nav-item--fab.has-items .nav-item__icon {
-  animation: fabGlow 2s ease-in-out infinite;
+  animation: fabPulse 2s ease-in-out infinite;
 }
-@keyframes fabGlow {
-  0%, 100% { box-shadow: 0 8px 20px -4px color-mix(in srgb, var(--accent) 55%, transparent), 0 2px 8px rgba(0,0,0,0.3); }
-  50% { box-shadow: 0 8px 26px -2px color-mix(in srgb, var(--accent) 85%, transparent), 0 2px 8px rgba(0,0,0,0.3); }
+@keyframes fabPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
 }
 
 .nav-badge {
@@ -1655,25 +1620,11 @@ main#view {
    Navigation gestures: sliding tab indicator, swipe-between-tabs, pull-to-refresh
    ========================================================================== */
 
-.nav-indicator {
-  position: absolute;
-  top: 6px;
-  bottom: 6px;
-  width: 58px;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  transition: left var(--dur) var(--ease-spring), width var(--dur) var(--ease-spring), opacity var(--dur-fast) var(--ease-out);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 1;
-}
-.nav-indicator.show { opacity: 1; animation: navIndicatorPop var(--dur) var(--ease-spring); }
-@keyframes navIndicatorPop {
-  0% { transform: scaleX(0.7); }
-  60% { transform: scaleX(1.06); }
-  100% { transform: scaleX(1); }
-}
+/* Retired for Punch Card — the active tab now indicates itself by going
+   solid, so a separate sliding highlight underneath would just compete
+   with that. Left in the DOM (app.js still positions it harmlessly) in
+   case a future nav style wants it back. */
+.nav-indicator { display: none; }
 
 #view {
   transition: transform var(--dur-fast) var(--ease-out);
@@ -2347,3 +2298,53 @@ a:active .icon-svg {
 .update-block__btn-icon { font-size: 15px; }
 .update-block__note { font-size: 11.5px; color: var(--text-faint); margin-top: 10px; line-height: 1.5; min-height: 1px; position: relative; z-index: 1; }
 
+/* ==========================================================================
+   Doodle hints — a hand-drawn-style callout (curved arrow + handwritten
+   note) that points at one real, specific piece of UI and asks for one
+   real action. Reusable anywhere a screen's real empty state benefits
+   from a nudge — not a tutorial overlay, it sits right next to the actual
+   button. Dismissed forever (see DoodleHint in app.js) the moment the
+   action it's pointing at actually happens, never by a close button.
+   The handwriting look relies on the browser's generic `cursive` font
+   family since bundling a webfont file wasn't practical here — quality of
+   that varies by device, but it degrades to a legible slanted script
+   everywhere rather than breaking.
+   ========================================================================== */
+.doodle-hint {
+  position: absolute;
+  z-index: 6;
+  max-width: 190px;
+  pointer-events: none;
+  opacity: 0;
+  animation: doodleIn 480ms var(--ease-spring) 200ms forwards;
+}
+.doodle-hint.leaving {
+  animation: doodleOut 320ms var(--ease-out) forwards;
+}
+@keyframes doodleIn {
+  0% { opacity: 0; transform: scale(0.85) translateY(6px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes doodleOut {
+  to { opacity: 0; transform: scale(0.9); }
+}
+.doodle-hint__text {
+  font-family: 'Segoe Print', 'Bradley Hand', cursive;
+  font-size: 17px;
+  line-height: 1.25;
+  color: var(--text-dim);
+  text-shadow: 0 1px 0 var(--bg);
+}
+.doodle-hint__arrow {
+  width: 46px;
+  height: 46px;
+  color: var(--text-faint);
+  display: block;
+}
+/* Placement variants — the text sits above-left of the target with the
+   arrow curving down toward it (matching the reference), or flipped/
+   rotated for a target that sits elsewhere relative to the note. */
+.doodle-hint--br .doodle-hint__arrow { margin-left: auto; }
+.doodle-hint--bl .doodle-hint__arrow { transform: scaleX(-1); }
+.doodle-hint--tr { display: flex; flex-direction: column-reverse; }
+.doodle-hint--tr .doodle-hint__arrow { transform: scaleY(-1); margin-left: auto; }

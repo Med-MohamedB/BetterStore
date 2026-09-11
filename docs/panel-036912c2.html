@@ -6,170 +6,186 @@
 <meta name="robots" content="noindex, nofollow, noarchive">
 <title>Better Store — Admin</title>
 <style>
+  /* ==========================================================================
+     Better Store Admin — "Stockroom" identity, matching the app. Same kraft-
+     paper / tag-card language as the customer-facing app, just its own
+     accent (a dark ink-navy — a ledger/ops tone, not one of the customer
+     theme packs) since this is the operator's back office, not a storefront
+     screen. Every id/class/data-attr the scripts below depend on is kept
+     exactly as it was; only the visual layer changed.
+     ========================================================================== */
   :root {
-    --bg: #1a1620; --surface: #251f2b; --surface-2: #2f2836; --surface-3: #3a3241; --border: #453b4d;
-    --text: #f2eef4; --text-dim: #a89ab0; --text-faint: #766a80;
-    --accent: #AC5FDB; --accent-dim: #8A46B3; --accent-ink: #1D1721;
-    --teal: #E3A2EE; --danger: #D9527A; --success: #6fcf97; --warn: #E3B341; --coral: #ec8a6f;
-    --radius: 16px; --radius-sm: 10px;
+    --bg: #EFE6D8; --surface: #FBF7EF; --surface-2: #F5EEE0; --surface-3: #EDE3D0; --border: #D8CBA8;
+    --text: #2B2A25; --text-dim: #746A52; --text-faint: #9C927A;
+    --accent: #1E3A5F; --accent-dim: #16293F; --accent-ink: #FBF7EF;
+    --danger: #A6472E; --danger-bg: color-mix(in srgb, var(--danger) 14%, var(--surface));
+    --success: #3F7A4A; --success-bg: color-mix(in srgb, var(--success) 14%, var(--surface));
+    --warn: #A6741B; --warn-bg: color-mix(in srgb, var(--warn) 14%, var(--surface));
+    --teal: var(--success);
+    --radius: 14px; --radius-sm: 8px;
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur-fast: 140ms; --dur: 220ms;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--bg); color: var(--text); height: 100%; }
   body { overscroll-behavior-y: none; }
-  .wrap { max-width: 480px; margin: 0 auto; padding: 0 16px; }
   button { cursor: pointer; border: none; font-family: inherit; font-weight: 700; font-size: 14px; background: none; color: inherit; }
   button:disabled { opacity: 0.55; cursor: default; }
   a { color: inherit; }
+  .icon { display: inline-flex; vertical-align: -3px; }
+  .icon svg { width: 1em; height: 1em; }
+  button:active .icon svg, a:active .icon svg { transform: scale(0.85); }
+  .icon svg { transition: transform var(--dur-fast) var(--ease-spring); }
 
   #authGate { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
   #authGate[hidden] { display: none !important; }
   .auth-card {
-    width: 100%; max-width: 340px; text-align: center;
-    background: linear-gradient(160deg, var(--surface-2), var(--surface));
-    border: 1px solid var(--border); border-radius: 22px; padding: 34px 26px 26px;
-    box-shadow: 0 20px 60px -20px rgba(0,0,0,0.6);
+    width: 100%; max-width: 340px; text-align: center; position: relative;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 34px 26px 26px; box-shadow: 0 1px 2px rgba(43,42,37,0.06), 0 8px 24px rgba(43,42,37,0.08);
+  }
+  .auth-card::before {
+    content: ''; position: absolute; top: 14px; right: 14px; width: 12px; height: 12px;
+    border-radius: 50%; background: var(--bg); border: 1px solid var(--border);
   }
   .auth-card__badge {
-    width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 16px;
-    background: linear-gradient(135deg, var(--accent), var(--teal));
-    display: flex; align-items: center; justify-content: center; font-size: 26px;
+    width: 52px; height: 52px; margin: 0 auto 16px; border-radius: var(--radius-sm);
+    background: var(--accent); color: var(--accent-ink);
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
   }
-  .auth-card__title { font-size: 19px; font-weight: 800; }
-  .auth-card__sub { font-size: 12.5px; color: var(--text-dim); margin-top: 4px; margin-bottom: 22px; }
+  .auth-card__title { font-size: 18px; font-weight: 800; }
+  .auth-card__sub { font-size: 12.5px; color: var(--text-dim); margin-top: 6px; margin-bottom: 22px; line-height: 1.5; }
   .auth-btn {
-    width: 100%; padding: 13px; border-radius: 12px; font-size: 14.5px;
-    background: #24292e; color: #fff; display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 13px; border-radius: var(--radius-sm); font-size: 14.5px;
+    background: var(--accent); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: transform var(--dur-fast) var(--ease-out);
   }
-  .auth-btn--alt { background: var(--surface-3); color: var(--text); margin-top: 10px; font-size: 12.5px; padding: 10px; }
+  .auth-btn:active { transform: scale(0.97); }
   .auth-status { font-size: 12px; color: var(--text-dim); margin-top: 16px; line-height: 1.6; min-height: 1px; word-break: break-word; }
-  .auth-status code { user-select: all; display: inline-block; margin-top: 4px; word-break: break-all; background: var(--surface-3); padding: 2px 6px; border-radius: 6px; }
   .auth-debug { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 10.5px; color: var(--text-faint); text-align: left; line-height: 1.7; }
 
   #panelRoot { min-height: 100vh; display: flex; flex-direction: column; }
-  /* CRITICAL: the plain #panelRoot rule above sets display:flex, which
-     has enough specificity to silently override the [hidden] attribute's
-     own display:none — meaning the panel content was ALWAYS actually
-     rendered in the page layout regardless of whether hidden was set,
-     just visually below the login card, reachable by scrolling straight
-     past it without ever authenticating. This rule forces hidden to
-     always win, full stop. */
   #panelRoot[hidden] { display: none !important; }
 
   .app-header {
     position: sticky; top: 0; z-index: 20;
     display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 16px; background: color-mix(in srgb, var(--bg) 88%, transparent);
-    backdrop-filter: blur(14px); border-bottom: 1px solid var(--border);
+    padding: 14px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
   }
   .app-header__brand { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 15px; }
-  .app-header__logo { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, var(--accent), var(--teal)); display: flex; align-items: center; justify-content: center; font-size: 15px; }
-  .app-header__tag { font-size: 10px; font-weight: 700; color: var(--text-dim); background: var(--surface-2); padding: 2px 7px; border-radius: 999px; margin-left: 2px; }
+  .app-header__logo { width: 30px; height: 30px; border-radius: var(--radius-sm); background: var(--accent); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .app-header__tag { font-size: 10px; font-weight: 700; color: var(--text-dim); background: var(--surface-2); border: 1px solid var(--border); padding: 2px 7px; border-radius: 999px; margin-left: 2px; }
   .app-header__user { display: flex; align-items: center; gap: 10px; }
-  .app-header__avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; background: var(--surface-2); }
-  .app-header__signout { width: 30px; height: 30px; border-radius: 9px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--text-dim); }
+  .app-header__avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; background: var(--surface-2); border: 1px solid var(--border); }
+  .app-header__signout { width: 30px; height: 30px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-dim); }
 
   main.app-main { flex: 1; padding: 16px 16px 100px; max-width: 480px; margin: 0 auto; width: 100%; }
-  [data-tab-panel] { animation: fadeIn 0.15s ease; }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  [data-tab-panel] { animation: fadeIn var(--dur) var(--ease-out); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
-  h2 { font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); margin: 0 0 12px; font-weight: 800; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
-  label { display: block; font-size: 12.5px; color: var(--text-dim); margin: 12px 0 5px; font-weight: 600; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin: 0 0 12px; font-weight: 800; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; position: relative; box-shadow: 0 1px 2px rgba(43,42,37,0.05); }
+  .card--tag::before {
+    content: ''; position: absolute; top: 12px; right: 14px; width: 11px; height: 11px;
+    border-radius: 50%; background: var(--bg); border: 1px solid var(--border);
+  }
+  label { display: block; font-size: 12.5px; color: var(--text-dim); margin: 12px 0 5px; font-weight: 700; }
   label:first-of-type { margin-top: 0; }
   input[type="text"], input[type="url"], input[type="date"], input[type="password"] {
     width: 100%; padding: 10px 12px; border-radius: var(--radius-sm);
     border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
     font-size: 14px; font-family: inherit;
   }
-  input[type="password"] { font-family: monospace; }
+  input[type="password"] { font-family: 'Courier New', monospace; }
   input.invalid { border-color: var(--danger); }
   input[type="text"][readonly] { color: var(--text-faint); font-size: 11.5px; }
   input[type="range"] { width: 100%; accent-color: var(--accent); }
   .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
-  .toggle-row label { margin: 0; color: var(--text); font-size: 14px; }
+  .toggle-row label { margin: 0; color: var(--text); font-size: 14px; font-weight: 600; }
   input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
-  .btn-primary { width: 100%; padding: 13px; border-radius: var(--radius-sm); background: linear-gradient(135deg, var(--teal), var(--accent)); color: var(--accent-ink); }
-  .btn-secondary { padding: 10px 14px; border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text); border: 1px solid var(--border); font-size: 12.5px; white-space: nowrap; }
+  .btn-primary { width: 100%; padding: 13px; border-radius: var(--radius-sm); background: var(--accent); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform var(--dur-fast) var(--ease-out); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-secondary { padding: 10px 14px; border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text); border: 1px solid var(--border); font-size: 12.5px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: transform var(--dur-fast) var(--ease-out); }
+  .btn-secondary:active { transform: scale(0.97); }
   .btn-row { display: flex; gap: 8px; }
   .btn-row button { flex: 1; }
   .upload-row { display: flex; gap: 8px; align-items: stretch; }
   .upload-row input { flex: 1; min-width: 0; }
   .hint { font-size: 11px; color: var(--text-faint); margin-top: 6px; line-height: 1.6; }
   .hint b { color: var(--text-dim); }
-  code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-size: 10.5px; }
+  code { background: var(--surface-2); border: 1px solid var(--border); padding: 1px 5px; border-radius: 4px; font-size: 10.5px; }
 
-  .seg { display: flex; background: var(--surface-2); border-radius: 999px; padding: 3px; }
-  .seg__btn { flex: 1; padding: 9px; border-radius: 999px; color: var(--text-dim); font-size: 13px; }
+  .seg { display: flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px; }
+  .seg__btn { flex: 1; padding: 9px; border-radius: 6px; color: var(--text-dim); font-size: 13px; transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
   .seg__btn.active { background: var(--accent); color: var(--accent-ink); }
 
-  .preview-frame { background: #1f1a24; border-radius: var(--radius); padding: 16px 10px; }
+  .preview-frame { background: var(--bg); border: 1px dashed var(--border); border-radius: var(--radius); padding: 16px 10px; }
   .feature-spotlight {
-    position: relative; display: flex; align-items: center; gap: 13px; padding: 13px 14px; overflow: hidden;
-    background: linear-gradient(#2e2830, #2e2830) padding-box, linear-gradient(120deg, #AC5FDB, #E3A2EE, #8A7AE0) border-box;
-    border: 1.5px solid transparent; border-radius: 18px; box-shadow: 0 6px 18px -8px rgba(172,95,219,0.45);
+    position: relative; display: flex; align-items: center; gap: 13px; padding: 13px 14px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
     text-decoration: none;
   }
-  .feature-spotlight__media { position: relative; z-index: 1; flex-shrink: 0; width: 42px; height: 42px; border-radius: 13px; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 21px; background: linear-gradient(135deg, rgba(172,95,219,0.3), rgba(227,162,238,0.22)); }
+  .feature-spotlight__media { flex-shrink: 0; width: 42px; height: 42px; border-radius: var(--radius-sm); overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 21px; background: var(--surface-2); border: 1px solid var(--border); }
   .feature-spotlight__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .feature-spotlight__body { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; min-width: 0; }
-  .feature-spotlight__title { font-size: 14px; font-weight: 800; color: #F3E9F7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .feature-spotlight__sub { font-size: 12px; color: #B8A3C2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .feature-spotlight__chevron { position: relative; z-index: 1; font-size: 20px; font-weight: 700; color: #7E6D89; margin-right: 2px; }
-  .feature-spotlight__dismiss { position: relative; z-index: 1; flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; background: rgba(0,0,0,0.25); color: #B8A3C2; font-size: 11px; display: flex; align-items: center; justify-content: center; }
+  .feature-spotlight__body { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .feature-spotlight__title { font-size: 14px; font-weight: 800; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .feature-spotlight__sub { font-size: 12px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .feature-spotlight__chevron { font-size: 18px; font-weight: 700; color: var(--text-faint); margin-right: 2px; }
+  .feature-spotlight__dismiss { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim); font-size: 10px; display: flex; align-items: center; justify-content: center; }
 
-  .image-spotlight { position: relative; display: block; width: 100%; border-radius: 18px; overflow: hidden; background: #383039; }
+  .image-spotlight { position: relative; display: block; width: 100%; border-radius: var(--radius-sm); overflow: hidden; background: var(--surface-2); border: 1px solid var(--border); }
   .image-spotlight img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .image-spotlight__empty { display: flex; align-items: center; justify-content: center; height: 100%; color: #7a6f80; font-size: 12.5px; text-align: center; padding: 20px; }
+  .image-spotlight__empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-faint); font-size: 12.5px; text-align: center; padding: 20px; }
 
-  .admob-preview { border: 1px dashed var(--border); border-radius: var(--radius-sm); padding: 14px; text-align: center; color: var(--text-faint); font-size: 12px; background: repeating-linear-gradient(135deg, var(--surface-2), var(--surface-2) 8px, var(--surface) 8px, var(--surface) 16px); }
+  .admob-preview { border: 1px dashed var(--border); border-radius: var(--radius-sm); padding: 14px; text-align: center; color: var(--text-faint); font-size: 12px; background: var(--surface-2); }
 
-  pre#rawJson { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 11px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; color: var(--text-dim); max-height: 220px; overflow-y: auto; }
+  pre#rawJson { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 11px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; color: var(--text-dim); max-height: 220px; overflow-y: auto; font-family: 'Courier New', monospace; }
 
   .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .kpi-card { background: var(--surface-2); border-radius: var(--radius-sm); padding: 14px 12px; }
-  .kpi-card__icon { width: 26px; height: 26px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 13px; margin-bottom: 8px; }
-  .kpi-card__icon.teal { background: color-mix(in srgb, var(--teal) 16%, transparent); color: var(--teal); }
-  .kpi-card__num { font-size: 22px; font-weight: 800; }
+  .kpi-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 12px; }
+  .kpi-card__icon { width: 26px; height: 26px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 13px; margin-bottom: 8px; }
+  .kpi-card__icon.teal { background: color-mix(in srgb, var(--success) 14%, transparent); color: var(--success); }
+  .kpi-card__num { font-size: 21px; font-weight: 800; font-family: 'Courier New', monospace; }
   .kpi-card__label { font-size: 10.5px; color: var(--text-dim); margin-top: 2px; font-weight: 600; }
 
   .run-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
-  .run-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid transparent; }
+  .run-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--border); transition: transform var(--dur-fast) var(--ease-out); }
   .run-row.selectable { cursor: pointer; }
   .run-row.selectable:active { transform: scale(0.99); }
   .run-row.selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface-2)); }
   .run-row.disabled { opacity: 0.5; }
   .run-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-  .run-dot.green { background: var(--success); box-shadow: 0 0 6px var(--success); }
+  .run-dot.green { background: var(--success); }
   .run-dot.red { background: var(--danger); }
   .run-dot.orange { background: var(--warn); }
   .run-row__body { flex: 1; min-width: 0; }
   .run-row__title { font-size: 12.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .run-row__sub { font-size: 10.5px; color: var(--text-faint); margin-top: 1px; }
-  .selected-version-chip { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: color-mix(in srgb, var(--accent) 12%, var(--surface-2)); border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 700; margin-bottom: 12px; }
+  .selected-version-chip { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: color-mix(in srgb, var(--accent) 10%, var(--surface-2)); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 700; margin-bottom: 12px; }
 
   .bottom-nav {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
-    display: flex; background: color-mix(in srgb, var(--bg) 90%, transparent);
-    backdrop-filter: blur(16px); border-top: 1px solid var(--border);
+    display: flex; background: var(--surface); border-top: 1px solid var(--border);
     padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
   }
-  .bottom-nav__item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 2px; border-radius: 12px; color: var(--text-faint); }
-  .bottom-nav__item.active { color: var(--accent); }
+  .bottom-nav__item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 2px; border-radius: var(--radius-sm); color: var(--text-faint); transition: color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-spring); }
+  .bottom-nav__item:active { transform: scale(0.93); }
+  .bottom-nav__item.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
   .bottom-nav__icon { font-size: 18px; line-height: 1; }
   .bottom-nav__label { font-size: 9.5px; font-weight: 700; }
 
   .publish-bar { position: fixed; left: 0; right: 0; bottom: 58px; z-index: 24; padding: 0 16px; }
-  .publish-bar__inner { max-width: 480px; margin: 0 auto; background: color-mix(in srgb, var(--surface) 96%, transparent); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 16px 16px 0 0; padding: 10px 14px 12px; box-shadow: 0 -8px 24px -12px rgba(0,0,0,0.5); }
+  .publish-bar__inner { max-width: 480px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; padding: 10px 14px 12px; box-shadow: 0 -2px 12px rgba(43,42,37,0.08); }
   #status { margin-top: 8px; padding: 9px 11px; border-radius: var(--radius-sm); font-size: 12px; display: none; white-space: pre-wrap; word-break: break-word; }
-  #status.ok { display: block; background: rgba(111,207,151,0.12); color: var(--success); border: 1px solid rgba(111,207,151,0.3); }
-  #status.err { display: block; background: rgba(217,82,122,0.12); color: var(--danger); border: 1px solid rgba(217,82,122,0.3); }
+  #status.ok { display: block; background: var(--success-bg); color: var(--success); border: 1px solid color-mix(in srgb, var(--success) 30%, transparent); }
+  #status.err { display: block; background: var(--danger-bg); color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent); }
   #status.loading { display: block; background: var(--surface-2); color: var(--text-dim); }
 
   .live-chip { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--border); font-size: 12.5px; margin-bottom: 14px; }
   .live-chip__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--text-faint); }
-  .live-chip.on .live-chip__dot { background: var(--success); box-shadow: 0 0 8px var(--success); }
-  .live-chip.admob .live-chip__dot { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+  .live-chip.on .live-chip__dot { background: var(--success); }
+  .live-chip.admob .live-chip__dot { background: var(--warn); }
   .live-chip__text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-dim); }
   .live-chip__refresh { flex-shrink: 0; color: var(--text-dim); font-size: 14px; padding: 2px 4px; }
 </style>
@@ -178,14 +194,14 @@
 
   <div id="authGate">
     <div class="auth-card">
-      <div class="auth-card__badge">🔒</div>
+      <div class="auth-card__badge"><span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span></div>
       <div class="auth-card__title">Better Store Admin</div>
-      <div class="auth-card__sub">Paste your GitHub Personal Access Token to continue \u2014 checked directly against GitHub, only the account this token belongs to gets in.</div>
-      <input type="password" id="gateTokenInput" placeholder="github_pat_..." style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-family:monospace; font-size:13px; margin-bottom:10px;">
-      <button class="auth-btn" id="gateSubmitBtn" style="background:linear-gradient(135deg,var(--teal),var(--accent)); color:var(--accent-ink);">Continue</button>
+      <div class="auth-card__sub">Paste your GitHub Personal Access Token to continue — checked directly against GitHub, only the account this token belongs to gets in.</div>
+      <input type="password" id="gateTokenInput" placeholder="github_pat_..." style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-family:monospace; font-size:13px; margin-bottom:10px;">
+      <button class="auth-btn" id="gateSubmitBtn">Continue</button>
       <div class="auth-status" id="authStatus"></div>
       <div class="hint" style="margin-top:14px; text-align:left;">
-        Same token as the Connection tab \u2014 fine-grained, scoped to this repo, with <b>Contents: Read and write</b> and <b>Actions: Read-only</b>.
+        Same token as the Connection tab — fine-grained, scoped to this repo, with <b>Contents: Read and write</b> and <b>Actions: Read-only</b>.
       </div>
     </div>
   </div>
@@ -194,12 +210,12 @@
 
     <header class="app-header">
       <div class="app-header__brand">
-        <div class="app-header__logo">🎯</div>
+        <div class="app-header__logo"><span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg></span></div>
         Better Store <span class="app-header__tag">ADMIN</span>
       </div>
       <div class="app-header__user">
         <img class="app-header__avatar" id="userAvatarImg" alt="">
-        <button class="app-header__signout" id="authSignoutBtn" title="Sign out">⏻</button>
+        <button class="app-header__signout" id="authSignoutBtn" title="Sign out"><span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></svg></span></button>
       </div>
     </header>
 
@@ -209,8 +225,8 @@
 
         <div class="live-chip off" id="liveChip">
           <span class="live-chip__dot"></span>
-          <span class="live-chip__text" id="liveChipText">Checking\u2026</span>
-          <button class="live-chip__refresh" id="liveChipRefresh" title="Refresh">⟳</button>
+          <span class="live-chip__text" id="liveChipText">Checking…</span>
+          <button class="live-chip__refresh" id="liveChipRefresh" title="Refresh"><span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span></button>
         </div>
 
         <div class="card">
@@ -223,7 +239,7 @@
         </div>
 
         <div id="simpleSection">
-          <div class="card">
+          <div class="card card--tag">
             <h2>Live Preview</h2>
             <div class="preview-frame">
               <a href="#" class="feature-spotlight" id="previewCard" style="text-decoration:none;">
@@ -245,7 +261,7 @@
             <label for="fImage">Image (optional, overrides the icon)</label>
             <div class="upload-row">
               <input type="text" id="fImage" readonly placeholder="No image uploaded">
-              <button class="btn-secondary" data-upload-target="fImage" data-upload-btn>📤 Upload</button>
+              <button class="btn-secondary" data-upload-target="fImage" data-upload-btn><span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg></span> Upload</button>
             </div>
             <div class="hint">Square-ish images look best — shown in a 42×42 rounded chip.</div>
             <label for="fTitle">Title</label>
@@ -256,7 +272,7 @@
         </div>
 
         <div id="imageSection" style="display:none;">
-          <div class="card">
+          <div class="card card--tag">
             <h2>Live Preview</h2>
             <div class="preview-frame">
               <div class="image-spotlight" id="imgPreview" style="height:160px;">
@@ -268,7 +284,7 @@
             <h2>Banner Image</h2>
             <div class="upload-row">
               <input type="text" id="bImage" readonly placeholder="No image uploaded">
-              <button class="btn-secondary" data-upload-target="bImage" data-upload-btn>📤 Upload</button>
+              <button class="btn-secondary" data-upload-target="bImage" data-upload-btn><span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg></span> Upload</button>
             </div>
             <div class="hint">Recommended: roughly 1200×500px.</div>
             <label for="bHeight">Display height — <span id="bHeightLabel">160</span>px</label>
@@ -277,7 +293,7 @@
         </div>
 
         <div class="card">
-          <h2>Link & Timing</h2>
+          <h2>Link &amp; Timing</h2>
           <div class="toggle-row">
             <label for="fActive">Show this ad (off = fall back to Telegram Shop)</label>
             <input type="checkbox" id="fActive" checked>
@@ -321,9 +337,9 @@
         <div class="card" id="statsAuthCard">
           <h2>Sign In For Statistics</h2>
           <div class="hint" style="margin-top:0;">
-            Stats live in a separate database (Firestore) that needs its own one-time GitHub sign-in \u2014 different from the token above. This is the ONLY part of the panel that needs it.
+            Stats live in a separate database (Firestore) that needs its own one-time GitHub sign-in — different from the token above. This is the ONLY part of the panel that needs it.
           </div>
-          <button class="btn-secondary" id="statsSigninBtn" style="width:100%; margin-top:12px;">🔑 Sign in with GitHub</button>
+          <button class="btn-secondary" id="statsSigninBtn" style="width:100%; margin-top:12px;"><span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21.2 2.8-2.1 2.1"/><path d="M11.9 11.9a4 4 0 1 0-5.7 5.7 4 4 0 0 0 5.7-5.7l3-3Z"/></svg></span> Sign in with GitHub</button>
           <div class="hint" id="statsAuthStatus" style="margin-top:10px;"></div>
           <div class="auth-debug" id="statsAuthDebug" style="margin-top:10px;"></div>
         </div>
@@ -347,7 +363,7 @@
           <label for="changelogUrl">Changelog link (optional)</label>
           <input type="url" id="changelogUrl" placeholder="https://t.me/BetterStoreApp">
           <div class="hint" style="margin-top:6px;">Leave blank to use the default: <code>https://t.me/BetterStoreApp</code></div>
-          <button class="btn-primary" id="pushUpdateBtn" style="margin-top:14px;">🚀 Push Forced Update</button>
+          <button class="btn-primary" id="pushUpdateBtn" style="margin-top:14px;"><span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19.5a.496.496 0 0 0-.635-.635l-19.5 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg></span> Push Forced Update</button>
           <div class="hint" id="pushStatus" style="margin-top:10px;"></div>
         </div>
       </section>
@@ -371,7 +387,7 @@
             Fine-grained token, scoped to <b>only this repository</b>, with <b>Contents: Read and write</b> and <b>Actions: Read-only</b> permissions.
             Tokens expire (often 30-90 days) — regenerate here if you get "Bad credentials."
           </div>
-          <button class="btn-secondary" id="testConnBtn" style="width:100%; margin-top:14px;">🔌 Test Connection</button>
+          <button class="btn-secondary" id="testConnBtn" style="width:100%; margin-top:14px;"><span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg></span> Test Connection</button>
         </div>
       </section>
 
@@ -380,8 +396,8 @@
     <div class="publish-bar" id="publishBar">
       <div class="publish-bar__inner">
         <div class="btn-row">
-          <button class="btn-secondary" style="flex:1;" id="loadBtn">↓ Load Current</button>
-          <button class="btn-secondary" style="flex:1;" id="resetBtn">↺ Reset to Shop</button>
+          <button class="btn-secondary" style="flex:1;" id="loadBtn"><span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg></span> Load Current</button>
+          <button class="btn-secondary" style="flex:1;" id="resetBtn"><span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></span> Reset to Shop</button>
         </div>
         <button class="btn-primary" id="publishBtn" style="margin-top:8px;">Publish to App</button>
         <div id="status"></div>
@@ -389,11 +405,11 @@
     </div>
 
     <nav class="bottom-nav">
-      <button class="bottom-nav__item active" data-tab="content"><span class="bottom-nav__icon">📢</span><span class="bottom-nav__label">Ad</span></button>
-      <button class="bottom-nav__item" data-tab="source"><span class="bottom-nav__icon">🎛️</span><span class="bottom-nav__label">Source</span></button>
-      <button class="bottom-nav__item" data-tab="stats"><span class="bottom-nav__icon">📊</span><span class="bottom-nav__label">Stats</span></button>
-      <button class="bottom-nav__item" data-tab="update"><span class="bottom-nav__icon">⬆️</span><span class="bottom-nav__label">Update</span></button>
-      <button class="bottom-nav__item" data-tab="connection"><span class="bottom-nav__icon">🔌</span><span class="bottom-nav__label">Setup</span></button>
+      <button class="bottom-nav__item active" data-tab="content"><span class="bottom-nav__icon icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span><span class="bottom-nav__label">Ad</span></button>
+      <button class="bottom-nav__item" data-tab="source"><span class="bottom-nav__icon icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/></svg></span><span class="bottom-nav__label">Source</span></button>
+      <button class="bottom-nav__item" data-tab="stats"><span class="bottom-nav__icon icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></span><span class="bottom-nav__label">Stats</span></button>
+      <button class="bottom-nav__item" data-tab="update"><span class="bottom-nav__icon icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg></span><span class="bottom-nav__label">Update</span></button>
+      <button class="bottom-nav__item" data-tab="connection"><span class="bottom-nav__icon icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg></span><span class="bottom-nav__label">Setup</span></button>
     </nav>
 
     <input type="file" id="fileInput" accept="image/*" style="display:none;">
@@ -1122,5 +1138,7 @@
     }
   }
 </script>
+</body>
+</html>
 </body>
 </html>

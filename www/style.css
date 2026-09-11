@@ -319,23 +319,18 @@ main#view {
 }
 .nav-item.active span:last-child { opacity: 1; }
 
-/* POS is the primary action — permanently distinct from the other four,
-   not just when it happens to be the active tab. Always solid-filled and
-   a couple pixels taller so it visibly overlaps the top of the row, the
-   way a punched card sits proud of the rest of the stack. No glow: the
-   standout is structural (shape + fill), not a lighting effect, so it
-   reads the same in bright daylight as it does at night. */
+/* POS is the primary action — permanently distinct from the other four
+   via a thick accent-colored outline when it's NOT the active tab. Once
+   it IS active, it behaves exactly like any other active tab (solid
+   fill) — the thick border is only there to catch the eye while inactive. */
 .nav-item--fab {
-  background: var(--accent);
-  color: var(--accent-ink);
-  border-color: var(--accent-dim);
-  margin-top: -8px;
-  padding-top: 15px;
-  padding-bottom: 7px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  border-width: 3px;
+  border-color: var(--accent);
+  background: var(--surface);
+  color: var(--text-dim);
 }
 .nav-item--fab .nav-item__icon { font-size: 20px; }
-.nav-item--fab.active { background: var(--accent-dim); border-color: var(--accent-dim); }
+.nav-item--fab.active { border-width: 2px; }
 .nav-item--fab:active .nav-item__icon { transform: scale(0.9); }
 
 /* A quiet pulse (scale only, no shadow) while the cart actually has items
@@ -1691,139 +1686,127 @@ body.swipe-active .topbar {
   position: fixed;
   inset: 0;
   z-index: 9999;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+}
+
+.onboard-skip-corner {
+  position: absolute;
+  top: calc(16px + var(--safe-top));
+  right: 16px;
+  z-index: 3;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
   display: flex;
   align-items: center;
   justify-content: center;
-  touch-action: none;
-  /* Transparent to taps by default so the spotlighted real nav button
-     underneath stays genuinely tappable — only the pieces that need to
-     catch a tap (caption buttons, skip corner, welcome card) opt back in
-     with pointer-events:auto below. */
-  pointer-events: none;
 }
 
-/* The "hole": a small circle whose absurdly large box-shadow spread fills
-   the rest of the viewport, so growing/moving/resizing this one element
-   is all that's needed to animate the scrim + cutout together. */
-.onboard-spotlight {
-  position: fixed;
-  border-radius: 50%;
-  box-shadow: 0 0 0 9999px rgba(8, 6, 10, 0.8);
-  pointer-events: none;
-  z-index: 1;
+.onboard-track {
+  flex: 1;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
 }
-
-.onboard-pulse-ring {
-  position: fixed;
-  border-radius: 50%;
-  border: 2.5px solid var(--teal);
-  pointer-events: none;
-  z-index: 2;
-}
-
-.onboard-caption {
-  position: fixed;
-  left: 20px;
-  right: 20px;
-  z-index: 3;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 18px 20px;
-  box-shadow: var(--shadow-lg);
+.onboard-slide {
+  flex: 0 0 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 30px;
   text-align: center;
-  pointer-events: auto;
 }
-.onboard-caption__title { font-size: 17px; font-weight: 800; margin-bottom: 4px; }
-.onboard-caption__sub { font-size: 13.5px; color: var(--text-dim); line-height: 1.5; }
-.onboard-caption__row { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; gap: 10px; }
-.onboard-dots { display: flex; gap: 6px; }
-.onboard-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); transition: background 0.2s, transform 0.2s; }
-.onboard-dot.active { background: var(--accent); transform: scale(1.3); }
-.onboard-next-btn {
-  padding: 9px 18px;
-  border-radius: 999px;
-  border: none;
-  background: linear-gradient(135deg, var(--teal), var(--accent));
-  color: var(--accent-ink);
-  font-weight: 700;
-  font-size: 13.5px;
+.onboard-slide__art {
+  width: 100%;
+  max-width: 280px;
+  margin-bottom: 28px;
+  overflow: hidden;
 }
-.onboard-skip-btn { color: var(--text-faint); font-size: 13px; font-weight: 600; padding: 8px; }
-
-.onboard-skip-corner {
-  position: fixed;
-  top: calc(16px + var(--safe-top));
-  right: 16px;
-  z-index: 4;
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--surface) 70%, transparent);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--border);
+.onboard-slide__img {
+  width: 100%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+}
+.onboard-slide__title {
+  font-size: 21px;
+  font-weight: 800;
   color: var(--text);
-  font-size: 16px;
-  display: flex; align-items: center; justify-content: center;
-  pointer-events: auto;
+  line-height: 1.3;
+  margin-bottom: 8px;
 }
-
-/* --- Welcome step: tap-the-coins-into-the-register mini interaction --- */
-
-.onboard-welcome {
-  position: relative;
-  z-index: 3;
-  width: min(340px, 100%);
-  margin: 0 20px;
-  background: var(--surface);
+.onboard-slide__sub {
+  font-size: 13.5px;
+  color: var(--text-dim);
+  line-height: 1.55;
+  max-width: 280px;
+}
+.onboard-slide__input {
+  width: 100%;
+  max-width: 260px;
+  margin-top: 18px;
+  padding: 13px 14px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 32px 24px 26px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 15px;
   text-align: center;
-  box-shadow: var(--shadow-lg);
-  pointer-events: auto;
+  font-weight: 700;
 }
-.onboard-welcome__title { font-size: 21px; font-weight: 800; margin-bottom: 6px; }
-.onboard-welcome__sub { font-size: 13.5px; color: var(--text-dim); line-height: 1.5; margin-bottom: 22px; }
 
-.onboard-scene {
-  position: relative;
-  height: 140px;
-  margin-bottom: 16px;
+.onboard-footer {
+  flex-shrink: 0;
+  padding: 10px 24px calc(20px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
 }
-.onboard-register {
-  position: absolute;
-  left: 50%; top: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 52px;
-  filter: drop-shadow(0 8px 16px color-mix(in srgb, var(--accent) 35%, transparent));
+.onboard-dots { display: flex; gap: 6px; }
+.onboard-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); }
+.onboard-dot.active { background: var(--accent); transform: scale(1.4); }
+.onboard-next-btn {
+  width: 100%;
+  max-width: 320px;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 800;
+  font-size: 15px;
+  transition: transform var(--dur-fast) var(--ease-out);
 }
-.onboard-coin {
-  position: absolute;
-  font-size: 30px;
-  cursor: pointer;
-  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25));
-}
-.onboard-sparkle {
-  position: absolute;
-  font-size: 20px;
-  pointer-events: none;
-}
-.onboard-welcome__hint { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+.onboard-next-btn:active { transform: scale(0.97); }
 
+/* ---- Shared modal-card primitives ----
+   Despite the "onboard-" prefix (naming left as-is since renaming would
+   mean touching terms.js/whatsnew.js/donate.js too), these are NOT
+   onboarding-exclusive — Terms-of-Use acceptance, the What's New card,
+   and the donate prompt all reuse them as a generic "celebratory /
+   important standalone card" look. */
+.onboard-skip-btn { color: var(--text-faint); font-size: 13px; font-weight: 600; padding: 8px; }
 .onboard-start-btn {
   width: 100%;
   padding: 14px;
   border-radius: var(--radius-sm);
   border: none;
-  background: linear-gradient(135deg, var(--teal), var(--accent));
+  background: var(--accent);
   color: var(--accent-ink);
   font-weight: 700;
   font-size: 15px;
-  box-shadow: var(--shadow-glow);
 }
-
-/* --- Finale --- */
-
+.onboard-start-btn:active { transform: scale(0.98); }
+.onboard-start-btn:disabled { opacity: 0.4; }
 .onboard-finale {
   position: relative;
   z-index: 3;
@@ -1831,16 +1814,15 @@ body.swipe-active .topbar {
   margin: 0 20px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-lg, var(--radius));
   padding: 30px 24px;
   text-align: center;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow);
   pointer-events: auto;
 }
 .onboard-finale__icon { font-size: 44px; margin-bottom: 10px; }
 .onboard-finale__title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
 .onboard-finale__sub { font-size: 13.5px; color: var(--text-dim); line-height: 1.5; margin-bottom: 20px; }
-
 .onboard-confetti-piece {
   position: fixed;
   top: 0; left: 0;
@@ -1916,7 +1898,6 @@ body.swipe-active .topbar {
   margin-bottom: 14px;
 }
 .terms-gate__check input { width: 19px; height: 19px; flex-shrink: 0; }
-.onboard-start-btn:disabled { opacity: 0.4; }
 
 /* --- Feature spotlight banner (Dashboard/Products/POS/Sales/etc) --- */
 

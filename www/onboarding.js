@@ -1,35 +1,51 @@
 /* ==========================================================================
-   Onboarding — a joyful, hands-on first-launch walkthrough.
-   Two parts:
-     1. A tiny interactive "toy" (tap coins into the register) — pure
-        delight, no points/XP/progress tracking of any kind.
-     2. A spring-animated spotlight tour of the REAL bottom nav — the
-        cutout and caption glide between actual nav buttons with Motion's
-        spring physics, and tapping the real (still-functional) nav button
-        advances the tour, so it's a hands-on walkthrough of the actual
-        app rather than a slideshow describing it.
-   Everything here uses window.Motion (vendor/motion.min.js) for the
-   spring/stagger physics — see https://motion.dev.
+   Onboarding — a short, swipeable illustrated intro (4 screens), then a
+   direct handoff into the real app. No simulated "toy" interactions and
+   no forced tour of the nav — once this closes, DoodleHint (see app.js)
+   picks up with real, dismiss-on-completion callouts pointing at actual
+   buttons as they're needed (starting with "add your first product").
+   The swipe between screens uses the same direct-manipulation pattern as
+   the real tab-swipe (see initTabSwipeGesture in app.js): the track
+   follows the finger 1:1 via touchmove, not a swipe-then-animate.
    ========================================================================== */
 
 const Onboarding = (() => {
   const FLAG = 'sa_onboarding_complete';
-  const SPRING = { type: 'spring', stiffness: 300, damping: 26 };
-  const BOUNCE = { type: 'spring', stiffness: 400, damping: 15 };
+
+  const SLIDES = [
+    {
+      img: 'img/onboarding/onboard-welcome.webp',
+      title: 'Run your store from your pocket',
+      sub: 'Sell, track stock, and see what\u2019s selling \u2014 all in one place.',
+    },
+    {
+      type: 'storename',
+      img: 'img/onboarding/onboard-storename.webp',
+      title: 'What\u2019s your store called?',
+      sub: 'Shows on receipts and the dashboard \u2014 you can change it later in Settings.',
+    },
+    {
+      img: 'img/onboarding/onboard-scan.webp',
+      title: 'Scan instead of typing',
+      sub: 'Point the camera at any barcode to add or sell an item in one tap.',
+    },
+    {
+      img: 'img/onboarding/onboard-restock.webp',
+      title: 'Always know what\u2019s low',
+      sub: 'Get a nudge before you run out of anything.',
+    },
+  ];
 
   let overlayEl = null;
+  let trackEl = null;
+  let index = 0;
+  let storeNameValue = '';
 
-  function hasSeenIt() {
-    return !!localStorage.getItem(FLAG);
-  }
-  function markSeen() {
-    localStorage.setItem(FLAG, '1');
-  }
+  function hasSeenIt() { return !!localStorage.getItem(FLAG); }
+  function markSeen() { localStorage.setItem(FLAG, '1'); }
 
   async function maybeStart() {
     if (hasSeenIt()) return;
-    // Give the dashboard + bottom nav a couple of frames to lay out for
-    // real before we start measuring element positions.
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     start();
   }
@@ -40,231 +56,136 @@ const Onboarding = (() => {
     start();
   }
 
-  function animate(el, keyframes, opts) {
-    return Fx.animate(el, keyframes, opts);
-  }
+  async function start() {
+    index = 0;
+    let store = { name: '' };
+    try { store = await Settings.get('store'); } catch { /* fresh install, defaults are fine */ }
+    storeNameValue = store.name || '';
 
-  function start() {
     overlayEl = document.createElement('div');
     overlayEl.className = 'onboard-overlay';
+    overlayEl.innerHTML = `
+      <button class="onboard-skip-corner tappable" id="obSkip">${Icon('x')}</button>
+      <div class="onboard-track" id="obTrack">
+        ${SLIDES.map((s, i) => slideHTML(s, i)).join('')}
+      </div>
+      <div class="onboard-footer">
+        <div class="onboard-dots">${SLIDES.map((_, i) => `<div class="onboard-dot${i === 0 ? ' active' : ''}"></div>`).join('')}</div>
+        <button class="onboard-next-btn tappable" id="obNext">Next</button>
+      </div>
+    `;
     document.body.appendChild(overlayEl);
+    Fx.animate(overlayEl, { opacity: [0, 1] }, { duration: 0.25 });
 
-    animate(overlayEl, { opacity: [0, 1] }, { duration: 0.25 });
+    trackEl = overlayEl.querySelector('#obTrack');
+    overlayEl.querySelector('#obSkip').addEventListener('click', finish);
+    overlayEl.querySelector('#obNext').addEventListener('click', () => goTo(index + 1));
 
-    const skipBtn = document.createElement('button');
-    skipBtn.className = 'onboard-skip-corner tappable';
-    skipBtn.innerHTML = Icon('x');
-    skipBtn.addEventListener('click', finish);
-    overlayEl.appendChild(skipBtn);
+    const nameInput = overlayEl.querySelector('#obStoreName');
+    if (nameInput) {
+      nameInput.addEventListener('input', () => { storeNameValue = nameInput.value; });
+    }
 
-    runWelcomeStep();
+    initDrag();
+    layout(false);
+  }
+
+  function slideHTML(s, i) {
+    return `
+      <div class="onboard-slide" data-slide="${i}">
+        <div class="onboard-slide__art"><img src="${s.img}" alt="" class="onboard-slide__img" data-parallax></div>
+        <div class="onboard-slide__title">${escapeHTML(s.title)}</div>
+        <div class="onboard-slide__sub">${escapeHTML(s.sub)}</div>
+        ${s.type === 'storename' ? `
+          <input type="text" id="obStoreName" class="onboard-slide__input" placeholder="My Store" maxlength="60" value="${escapeHTML(storeNameValue)}">
+        ` : ''}
+      </div>
+    `;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Direct-manipulation swipe between slides — same pattern as the    */
+  /* real tab-swipe: track the finger every frame via touchmove and    */
+  /* move the track exactly with it, only snapping (with a spring)     */
+  /* once the finger lifts. Not a "detect swipe, then animate" gesture. */
+  /* ---------------------------------------------------------------- */
+  function initDrag() {
+    let startX = 0, dx = 0, dragging = false, width = 1;
+
+    trackEl.addEventListener('touchstart', (e) => {
+      dragging = true;
+      dx = 0;
+      startX = e.touches[0].clientX;
+      width = trackEl.getBoundingClientRect().width || window.innerWidth;
+      trackEl.style.transition = 'none';
+    }, { passive: true });
+
+    trackEl.addEventListener('touchmove', (e) => {
+      if (!dragging) return;
+      dx = e.touches[0].clientX - startX;
+      // Resist dragging past the first or last slide instead of stopping
+      // dead — a small give makes the boundary feel physical, not broken.
+      if ((index === 0 && dx > 0) || (index === SLIDES.length - 1 && dx < 0)) dx *= 0.3;
+      if (e.cancelable) e.preventDefault();
+      const pct = -(index * 100) + (dx / width) * 100;
+      trackEl.style.transform = `translate3d(${pct}%, 0, 0)`;
+      applyParallax(dx / width);
+    }, { passive: false });
+
+    trackEl.addEventListener('touchend', () => {
+      if (!dragging) return;
+      dragging = false;
+      const threshold = width * 0.18;
+      if (dx < -threshold && index < SLIDES.length - 1) index += 1;
+      else if (dx > threshold && index > 0) index -= 1;
+      layout(true);
+    });
+  }
+
+  function applyParallax(progress) {
+    // The illustration drifts slightly slower than the finger — a cheap
+    // but effective sense of depth/motion while dragging between slides.
+    trackEl.querySelectorAll('[data-parallax]').forEach((img) => {
+      img.style.transform = `translateX(${progress * -14}px)`;
+    });
+  }
+
+  function goTo(i) {
+    if (i >= SLIDES.length) { finish(); return; }
+    index = Math.max(0, i);
+    layout(true);
+  }
+
+  function layout(animated) {
+    trackEl.style.transition = animated ? 'transform 360ms cubic-bezier(0.34,1.56,0.64,1)' : 'none';
+    trackEl.style.transform = `translate3d(${-index * 100}%, 0, 0)`;
+    applyParallax(0);
+
+    overlayEl.querySelectorAll('.onboard-dot').forEach((d, i) => d.classList.toggle('active', i === index));
+    const nextBtn = overlayEl.querySelector('#obNext');
+    nextBtn.textContent = index === SLIDES.length - 1 ? 'Get Started' : 'Next';
   }
 
   function finish() {
     if (!overlayEl) return;
     const el = overlayEl;
     overlayEl = null;
-    if (tourTapHandler) { document.removeEventListener('click', tourTapHandler, true); tourTapHandler = null; }
-    spotlightEl = ringEl = captionEl = null;
     markSeen();
+
+    if (storeNameValue.trim() && window.Settings) {
+      Settings.set('store', { name: storeNameValue.trim() }).then(() => { if (window.Fmt) Fmt.init(); });
+    }
+
     // A fresh install that just finished onboarding is already on the
     // latest version by definition — don't also pop the changelog right
     // behind it.
     if (window.WhatsNew) WhatsNew.markSeen();
-    animate(el, { opacity: [1, 0] }, { duration: 0.2 }).finished.then(() => el.remove());
-    // Ask for the notification permission right after the tour — so it's
-    // already resolved before the first ad ever needs to push one, and it
-    // isn't shown mid-tour where it'd interrupt the walkthrough.
+    Fx.animate(el, { opacity: [1, 0] }, { duration: 0.2 }).finished.then(() => el.remove());
+    // Ask for the notification permission right after onboarding — so
+    // it's already resolved before the first ad ever needs to push one.
     if (window.AdNotify) setTimeout(() => AdNotify.requestPermission(), 600);
     if (window.AdPush) setTimeout(() => AdPush.init(), 700);
     if (window.Stats) setTimeout(() => Stats.reportIfDue(), 4000);
-  }
-
-  /* ---------------------------------------------------------------- */
-  /* Step 1 — tap the coins into the register                          */
-  /* ---------------------------------------------------------------- */
-
-  function runWelcomeStep() {
-    const card = document.createElement('div');
-    card.className = 'onboard-welcome';
-    card.innerHTML = `
-      <div class="onboard-welcome__title">Hey! Welcome to your store 👋</div>
-      <div class="onboard-welcome__sub">Before the tour — go ahead, ring some up.</div>
-      <div class="onboard-scene" id="obScene">
-        <div class="onboard-register" id="obRegister">🗄️</div>
-        <div class="onboard-coin" id="obCoin1" style="left:14%; top:10%;">🪙</div>
-        <div class="onboard-coin" id="obCoin2" style="right:10%; top:14%;">🪙</div>
-        <div class="onboard-coin" id="obCoin3" style="left:calc(50% - 15px); top:0%;">🪙</div>
-      </div>
-      <div class="onboard-welcome__hint" id="obHint">Tap each coin</div>
-      <button class="onboard-start-btn tappable" id="obStartBtn" style="display:none; margin-top:16px;">Let's go →</button>
-    `;
-    overlayEl.appendChild(card);
-    animate(card, { opacity: [0, 1], scale: [0.85, 1], y: [16, 0] }, BOUNCE);
-
-    const scene = card.querySelector('#obScene');
-    const register = card.querySelector('#obRegister');
-    const startBtn = card.querySelector('#obStartBtn');
-    const hint = card.querySelector('#obHint');
-    const coins = [card.querySelector('#obCoin1'), card.querySelector('#obCoin2'), card.querySelector('#obCoin3')];
-    let tapped = 0;
-
-    coins.forEach((coin, i) => {
-      // A gentle idle bob so the coins read as tappable, not static art.
-      animate(coin, { y: [0, -6, 0] }, { duration: 1.6 + i * 0.2, repeat: Infinity, ease: 'easeInOut' });
-
-      coin.addEventListener('click', () => {
-        if (coin.dataset.done) return;
-        coin.dataset.done = '1';
-        if (navigator.vibrate) navigator.vibrate(12);
-
-        const regRect = register.getBoundingClientRect();
-        const coinRect = coin.getBoundingClientRect();
-        const dx = (regRect.left + regRect.width / 2) - (coinRect.left + coinRect.width / 2);
-        const dy = (regRect.top + regRect.height / 2) - (coinRect.top + coinRect.height / 2);
-
-        animate(coin, { x: [0, dx], y: [0, dy], scale: [1, 0.3], opacity: [1, 0] }, { type: 'spring', stiffness: 220, damping: 18 })
-          .finished.then(() => coin.remove());
-
-        animate(register, { scale: [1, 1.18, 1], rotate: [0, -6, 6, 0] }, { duration: 0.4 });
-        spawnSparkle(scene, regRect, scene.getBoundingClientRect());
-
-        tapped += 1;
-        if (tapped === 1) hint.textContent = 'Nice — a couple more';
-        if (tapped === 2) hint.textContent = 'Last one!';
-        if (tapped === coins.length) {
-          hint.textContent = 'That\u2019s the idea \u2014 quick and satisfying.';
-          animate(register, { scale: [1, 1.3, 0.95, 1.1, 1], rotate: [0, -10, 10, -6, 0] }, { duration: 0.6 });
-          startBtn.style.display = 'block';
-          animate(startBtn, { opacity: [0, 1], scale: [0.7, 1], y: [10, 0] }, BOUNCE);
-        }
-      });
-    });
-
-    startBtn.addEventListener('click', () => {
-      animate(card, { opacity: [1, 0], scale: [1, 0.92], y: [0, -10] }, { duration: 0.2 })
-        .finished.then(() => { card.remove(); runTourStep(0); });
-    });
-  }
-
-  function spawnSparkle(scene, regRect, sceneRect) {
-    const s = document.createElement('div');
-    s.className = 'onboard-sparkle';
-    s.textContent = '\u2728';
-    s.style.left = `${regRect.left - sceneRect.left + regRect.width / 2 - 10}px`;
-    s.style.top = `${regRect.top - sceneRect.top - 6}px`;
-    scene.appendChild(s);
-    animate(s, { opacity: [1, 0], y: [0, -22], scale: [0.6, 1.2] }, { duration: 0.5 })
-      .finished.then(() => s.remove());
-  }
-
-  /* ---------------------------------------------------------------- */
-  /* Step 2 — spring-animated spotlight tour of the real bottom nav    */
-  /* ---------------------------------------------------------------- */
-
-  const TOUR_STEPS = [
-    { route: 'dashboard', title: 'Home base 👋', sub: 'Today\u2019s sales, revenue, and a quick look at how things are going.' },
-    { route: 'products', title: 'Your inventory 📦', sub: 'Add products, adjust stock, scan barcodes \u2014 all in here.' },
-    { route: 'pos', title: 'Ring things up ⚡', sub: 'The big one \u2014 tap here any time to start a sale.' },
-    { route: 'sales', title: 'Every sale, ever 🧾', sub: 'Receipts, reprints, and refunds \u2014 partial or full.' },
-    { route: 'more', title: 'Everything else 🗂️', sub: 'Reports, customers, suppliers, backups, and settings live here.' },
-  ];
-
-  let spotlightEl = null, ringEl = null, captionEl = null;
-  let tourTapHandler = null;
-
-  function runTourStep(i) {
-    if (i >= TOUR_STEPS.length) { runFinale(); return; }
-    const step = TOUR_STEPS[i];
-    const target = document.querySelector(`.nav-item[data-route="${step.route}"]`);
-    if (!target) { runTourStep(i + 1); return; } // graceful skip if layout ever changes
-
-    const rect = target.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const r = Math.max(rect.width, rect.height) / 2 + 10;
-
-    if (!spotlightEl) {
-      spotlightEl = document.createElement('div');
-      spotlightEl.className = 'onboard-spotlight';
-      overlayEl.insertBefore(spotlightEl, overlayEl.firstChild);
-      Object.assign(spotlightEl.style, { left: `${cx - r}px`, top: `${cy - r}px`, width: `${r * 2}px`, height: `${r * 2}px` });
-      animate(spotlightEl, { opacity: [0, 1] }, { duration: 0.2 });
-
-      ringEl = document.createElement('div');
-      ringEl.className = 'onboard-pulse-ring';
-      overlayEl.appendChild(ringEl);
-      Object.assign(ringEl.style, { left: `${cx - r}px`, top: `${cy - r}px`, width: `${r * 2}px`, height: `${r * 2}px` });
-      animate(ringEl, { scale: [1, 1.18, 1], opacity: [0.9, 0.3, 0.9] }, { duration: 1.4, repeat: Infinity });
-    } else {
-      animate(spotlightEl, { left: `${cx - r}px`, top: `${cy - r}px`, width: `${r * 2}px`, height: `${r * 2}px` }, SPRING);
-      animate(ringEl, { left: `${cx - r}px`, top: `${cy - r}px`, width: `${r * 2}px`, height: `${r * 2}px` }, SPRING);
-    }
-
-    renderCaption(i, step);
-
-    if (tourTapHandler) document.removeEventListener('click', tourTapHandler, true);
-    tourTapHandler = (e) => {
-      if (e.target.closest(`.nav-item[data-route="${step.route}"]`)) {
-        document.removeEventListener('click', tourTapHandler, true);
-        runTourStep(i + 1);
-      }
-    };
-    document.addEventListener('click', tourTapHandler, true);
-  }
-
-  function renderCaption(i, step) {
-    const isNew = !captionEl;
-    if (isNew) {
-      captionEl = document.createElement('div');
-      captionEl.className = 'onboard-caption';
-      captionEl.style.bottom = 'calc(var(--nav-h) + 28px)';
-      overlayEl.appendChild(captionEl);
-    }
-    captionEl.innerHTML = `
-      <div class="onboard-caption__title">${step.title}</div>
-      <div class="onboard-caption__sub">${step.sub}</div>
-      <div class="onboard-caption__row">
-        <button class="onboard-skip-btn tappable" id="obSkip">Skip tour</button>
-        <div class="onboard-dots">${TOUR_STEPS.map((_, idx) => `<div class="onboard-dot${idx === i ? ' active' : ''}"></div>`).join('')}</div>
-        <button class="onboard-next-btn tappable" id="obNext">${i === TOUR_STEPS.length - 1 ? 'Finish' : 'Next'}</button>
-      </div>
-    `;
-    captionEl.querySelector('#obSkip').addEventListener('click', finish);
-    captionEl.querySelector('#obNext').addEventListener('click', () => runTourStep(i + 1));
-
-    if (isNew) {
-      animate(captionEl, { opacity: [0, 1], y: [14, 0] }, BOUNCE);
-    } else {
-      animate(captionEl, { scale: [0.97, 1], opacity: [0.6, 1] }, { duration: 0.22 });
-    }
-  }
-
-  /* ---------------------------------------------------------------- */
-  /* Step 3 — confetti finale                                         */
-  /* ---------------------------------------------------------------- */
-
-  function runFinale() {
-    if (tourTapHandler) document.removeEventListener('click', tourTapHandler, true);
-    [spotlightEl, ringEl, captionEl].forEach((el) => {
-      if (!el) return;
-      animate(el, { opacity: [1, 0] }, { duration: 0.2 }).finished.then(() => el.remove());
-    });
-    spotlightEl = ringEl = captionEl = null;
-
-    if (window.Fx) Fx.confetti(window.innerHeight * 0.35);
-
-    const card = document.createElement('div');
-    card.className = 'onboard-finale';
-    card.innerHTML = `
-      <div class="onboard-finale__icon">🎉</div>
-      <div class="onboard-finale__title">You\u2019re all set!</div>
-      <div class="onboard-finale__sub">That\u2019s the whole app. Go make a sale.</div>
-      <button class="onboard-start-btn tappable" id="obDoneBtn">Start selling</button>
-    `;
-    overlayEl.appendChild(card);
-    animate(card, { opacity: [0, 1], scale: [0.7, 1], y: [16, 0] }, BOUNCE);
-    card.querySelector('#obDoneBtn').addEventListener('click', finish);
   }
 
   return { maybeStart, replay };

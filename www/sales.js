@@ -77,10 +77,12 @@ const Sales = (() => {
           ${filtered.map(saleRowHTML).join('')}
         </div>
       ` : `
-        <div class="empty-state">
-          <div class="empty-state__icon">${Icon('receipt', { size: 32 })}</div>
-          <div class="empty-state__title">No sales found</div>
-          <div class="empty-state__hint">Try a different filter, or make your first sale from the POS tab.</div>
+        <div class="empty-state${allSales.length ? '' : ' empty-state--illustrated'}">
+          ${allSales.length
+            ? `<div class="empty-state__icon">${Icon('receipt', { size: 32 })}</div>`
+            : `<img class="empty-state__illustration" src="img/empty-states/empty-sales.webp" alt="">`}
+          <div class="empty-state__title">${allSales.length ? 'No sales found' : 'No sales yet'}</div>
+          <div class="empty-state__hint">${allSales.length ? 'Try a different filter.' : 'Make your first sale from the POS tab.'}</div>
         </div>
       `}
     `;

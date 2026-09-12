@@ -45,6 +45,13 @@ const Router = (() => {
     currentRoute = name;
     updateNavHighlight(name);
 
+    // A doodle hint is `position: fixed` on <body> so it can point at its
+    // target from anywhere — which also means a normal screen re-render
+    // never removes it on its own. Clear it on every navigation so it
+    // can't linger into a tab it doesn't belong to; the new screen's own
+    // render puts one back immediately if it's still relevant there.
+    if (window.DoodleHint) DoodleHint.hideAll();
+
     const view = document.getElementById('view');
     const route = routes[name];
 
@@ -360,20 +367,19 @@ window.Toast = Toast;
 
 /* ---------------------------------------------------------------------- */
 /* DoodleHint — a hand-drawn arrow + note pointing at one real element,    */
-/* asking for one real action. Dismissed forever once that action         */
-/* actually happens (call DoodleHint.complete(id)), never by a close      */
-/* button — see the .doodle-hint rules in style.css for the visual.       */
+/* asking for one real action. Purely tied to the live state of the       */
+/* screen that shows it: visible whenever that screen calls show() (i.e.  */
+/* its list is empty), gone the moment that screen calls hide()/complete()*/
+/* (i.e. something got added), and back again next time the list is      */
+/* empty — no permanent "seen it once" dismissal. Because it's rendered   */
+/* `position: fixed` on <body> (so it can point at a target no matter     */
+/* where that target lives in the DOM), it does NOT get cleaned up by a   */
+/* normal screen re-render — Router.renderCurrent calls hideAll() on      */
+/* every navigation so a hint never lingers into a tab it doesn't belong  */
+/* to. See the .doodle-hint rules in style.css for the visual.            */
 /* ---------------------------------------------------------------------- */
 const DoodleHint = (() => {
-  const STORAGE_PREFIX = 'doodleHintSeen:';
   const ARROW_SVG = `<svg class="doodle-hint__arrow" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6c10 2 24 8 30 24 2 6 3 14 3 20" /><path d="M32 42c2 5 5 9 9 12" /><path d="M50 46c-3 4-6 8-9 12" /></svg>`;
-
-  function seen(id) {
-    try { return localStorage.getItem(STORAGE_PREFIX + id) === '1'; } catch { return false; }
-  }
-  function markSeen(id) {
-    try { localStorage.setItem(STORAGE_PREFIX + id, '1'); } catch { /* ignore */ }
-  }
 
   /**
    * Shows a doodle hint pointing at `targetEl` (any real element already
@@ -385,42 +391,54 @@ const DoodleHint = (() => {
    * above-left, arrow curves up-right into the target — for a target near
    * the top of the screen) or 'br' (note above-left, arrow curves down-
    * right — for a target lower down, like the reference screenshot).
-   * No-ops silently once this hint id has been completed.
+   * No-ops silently if one with this id is already showing.
    */
   function show(id, targetEl, text, corner = 'br') {
-    if (!id || !targetEl || seen(id)) return null;
+    if (!id || !targetEl) return null;
     if (document.querySelector(`[data-hint-id="${id}"]`)) return null; // already showing
     const r = targetEl.getBoundingClientRect();
     const el = document.createElement('div');
     el.className = `doodle-hint doodle-hint--${corner}`;
     el.dataset.hintId = id;
     el.style.position = 'fixed';
+    // Right edge sits slightly PAST the target's right edge (not short of
+    // it) so the arrow — which hugs the right side of the note — lands
+    // directly over the button instead of trailing off to its left.
+    const rightPos = Math.max(8, window.innerWidth - r.right - 10);
     if (corner === 'tr') {
       // Target is near the top of the screen — note sits below it, arrow
       // curves up into the target's bottom-left corner.
       el.style.top = `${r.bottom + 6}px`;
-      el.style.right = `${Math.max(8, window.innerWidth - r.right - 4)}px`;
+      el.style.right = `${rightPos}px`;
     } else {
       // Target is lower on screen — note sits above it, arrow curves down.
       el.style.bottom = `${window.innerHeight - r.top + 10}px`;
-      el.style.right = `${Math.max(8, window.innerWidth - r.right - 4)}px`;
+      el.style.right = `${rightPos}px`;
     }
     el.innerHTML = `<div class="doodle-hint__text">${escapeHTML(text)}</div>${ARROW_SVG}`;
     document.body.appendChild(el);
     return el;
   }
 
-  /** Call when the real action this hint was pointing at actually happens.
-   *  Removes it (with a small fade) and remembers not to show it again. */
-  function complete(id) {
-    markSeen(id);
+  /** Removes a hint by id, with a small fade. Call when the real thing it
+   *  was pointing at happens (an item gets added) — it's free to show
+   *  again later (e.g. that item gets removed and the list is empty
+   *  again), it just isn't showing right now. */
+  function hide(id) {
     document.querySelectorAll(`[data-hint-id="${id}"]`).forEach((el) => {
       el.classList.add('leaving');
       setTimeout(() => el.remove(), 340);
     });
   }
 
-  return { show, complete, seen };
+  /** Removes every currently-visible hint instantly, no fade — used when
+   *  navigating away from the screen that owns it, so a hint never shows
+   *  on a tab it doesn't belong to. */
+  function hideAll() {
+    document.querySelectorAll('[data-hint-id]').forEach((el) => el.remove());
+  }
+
+  return { show, hide, complete: hide, hideAll };
 })();
 window.DoodleHint = DoodleHint;
 

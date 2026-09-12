@@ -14,8 +14,7 @@ const Customers = (() => {
 
   async function render(container) {
     const actions = document.getElementById('topbarActions');
-    actions.innerHTML = `<button class="icon-btn tappable" id="addCustomerBtn">${Icon('plus')}</button>`;
-    actions.querySelector('#addCustomerBtn').addEventListener('click', () => openForm());
+    actions.innerHTML = '';
     await renderList(container);
   }
 
@@ -39,13 +38,20 @@ const Customers = (() => {
           ${filtered.map((c) => customerRowHTML(c, sales)).join('')}
         </div>
       ` : `
-        <div class="empty-state">
-          <div class="empty-state__icon">${Icon('user', { size: 32 })}</div>
+        <div class="empty-state${customers.length ? '' : ' empty-state--illustrated'}">
+          ${customers.length
+            ? `<div class="empty-state__icon">${Icon('user', { size: 32 })}</div>`
+            : `<img class="empty-state__illustration" src="img/empty-states/empty-customers.webp" alt="">`}
           <div class="empty-state__title">${customers.length ? 'No customers match' : 'No customers yet'}</div>
-          <div class="empty-state__hint">${customers.length ? 'Try a different search.' : 'Tap + to add your first customer.'}</div>
+          <div class="empty-state__hint">${customers.length ? 'Try a different search.' : 'Tap the button below to add your first customer.'}</div>
         </div>
       `}
+      <button class="screen-fab tappable" id="customerFab" title="Add customer">${Icon('plus')}</button>
     `;
+    container.querySelector('#customerFab').addEventListener('click', () => openForm());
+    if (!filtered.length && !customers.length) {
+      DoodleHint.show('addFirstCustomer', container.querySelector('#customerFab'), 'Add your first customer', 'br');
+    }
 
     const searchInput = container.querySelector('#customerSearch');
     searchInput.addEventListener('input', (e) => { searchQuery = e.target.value; renderList(container); });
@@ -105,7 +111,7 @@ const Customers = (() => {
         notes: sheetEl.querySelector('#f_notes').value.trim(),
       };
       if (isEdit) { record.id = c.id; await DB.put('customers', record); Toast.success('Customer updated'); }
-      else { await DB.add('customers', record); Toast.success('Customer added'); }
+      else { await DB.add('customers', record); Toast.success('Customer added'); DoodleHint.complete('addFirstCustomer'); }
 
       Sheet.close();
       if (Router.current === 'customers') renderList(document.getElementById('view'));
@@ -177,6 +183,7 @@ const Customers = (() => {
       const newBtn = resultsEl.querySelector('[data-new-customer]');
       if (newBtn) newBtn.addEventListener('click', async () => {
         const id = await DB.add('customers', { name: q, phone: '', email: '', notes: '' });
+        DoodleHint.complete('addFirstCustomer');
         Sheet.close();
         onPick({ id, name: q });
       });

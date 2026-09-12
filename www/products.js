@@ -149,11 +149,9 @@ const Products = (() => {
     actions.innerHTML = `
       <button class="icon-btn tappable" id="categoriesBtn" title="Manage categories">${Icon('tag')}</button>
       <button class="icon-btn tappable" id="sortBtn" title="Sort">⇅</button>
-      <button class="icon-btn tappable" id="addProductBtn" title="Add product">${Icon('plus')}</button>
     `;
     actions.querySelector('#categoriesBtn').addEventListener('click', openCategoryManager);
     actions.querySelector('#sortBtn').addEventListener('click', cycleSortMode);
-    actions.querySelector('#addProductBtn').addEventListener('click', () => openForm());
   }
 
   /* ---------------------------------------------------------------- */
@@ -278,7 +276,9 @@ const Products = (() => {
       </div>
 
       <div id="productListWrap"></div>
+      <button class="screen-fab tappable" id="productFab" title="Add product">${Icon('plus')}</button>
     `;
+    container.querySelector('#productFab').addEventListener('click', () => openForm());
 
     const searchInput = container.querySelector('#productSearch');
     const clearBtn = container.querySelector('#clearSearch');
@@ -341,18 +341,20 @@ const Products = (() => {
         ${filtered.map(productRowHTML).join('')}
       </div>
     ` : `
-      <div class="empty-state">
-        <div class="empty-state__icon">${Icon('package', { size: 32 })}</div>
+      <div class="empty-state${products.length ? '' : ' empty-state--illustrated'}">
+        ${products.length
+          ? `<div class="empty-state__icon">${Icon('package', { size: 32 })}</div>`
+          : `<img class="empty-state__illustration" src="img/empty-states/empty-products.webp" alt="">`}
         <div class="empty-state__title">${products.length ? 'No products match' : 'No products yet'}</div>
-        <div class="empty-state__hint">${products.length ? 'Try a different search or category.' : 'Tap the + button above to add your first product.'}</div>
+        <div class="empty-state__hint">${products.length ? 'Try a different search or category.' : 'Tap the button below to add your first product.'}</div>
       </div>
     `;
 
     // Swipe actions + tap-to-view
     const listEl = wrap.querySelector('#productList');
     if (!filtered.length && !products.length) {
-      const addBtn = document.getElementById('addProductBtn');
-      if (addBtn) DoodleHint.show('addFirstProduct', addBtn, 'Add your first product', 'tr');
+      const fab = document.getElementById('productFab');
+      if (fab) DoodleHint.show('addFirstProduct', fab, 'Add your first product', 'br');
     }
     if (listEl) {
       enableSwipeRows(listEl, {

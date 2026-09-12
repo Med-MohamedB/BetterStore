@@ -99,8 +99,8 @@ const POS = (() => {
           ${cart.map(cartRowHTML).join('')}
         </div>
       ` : `
-        <div class="empty-state">
-          <div class="empty-state__icon">${Icon('cart', { size: 32, className: 'icon-pop' })}</div>
+        <div class="empty-state empty-state--illustrated">
+          <img class="empty-state__illustration" src="img/empty-states/empty-pos.webp" alt="">
           <div class="empty-state__title">Cart is empty</div>
           <div class="empty-state__hint">Scan a barcode or tap "Add Product" to start a sale.</div>
         </div>

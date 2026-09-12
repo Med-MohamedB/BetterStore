@@ -1708,6 +1708,47 @@ body.swipe-active .topbar {
   justify-content: center;
 }
 
+/* ==========================================================================
+   Screen FAB — the relocated "+" add-record button for the three screens
+   that create new records (Products/Suppliers/Customers). Square with
+   rounded corners (not a circle), sits bottom-right just above the nav
+   bar, deliberately small — this is a secondary action next to the
+   primary bottom nav, not another thing competing for attention.
+   ========================================================================== */
+.screen-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--nav-h) + var(--safe-bottom) + 14px);
+  z-index: 15;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.22);
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+.screen-fab:active { transform: scale(0.9); }
+.screen-fab .icon-svg { width: 22px; height: 22px; }
+
+/* Illustrated empty states — replace the plain icon+text empty state on
+   Products/Suppliers/Customers/POS. The doodle-hint (arrow + handwritten
+   note) only ever accompanies these on the three screens that create a
+   record (see each screen's JS) — POS's empty cart is a normal, everyday
+   state, not a first-time setup moment, so it gets the illustration on
+   its own with no hint pointing at anything. */
+.empty-state--illustrated { padding-top: 16px; padding-bottom: 28px; }
+.empty-state--illustrated .empty-state__illustration {
+  width: 100%;
+  max-width: 260px;
+  margin: 0 auto 4px;
+  display: block;
+}
+
+
 .onboard-track {
   flex: 1;
   display: flex;

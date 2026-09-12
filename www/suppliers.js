@@ -12,8 +12,7 @@ const Suppliers = (() => {
 
   async function render(container) {
     const actions = document.getElementById('topbarActions');
-    actions.innerHTML = `<button class="icon-btn tappable" id="addSupplierBtn">${Icon('plus')}</button>`;
-    actions.querySelector('#addSupplierBtn').addEventListener('click', () => openForm());
+    actions.innerHTML = '';
     await renderList(container);
   }
 
@@ -37,13 +36,20 @@ const Suppliers = (() => {
           ${filtered.map((s) => supplierRowHTML(s, products)).join('')}
         </div>
       ` : `
-        <div class="empty-state">
-          <div class="empty-state__icon">${Icon('truck', { size: 32 })}</div>
+        <div class="empty-state${suppliers.length ? '' : ' empty-state--illustrated'}">
+          ${suppliers.length
+            ? `<div class="empty-state__icon">${Icon('truck', { size: 32 })}</div>`
+            : `<img class="empty-state__illustration" src="img/empty-states/empty-suppliers.webp" alt="">`}
           <div class="empty-state__title">${suppliers.length ? 'No suppliers match' : 'No suppliers yet'}</div>
-          <div class="empty-state__hint">${suppliers.length ? 'Try a different search.' : 'Tap + to add your first supplier.'}</div>
+          <div class="empty-state__hint">${suppliers.length ? 'Try a different search.' : 'Tap the button below to add your first supplier.'}</div>
         </div>
       `}
+      <button class="screen-fab tappable" id="supplierFab" title="Add supplier">${Icon('plus')}</button>
     `;
+    container.querySelector('#supplierFab').addEventListener('click', () => openForm());
+    if (!filtered.length && !suppliers.length) {
+      DoodleHint.show('addFirstSupplier', container.querySelector('#supplierFab'), 'Add your first supplier', 'br');
+    }
 
     const searchInput = container.querySelector('#supplierSearch');
     searchInput.addEventListener('input', (e) => { searchQuery = e.target.value; renderList(container); });
@@ -101,7 +107,7 @@ const Suppliers = (() => {
         notes: sheetEl.querySelector('#f_notes').value.trim(),
       };
       if (isEdit) { record.id = s.id; await DB.put('suppliers', record); Toast.success('Supplier updated'); }
-      else { await DB.add('suppliers', record); Toast.success('Supplier added'); }
+      else { await DB.add('suppliers', record); Toast.success('Supplier added'); DoodleHint.complete('addFirstSupplier'); }
 
       Sheet.close();
       if (Router.current === 'suppliers') renderList(document.getElementById('view'));

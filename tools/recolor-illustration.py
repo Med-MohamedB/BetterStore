@@ -32,6 +32,9 @@ Usage:
 --min-sat     pixels below this saturation are left alone even if their
               hue falls in the green band (catches near-white highlights
               and near-black shadow lines so they don't get tinted).
+              Default 0.04 — low enough to catch the pale mint background
+              blobs/shadows this illustration set uses, high enough to
+              leave true grays alone.
 --sat-match   0.0 = keep each pixel's original saturation (default,
               truest to the original shading). 1.0 = fully match the
               target color's own saturation instead. Anything between
@@ -61,7 +64,7 @@ def hex_to_hsv(hex_color):
     return colorsys.rgb_to_hsv(r, g, b)
 
 
-def recolor(im, target_hex, green_hue=(100, 190), min_sat=0.15, sat_match=0.0, val_match=0.0):
+def recolor(im, target_hex, green_hue=(100, 190), min_sat=0.04, sat_match=0.0, val_match=0.0):
     im = im.convert('RGBA')
     arr = np.asarray(im).astype(np.float32) / 255.0
     r, g, b, a = arr[..., 0], arr[..., 1], arr[..., 2], arr[..., 3]
@@ -137,7 +140,7 @@ def main():
     ap.add_argument('target_hex')
     ap.add_argument('output')
     ap.add_argument('--green-hue', default='100-190')
-    ap.add_argument('--min-sat', type=float, default=0.15)
+    ap.add_argument('--min-sat', type=float, default=0.04)
     ap.add_argument('--sat-match', type=float, default=0.0)
     ap.add_argument('--val-match', type=float, default=0.0)
     args = ap.parse_args()

@@ -14,23 +14,23 @@ const Onboarding = (() => {
 
   const SLIDES = [
     {
-      img: 'img/onboarding/onboard-welcome.webp',
+      imgBase: 'onboard-welcome',
       title: 'Run your store from your pocket',
       sub: 'Sell, track stock, and see what\u2019s selling \u2014 all in one place.',
     },
     {
       type: 'storename',
-      img: 'img/onboarding/onboard-storename.webp',
+      imgBase: 'onboard-storename',
       title: 'What\u2019s your store called?',
       sub: 'Shows on receipts and the dashboard \u2014 you can change it later in Settings.',
     },
     {
-      img: 'img/onboarding/onboard-scan.webp',
+      imgBase: 'onboard-scan',
       title: 'Scan instead of typing',
       sub: 'Point the camera at any barcode to add or sell an item in one tap.',
     },
     {
-      img: 'img/onboarding/onboard-restock.webp',
+      imgBase: 'onboard-restock',
       title: 'Always know what\u2019s low',
       sub: 'Get a nudge before you run out of anything.',
     },
@@ -93,7 +93,7 @@ const Onboarding = (() => {
   function slideHTML(s, i) {
     return `
       <div class="onboard-slide" data-slide="${i}">
-        <div class="onboard-slide__art"><img src="${s.img}" alt="" class="onboard-slide__img" data-parallax></div>
+        <div class="onboard-slide__art"><img src="${themedIllustration(s.imgBase, 'onboarding')}" alt="" class="onboard-slide__img" data-parallax></div>
         <div class="onboard-slide__title">${escapeHTML(s.title)}</div>
         <div class="onboard-slide__sub">${escapeHTML(s.sub)}</div>
         ${s.type === 'storename' ? `

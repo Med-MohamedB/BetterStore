@@ -11,6 +11,7 @@ const WhatsNew = (() => {
   // Add a new entry here each release; oldest-first doesn't matter since
   // only the current version's list is ever shown.
   const ITEMS = [
+    { icon: '🎨', text: 'Theme packs now actually recolor every illustration \u2014 empty states AND onboarding \u2014 including the pale background/shadow tints that were still stubbornly green before.' },
     { icon: '👆', text: 'Tab swiping feels a lot more direct now — including on Products/Sales/Inventory, where it used to get eaten by the list rows\u2019 own swipe-to-delete.' },
     { icon: Icon('image'), text: 'Sales now has its own empty-state illustration, matching Products/Customers/Suppliers/POS.' },
     { icon: '🎨', text: 'New app icon and logo \u2014 home-screen icon, notifications, and the splash screen all updated.' },

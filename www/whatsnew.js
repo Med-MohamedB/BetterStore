@@ -11,6 +11,12 @@ const WhatsNew = (() => {
   // Add a new entry here each release; oldest-first doesn't matter since
   // only the current version's list is ever shown.
   const ITEMS = [
+    { icon: '👆', text: 'Tab swiping feels a lot more direct now — including on Products/Sales/Inventory, where it used to get eaten by the list rows\u2019 own swipe-to-delete.' },
+    { icon: Icon('image'), text: 'Sales now has its own empty-state illustration, matching Products/Customers/Suppliers/POS.' },
+    { icon: '🎨', text: 'New app icon and logo \u2014 home-screen icon, notifications, and the splash screen all updated.' },
+    { icon: Icon('check-circle'), text: 'Fixed the \u201cadd your first...\u201d hint arrow sticking around after switching tabs, and not coming back after you delete everything again.' },
+    { icon: Icon('star'), text: 'Smoothed out a stray outline that was showing up on some buttons, most noticeably onboarding and the + buttons.' },
+    { icon: Icon('check-circle'), text: 'Fixed this What\u2019s New card (and the donate prompt) appearing pinned to the top of the screen instead of centered.' },
     { icon: Icon('refresh'), text: 'Sales box is back on the Dashboard, alongside the new revenue hero card.' },
     { icon: '⬆️', text: 'Forced update system \u2014 the admin can now push a required update that the app can download and install without leaving the app.' },
     { icon: Icon('bar-chart'), text: 'Anonymous, aggregate-only usage counters (sales made, products/customers/suppliers entered) now report to the developer \u2014 see the updated Terms of Use for exactly what\u2019s included.' },

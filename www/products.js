@@ -344,7 +344,7 @@ const Products = (() => {
       <div class="empty-state${products.length ? '' : ' empty-state--illustrated'}">
         ${products.length
           ? `<div class="empty-state__icon">${Icon('package', { size: 32 })}</div>`
-          : `<img class="empty-state__illustration" src="img/empty-states/empty-products.webp" alt="">`}
+          : `<img class="empty-state__illustration" src="${themedIllustration('empty-products')}" alt="">`}
         <div class="empty-state__title">${products.length ? 'No products match' : 'No products yet'}</div>
         <div class="empty-state__hint">${products.length ? 'Try a different search or category.' : 'Tap the button below to add your first product.'}</div>
       </div>

@@ -100,7 +100,7 @@ const POS = (() => {
         </div>
       ` : `
         <div class="empty-state empty-state--illustrated">
-          <img class="empty-state__illustration" src="img/empty-states/empty-pos.webp" alt="">
+          <img class="empty-state__illustration" src="${themedIllustration('empty-pos')}" alt="">
           <div class="empty-state__title">Cart is empty</div>
           <div class="empty-state__hint">Scan a barcode or tap "Add Product" to start a sale.</div>
         </div>

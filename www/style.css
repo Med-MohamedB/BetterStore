@@ -1864,8 +1864,16 @@ body.swipe-active .topbar {
 .onboard-finale {
   position: relative;
   z-index: 3;
-  width: min(320px, 100%);
-  margin: 0 20px;
+  width: min(320px, calc(100% - 40px));
+  /* This card (shared by What's New, the donate prompt, and the Terms
+     gate) sits inside .onboard-overlay, a plain column flex container
+     with no centering of its own — the real onboarding tour doesn't need
+     any (its track/footer explicitly fill 100% height/width instead), so
+     this card has to center itself. margin:auto on a flex item consumes
+     all the leftover space in both axes, which is what actually centers
+     it — the overlay's own alignment properties are intentionally left
+     alone so the onboarding tour's full-height layout keeps working. */
+  margin: auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg, var(--radius));
@@ -1873,6 +1881,8 @@ body.swipe-active .topbar {
   text-align: center;
   box-shadow: var(--shadow);
   pointer-events: auto;
+  max-height: calc(100% - 40px);
+  overflow-y: auto;
 }
 .onboard-finale__icon { font-size: 44px; margin-bottom: 10px; }
 .onboard-finale__title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
@@ -1888,7 +1898,7 @@ body.swipe-active .topbar {
 
 /* --- What's New changelog --- */
 
-.whatsnew-card { width: min(360px, 100%); text-align: center; }
+.whatsnew-card { width: min(360px, calc(100% - 40px)); text-align: center; }
 .whatsnew-list {
   text-align: left;
   display: flex;

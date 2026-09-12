@@ -39,7 +39,7 @@ const Suppliers = (() => {
         <div class="empty-state${suppliers.length ? '' : ' empty-state--illustrated'}">
           ${suppliers.length
             ? `<div class="empty-state__icon">${Icon('truck', { size: 32 })}</div>`
-            : `<img class="empty-state__illustration" src="img/empty-states/empty-suppliers.webp" alt="">`}
+            : `<img class="empty-state__illustration" src="${themedIllustration('empty-suppliers')}" alt="">`}
           <div class="empty-state__title">${suppliers.length ? 'No suppliers match' : 'No suppliers yet'}</div>
           <div class="empty-state__hint">${suppliers.length ? 'Try a different search.' : 'Tap the button below to add your first supplier.'}</div>
         </div>

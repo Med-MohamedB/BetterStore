@@ -1265,7 +1265,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.9.4';
+const CURRENT_VERSION = '1.9.9.5';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -1571,6 +1571,19 @@ const THEME_PACKS = {
   cherry:   { name: 'Cherry',    accent: '#8C2A3A', accentDim: '#6E202D', accentInk: '#FBF7EF' },
 };
 window.THEME_PACKS = THEME_PACKS;
+
+/** Path to an empty-state illustration recolored to match the current
+ *  theme pack (see tools/recolor-illustration.py — these are pre-
+ *  generated at build time, not recolored live). `name` is the base
+ *  illustration name, e.g. 'empty-products'. Standard reuses the
+ *  original file (it IS the standard-green source); every other pack
+ *  has its own `-<pack>` variant generated from it. */
+function themedIllustration(name) {
+  const pack = document.documentElement.getAttribute('data-pack') || 'standard';
+  const suffix = pack === 'standard' ? '' : `-${pack}`;
+  return `img/empty-states/${name}${suffix}.webp`;
+}
+window.themedIllustration = themedIllustration;
 
 async function applyTheme() {
   const appearance = await Settings.get('appearance');

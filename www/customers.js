@@ -41,7 +41,7 @@ const Customers = (() => {
         <div class="empty-state${customers.length ? '' : ' empty-state--illustrated'}">
           ${customers.length
             ? `<div class="empty-state__icon">${Icon('user', { size: 32 })}</div>`
-            : `<img class="empty-state__illustration" src="img/empty-states/empty-customers.webp" alt="">`}
+            : `<img class="empty-state__illustration" src="${themedIllustration('empty-customers')}" alt="">`}
           <div class="empty-state__title">${customers.length ? 'No customers match' : 'No customers yet'}</div>
           <div class="empty-state__hint">${customers.length ? 'Try a different search.' : 'Tap the button below to add your first customer.'}</div>
         </div>

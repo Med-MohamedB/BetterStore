@@ -1245,7 +1245,7 @@ window.copyToClipboard = copyToClipboard;
 /* Bump this alongside versionName/versionCode in android/app/build.gradle
    every time a new build goes out — there's no native "build date" field
    to read this from automatically, so it's tracked by hand here. */
-const APP_BUILD_DATE = '2026-09-09';
+const APP_BUILD_DATE = '2026-09-12';
 window.APP_BUILD_DATE = APP_BUILD_DATE;
 // Kept in sync by hand with android/app/build.gradle's versionName on
 // every release — used by WhatsNew to detect "this device just updated"
@@ -1257,7 +1257,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.9.1';
+const CURRENT_VERSION = '1.9.9.2';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via

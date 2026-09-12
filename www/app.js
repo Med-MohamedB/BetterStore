@@ -614,13 +614,21 @@ function enableSwipeRows(container, { onEdit, onDelete } = {}) {
         if (Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6) {
           decided = true;
           isHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
-          dragging = isHorizontal;
+          // Only actually claim the gesture if it's a direction that DOES
+          // something for this row — leftward to reveal, or rightward to
+          // close an already-open one. A rightward drag on a closed row is
+          // a no-op below (dx gets clamped to 0), so don't grab it just to
+          // do nothing with it — leave it alone so it's free to become a
+          // tab-swipe instead (that's the same gesture used to go back a
+          // tab, and it should work even starting on a row).
+          const relevant = deltaX < 0 || (open && deltaX > 0);
+          dragging = isHorizontal && relevant;
           // Tell the tab-swipe gesture (bound on an ancestor, so it sees
           // this same touchmove after we do) whether this row is claiming
           // the horizontal drag for its own reveal-actions animation. If
-          // it isn't (a vertical scroll), the tab gesture is free to
-          // decide for itself from the same dx/dy — nothing changes for it.
-          rowSwipeActive = isHorizontal;
+          // it isn't, the tab gesture is free to decide for itself from
+          // the same dx/dy — nothing changes for it.
+          rowSwipeActive = dragging;
         }
       }
       if (!dragging) return;
@@ -1337,10 +1345,12 @@ window.updateCartBadge = updateCartBadge;
 function initTabSwipeGesture() {
   const view = document.getElementById('view');
   const tabOrder = ['dashboard', 'products', 'pos', 'sales', 'more'];
-  const EDGE = 28; // px from either screen edge that always starts a tab-swipe,
-                    // even over a swipe-row or chip-row — otherwise a screen
-                    // whose content is mostly swipe-rows (e.g. Products) would
-                    // have nowhere "safe" left to swipe from.
+  const EDGE = 44; // px from either screen edge that always starts a tab-swipe,
+                    // even over a swipe-row or chip-row — a forward (leftward)
+                    // swipe still can't be told apart from a row's own reveal
+                    // gesture when it starts mid-row (see enableSwipeRows), so
+                    // this edge corridor is the guaranteed-to-work fallback for
+                    // that direction on a screen that's mostly rows.
   let startX = 0, startY = 0, dx = 0, dy = 0, tracking = false, decided = false, horizontal = false, fromEdge = false;
 
   // .swipe-row is deliberately NOT in this list — a touch starting on a
@@ -1379,7 +1389,7 @@ function initTabSwipeGesture() {
       }
       if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
         decided = true;
-        horizontal = fromEdge || Math.abs(dx) > Math.abs(dy) * 1.3;
+        horizontal = fromEdge || Math.abs(dx) > Math.abs(dy) * 1.1;
         if (horizontal) {
           view.classList.add('swipe-tracking');
           // The dozens of blurred glass cards on screen are expensive to

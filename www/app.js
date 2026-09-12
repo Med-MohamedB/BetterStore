@@ -564,6 +564,13 @@ function swipeRowHTML(innerRowHTML, { editable = true, deletable = true, id } = 
     </div>`;
 }
 
+// Shared with initTabSwipeGesture below: true while a list row's own
+// swipe-to-reveal gesture has claimed the current touch as horizontal.
+// Row touchmove listeners fire before the ancestor #view listener for
+// the same event, so by the time the tab-swipe gesture checks this flag
+// it reflects the current touch correctly.
+let rowSwipeActive = false;
+
 function enableSwipeRows(container, { onEdit, onDelete } = {}) {
   container.querySelectorAll('.swipe-row').forEach((row) => {
     const content = row.querySelector('.swipe-row__content');
@@ -576,6 +583,7 @@ function enableSwipeRows(container, { onEdit, onDelete } = {}) {
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
       dx = 0; decided = false; isHorizontal = false;
+      rowSwipeActive = false;
       content.classList.add('dragging');
     }
     function onMove(e) {
@@ -589,6 +597,12 @@ function enableSwipeRows(container, { onEdit, onDelete } = {}) {
           decided = true;
           isHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
           dragging = isHorizontal;
+          // Tell the tab-swipe gesture (bound on an ancestor, so it sees
+          // this same touchmove after we do) whether this row is claiming
+          // the horizontal drag for its own reveal-actions animation. If
+          // it isn't (a vertical scroll), the tab gesture is free to
+          // decide for itself from the same dx/dy — nothing changes for it.
+          rowSwipeActive = isHorizontal;
         }
       }
       if (!dragging) return;
@@ -607,6 +621,7 @@ function enableSwipeRows(container, { onEdit, onDelete } = {}) {
         content.style.transform = open ? `translateX(-${actionsWidth}px)` : 'translateX(0)';
       }
       dragging = false;
+      rowSwipeActive = false;
       setTimeout(() => content.classList.remove('settling'), 240);
     }
 
@@ -1310,8 +1325,15 @@ function initTabSwipeGesture() {
                     // have nowhere "safe" left to swipe from.
   let startX = 0, startY = 0, dx = 0, dy = 0, tracking = false, decided = false, horizontal = false, fromEdge = false;
 
+  // .swipe-row is deliberately NOT in this list — a touch starting on a
+  // list row is allowed to become a tab-swipe. Whether it actually does
+  // is arbitrated live in touchmove via rowSwipeActive, so it only backs
+  // off when that specific row claims the drag for its own reveal-actions
+  // animation. Chip strips, text inputs, and the search bar have their
+  // own native/horizontal-scroll behavior with no such arbitration point,
+  // so those still require an edge-swipe to start a tab change.
   const blockedTarget = (target) =>
-    target.closest('.swipe-row, .chip-row, input, textarea, select, .search-bar, .scanner-overlay');
+    target.closest('.chip-row, input, textarea, select, .search-bar, .scanner-overlay');
 
   view.addEventListener('touchstart', (e) => {
     if (Sheet.el || document.querySelector('.scanner-overlay')) return;
@@ -1329,6 +1351,14 @@ function initTabSwipeGesture() {
     dy = e.touches[0].clientY - startY;
 
     if (!decided) {
+      // A row under this touch already decided this is ITS horizontal
+      // drag (swipe-to-reveal) — yield instead of also grabbing the
+      // gesture, unless it's an edge-swipe (that always wins, same as
+      // Android's own edge-swipe-back).
+      if (!fromEdge && rowSwipeActive) {
+        tracking = false;
+        return;
+      }
       if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
         decided = true;
         horizontal = fromEdge || Math.abs(dx) > Math.abs(dy) * 1.3;

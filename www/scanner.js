@@ -410,7 +410,7 @@ const Scanner = (() => {
         console.warn('Native BarcodeDetector init failed, falling back to ZXing:', e);
       }
     }
-    scanLoopZXing(videoEl, onDetected, continuous);
+    await scanLoopZXing(videoEl, onDetected, continuous);
   }
 
   /** video.play() occasionally rejects transiently (e.g. AbortError right
@@ -584,7 +584,15 @@ const Scanner = (() => {
     rafId = requestAnimationFrame(tick);
   }
 
-  function scanLoopZXing(videoEl, onDetected, continuous) {
+  async function scanLoopZXing(videoEl, onDetected, continuous) {
+    if (typeof ZXing === 'undefined') {
+      try {
+        await loadScriptOnce('vendor/zxing.min.js');
+      } catch (e) {
+        showHint('Barcode scanning isn\u2019t supported in this browser.');
+        return;
+      }
+    }
     if (typeof ZXing === 'undefined') {
       showHint('Barcode scanning isn\u2019t supported in this browser.');
       return;

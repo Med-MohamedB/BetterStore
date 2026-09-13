@@ -13,6 +13,30 @@
  * so navigation is fully clickable from stage 1 onward.
  */
 
+/** Loads an external script on first call and caches the promise so a
+ *  second call for the same src reuses it instead of re-injecting a tag.
+ *  Used to keep heavy, occasionally-needed vendor libs (jsPDF, ZXing —
+ *  744KB combined) OUT of the eager boot path: every one of the 24
+ *  <script> tags in index.html has to be fetched through Capacitor's
+ *  embedded local web server before boot() can run, which is real,
+ *  measurable per-file overhead on a slow device, not a free local-disk
+ *  read. Only downloading these two when the feature that needs them is
+ *  actually used (PDF export, camera barcode scanning) cuts what every
+ *  single launch has to load through by nearly half. */
+const _loadedScripts = {};
+function loadScriptOnce(src) {
+  if (_loadedScripts[src]) return _loadedScripts[src];
+  _loadedScripts[src] = new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src = src;
+    el.onload = () => resolve();
+    el.onerror = () => { delete _loadedScripts[src]; reject(new Error('Failed to load ' + src)); };
+    document.body.appendChild(el);
+  });
+  return _loadedScripts[src];
+}
+window.loadScriptOnce = loadScriptOnce;
+
 const Router = (() => {
   const routes = {};
   let currentRoute = null;
@@ -771,6 +795,9 @@ window.Receipt = Receipt;
 /* Page height is computed with a throwaway measuring doc first, so the    */
 /* real PDF is trimmed tight to its content — no blank trailing space.     */
 async function buildReceiptPDF(sale, store) {
+  // jsPDF is lazy-loaded (see loadScriptOnce above) — not present until
+  // the first thing that needs it actually runs.
+  if (!window.jspdf) await loadScriptOnce('vendor/jspdf.umd.min.js');
   const { jsPDF } = window.jspdf;
   const pageWidth = 80;
   const margin = 5;
@@ -1049,11 +1076,6 @@ async function printReceipt(sale, store) {
     return;
   }
 
-  if (!window.jspdf) {
-    Toast.error('Diagnostic: jsPDF not loaded');
-    return;
-  }
-
   let doc;
   try {
     doc = await buildReceiptPDF(sale, store);
@@ -1139,8 +1161,8 @@ async function printGenericHTML(html) {
   }
 
   if (!window.jspdf) {
-    Toast.error('Diagnostic: jsPDF not loaded');
-    return;
+    try { await loadScriptOnce('vendor/jspdf.umd.min.js'); }
+    catch (e) { Toast.error('Could not load the PDF exporter — check your storage isn\u2019t full and try again.'); return; }
   }
   const textLines = html
     .replace(/<style[\s\S]*?<\/style>/gi, '')
@@ -1265,7 +1287,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.9.6';
+const CURRENT_VERSION = '1.9.9.7';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via

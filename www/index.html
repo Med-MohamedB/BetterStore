@@ -82,33 +82,39 @@
      naturally across pages instead of inheriting a Sheet's positioning. -->
 <div id="printArea"></div>
 
-<!-- Core layer (order matters: db before app) -->
-<script src="db.js"></script>
-<script src="vendor/motion.min.js"></script>
-<script src="icons.js"></script>
-<script src="app.js"></script>
-<script src="products.js"></script>
-<script src="vendor/zxing.min.js"></script>
-<script src="vendor/jspdf.umd.min.js"></script>
-<script src="scanner.js"></script>
-<script src="pos.js"></script>
-<script src="inventory.js"></script>
-<script src="sales.js"></script>
-<script src="reports.js"></script>
-<script src="customers.js"></script>
-<script src="suppliers.js"></script>
-<script src="backup.js"></script>
-<script src="settings.js"></script>
-<script src="onboarding.js"></script>
-<script src="whatsnew.js"></script>
-<script src="donate.js"></script>
-<script src="terms.js"></script>
-<script src="shopPromo.js"></script>
-<script src="adMob.js"></script>
-<script src="adNotify.js"></script>
-<script src="adPush.js"></script>
-<script src="stats.js"></script>
-<script src="selfUpdate.js"></script>
+<!-- Core layer (order matters: db before app). All deferred so the
+     browser can fetch them in parallel instead of one full round-trip
+     through Capacitor's local web server at a time — defer still runs
+     them in this exact document order afterward, so nothing here
+     changes; it's the same execution order, just fetched concurrently.
+     vendor/zxing.min.js (332KB) and vendor/jspdf.umd.min.js (412KB) are
+     deliberately NOT here — see loadScriptOnce in app.js — they're
+     fetched on first actual use (opening the scanner / exporting a PDF)
+     instead of on every single launch. -->
+<script src="db.js" defer></script>
+<script src="vendor/motion.min.js" defer></script>
+<script src="icons.js" defer></script>
+<script src="app.js" defer></script>
+<script src="products.js" defer></script>
+<script src="scanner.js" defer></script>
+<script src="pos.js" defer></script>
+<script src="inventory.js" defer></script>
+<script src="sales.js" defer></script>
+<script src="reports.js" defer></script>
+<script src="customers.js" defer></script>
+<script src="suppliers.js" defer></script>
+<script src="backup.js" defer></script>
+<script src="settings.js" defer></script>
+<script src="onboarding.js" defer></script>
+<script src="whatsnew.js" defer></script>
+<script src="donate.js" defer></script>
+<script src="terms.js" defer></script>
+<script src="shopPromo.js" defer></script>
+<script src="adMob.js" defer></script>
+<script src="adNotify.js" defer></script>
+<script src="adPush.js" defer></script>
+<script src="stats.js" defer></script>
+<script src="selfUpdate.js" defer></script>
 
 <!-- Feature modules are added here as they're built, stage by stage -->
 <!-- <script src="pos.js"></script> -->

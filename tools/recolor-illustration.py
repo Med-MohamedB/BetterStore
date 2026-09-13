@@ -64,7 +64,7 @@ def hex_to_hsv(hex_color):
     return colorsys.rgb_to_hsv(r, g, b)
 
 
-def recolor(im, target_hex, green_hue=(100, 190), min_sat=0.04, sat_match=0.0, val_match=0.0):
+def recolor(im, target_hex, green_hue=(75, 190), min_sat=0.04, sat_match=0.0, val_match=0.0):
     im = im.convert('RGBA')
     arr = np.asarray(im).astype(np.float32) / 255.0
     r, g, b, a = arr[..., 0], arr[..., 1], arr[..., 2], arr[..., 3]
@@ -139,7 +139,7 @@ def main():
     ap.add_argument('input')
     ap.add_argument('target_hex')
     ap.add_argument('output')
-    ap.add_argument('--green-hue', default='100-190')
+    ap.add_argument('--green-hue', default='75-190')
     ap.add_argument('--min-sat', type=float, default=0.04)
     ap.add_argument('--sat-match', type=float, default=0.0)
     ap.add_argument('--val-match', type=float, default=0.0)

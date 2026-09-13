@@ -11,6 +11,7 @@ const WhatsNew = (() => {
   // Add a new entry here each release; oldest-first doesn't matter since
   // only the current version's list is ever shown.
   const ITEMS = [
+    { icon: '🎨', text: 'Found the real source of the leftover green: several UI elements \u2014 the revenue trend badge, the promo banner\u2019s glowing border, success badges/toasts, and even the update-download progress bar \u2014 were quietly using a hardcoded green regardless of your theme pack instead of actually following it. All switched to follow the active pack now.' },
     { icon: Icon('zap'), text: 'Faster launches, especially on older phones \u2014 scripts now load in parallel instead of one at a time, and the barcode scanner / PDF export libraries (744KB combined) only load when you actually use those features instead of on every single launch.' },
     { icon: '🎨', text: 'Fixed a few stray lime-green highlights that were slipping through the theme recolor on every illustration, and made the notification icon neutral so it stops clashing with non-green theme packs.' },
     { icon: '🎨', text: 'Theme packs now actually recolor every illustration \u2014 empty states AND onboarding \u2014 including the pale background/shadow tints that were still stubbornly green before.' },

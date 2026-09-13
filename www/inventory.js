@@ -120,7 +120,7 @@ const Inventory = (() => {
               <div class="list-row__subtitle">${escapeHTML(entry.reason)} · ${Fmt.dateTime(entry.date)}</div>
             </div>
             <div class="list-row__trailing">
-              <div class="list-row__amount num" style="color:${entry.change > 0 ? 'var(--teal)' : 'var(--coral)'};">${entry.change > 0 ? '+' : ''}${entry.change}</div>
+              <div class="list-row__amount num" style="color:${entry.change > 0 ? 'var(--accent)' : 'var(--coral)'};">${entry.change > 0 ? '+' : ''}${entry.change}</div>
               <div class="text-dim text-sm mt-8">→ ${entry.newQuantity}</div>
             </div>
           </div>

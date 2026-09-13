@@ -40,12 +40,17 @@
   --warn: #A6741B;
   --warn-bg: color-mix(in srgb, var(--warn) 16%, var(--surface));
   --info: #2E4560;
+  /* A themed equivalent of danger-bg/success-bg for "positive/highlight"
+     UI that isn't actually a red/green alert — built from --accent so it
+     re-tints with the pack instead of being permanently green. */
+  --accent-bg: color-mix(in srgb, var(--accent) 16%, var(--surface));
 
-  /* Stopgap aliases so the ~30 rules further down this file that still say
-     var(--coral)/var(--teal)/var(--blue) (mostly old glass-era decorative
-     gradients — ambient background blobs, avatar rings, achievement glow)
-     keep resolving to something sane until Stage 3 rebuilds each of those
-     components for Stockroom and these old names get retired for good. */
+  /* Aliases for confetti (app.js's celebratory burst deliberately wants
+     genuine color variety, not theme-matched tones) and any component
+     still keying off the old names. Stage 3 migrated every decorative
+     gradient/sheen/badge that used to route through --teal/--blue over
+     to --accent/--accent-dim instead, so they actually re-tint with the
+     pack now rather than staying permanently green/navy. */
   --coral: var(--danger);
   --teal: var(--success);
   --blue: var(--info);
@@ -208,13 +213,13 @@ a { color: inherit; text-decoration: none; }
 /* A faint, slow-drifting accent sheen behind the title — the "alive"
    touch: barely perceptible at rest, but it means the header is never
    perfectly static, and it automatically re-tints with the theme pack
-   since it's built from var(--accent)/var(--teal). */
+   since it's built from var(--accent)/var(--accent-dim) only. */
 .topbar::before {
   content: '';
   position: absolute;
   inset: -40% -20%;
   background: radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 60%),
-              radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--teal) 12%, transparent), transparent 55%);
+              radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--accent-dim) 12%, transparent), transparent 55%);
   background-size: 180% 180%;
   animation: topbarDrift 14s ease-in-out infinite alternate;
   pointer-events: none;
@@ -474,7 +479,7 @@ main#view {
   padding: 3px 8px;
   border-radius: 999px;
 }
-.hero-card__trend.up { color: var(--success, #6fcf97); background: color-mix(in srgb, var(--success, #6fcf97) 16%, transparent); }
+.hero-card__trend.up { color: var(--accent); background: var(--accent-bg); }
 .hero-card__trend.down { color: var(--coral); background: var(--danger-bg); }
 .hero-card__value {
   font-size: 34px;
@@ -720,7 +725,7 @@ main#view {
 }
 .badge--warn { background: var(--warn-bg); color: var(--accent); }
 .badge--danger { background: var(--danger-bg); color: var(--coral); }
-.badge--success { background: var(--success-bg); color: var(--teal); }
+.badge--success { background: var(--accent-bg); color: var(--accent); }
 .badge--neutral { background: var(--surface-2); color: var(--text-dim); }
 
 /* --- Buttons --- */
@@ -1047,7 +1052,7 @@ main#view {
   max-width: 88vw;
 }
 .toast.out { animation: toastOut var(--dur-fast) var(--ease-out) forwards; }
-.toast--success { border-color: var(--success); color: var(--teal); }
+.toast--success { border-color: var(--accent); color: var(--accent); }
 .toast--danger { border-color: var(--danger); color: var(--coral); }
 
 @keyframes toastIn {
@@ -1977,7 +1982,7 @@ body.swipe-active .topbar {
   overflow: hidden;
   background:
     linear-gradient(var(--surface), var(--surface)) padding-box,
-    linear-gradient(120deg, var(--accent), var(--teal), var(--blue)) border-box;
+    linear-gradient(120deg, var(--accent), var(--accent-dim)) border-box;
   border: 1.5px solid transparent;
   border-radius: var(--radius);
   box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--accent) 45%, transparent);
@@ -1989,7 +1994,7 @@ body.swipe-active .topbar {
 .feature-spotlight__sheen {
   position: absolute;
   inset: 0;
-  background: linear-gradient(115deg, transparent 30%, color-mix(in srgb, var(--teal) 35%, transparent) 45%, transparent 60%);
+  background: linear-gradient(115deg, transparent 30%, color-mix(in srgb, var(--accent) 35%, transparent) 45%, transparent 60%);
   background-size: 250% 250%;
   animation: spotlightSheen 5s ease-in-out infinite;
   pointer-events: none;
@@ -2011,7 +2016,7 @@ body.swipe-active .topbar {
 }
 .feature-spotlight__media--emoji {
   font-size: 21px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, var(--surface-2)), color-mix(in srgb, var(--teal) 22%, var(--surface-2)));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, var(--surface-2)), color-mix(in srgb, var(--accent-dim) 22%, var(--surface-2)));
 }
 .feature-spotlight__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
@@ -2056,7 +2061,7 @@ body.swipe-active .topbar {
   text-decoration: none;
   background:
     linear-gradient(var(--surface), var(--surface)) padding-box,
-    linear-gradient(120deg, var(--accent), var(--teal), var(--blue)) border-box;
+    linear-gradient(120deg, var(--accent), var(--accent-dim)) border-box;
   border: 1.5px solid transparent;
   box-shadow: var(--shadow-lg), 0 6px 18px -8px color-mix(in srgb, var(--accent) 45%, transparent);
 }
@@ -2076,7 +2081,7 @@ body.swipe-active .topbar {
   position: absolute;
   inset: 0;
   z-index: 2;
-  background: linear-gradient(115deg, transparent 30%, color-mix(in srgb, var(--teal) 35%, transparent) 45%, transparent 60%);
+  background: linear-gradient(115deg, transparent 30%, color-mix(in srgb, var(--accent) 35%, transparent) 45%, transparent 60%);
   background-size: 250% 250%;
   animation: spotlightSheen 5s ease-in-out infinite;
   pointer-events: none;
@@ -2214,7 +2219,7 @@ a:active .icon-svg {
   max-width: 340px;
   background:
     linear-gradient(color-mix(in srgb, var(--surface) 96%, transparent), color-mix(in srgb, var(--surface) 96%, transparent)) padding-box,
-    linear-gradient(135deg, var(--accent), var(--teal), var(--accent)) border-box;
+    linear-gradient(135deg, var(--accent), var(--accent-dim), var(--accent)) border-box;
   border: 1.5px solid transparent;
   border-radius: 24px;
   box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-lg), 0 0 50px -12px color-mix(in srgb, var(--accent) 55%, transparent);
@@ -2230,7 +2235,7 @@ a:active .icon-svg {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(115deg, transparent 30%, color-mix(in srgb, var(--teal) 22%, transparent) 45%, transparent 60%);
+  background: linear-gradient(115deg, transparent 30%, color-mix(in srgb, var(--accent) 22%, transparent) 45%, transparent 60%);
   background-size: 250% 250%;
   animation: spotlightSheen 6s ease-in-out infinite;
   pointer-events: none;
@@ -2245,7 +2250,7 @@ a:active .icon-svg {
 .update-block__ring-spin {
   position: absolute; inset: 0;
   border-radius: 50%;
-  background: conic-gradient(from 0deg, var(--accent), var(--teal), transparent 60%);
+  background: conic-gradient(from 0deg, var(--accent), var(--accent-dim), transparent 60%);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
           mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
   animation: updateRingSpin 2.2s linear infinite;
@@ -2272,7 +2277,7 @@ a:active .icon-svg {
   border-radius: 999px;
   font-size: 12px; font-weight: 800;
   color: var(--accent-ink, #1D1721);
-  background: linear-gradient(135deg, var(--teal), var(--accent));
+  background: linear-gradient(135deg, var(--accent-dim), var(--accent));
   position: relative; z-index: 1;
 }
 .update-block__sub { font-size: 12px; color: var(--text-faint); margin-top: 12px; line-height: 1.5; position: relative; z-index: 1; }
@@ -2291,7 +2296,7 @@ a:active .icon-svg {
   height: 100%;
   width: 0%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--accent), var(--teal));
+  background: linear-gradient(90deg, var(--accent), var(--accent-dim));
   box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 60%, transparent);
   transition: width 0.25s ease;
   overflow: hidden;
@@ -2313,8 +2318,8 @@ a:active .icon-svg {
   100% { transform: translateX(160%); }
 }
 .update-block__progress-fill.done {
-  background: var(--success);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--success) 70%, transparent);
+  background: var(--accent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 70%, transparent);
   animation: updateDonePulse 0.5s var(--ease-spring, ease) both;
 }
 .update-block__progress-fill.done .update-block__progress-shimmer { display: none; }
@@ -2331,7 +2336,7 @@ a:active .icon-svg {
   margin-top: 22px;
   padding: 14px;
   border-radius: var(--radius-sm, 12px);
-  background: linear-gradient(135deg, var(--teal), var(--accent));
+  background: linear-gradient(135deg, var(--accent-dim), var(--accent));
   color: var(--accent-ink, #1D1721);
   font-weight: 800;
   font-size: 15px;

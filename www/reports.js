@@ -150,7 +150,7 @@ const Reports = (() => {
       ${paymentRows.length ? `
         <div class="section-title">Payment Methods</div>
         <div class="card">
-          ${paymentRows.map(([method, data]) => barRow(`${method} (${data.count})`, data.revenue, paymentRows[0][1].revenue, 'var(--teal)')).join('')}
+          ${paymentRows.map(([method, data]) => barRow(`${method} (${data.count})`, data.revenue, paymentRows[0][1].revenue, 'var(--accent-dim)')).join('')}
         </div>
       ` : ''}
 
@@ -161,7 +161,7 @@ const Reports = (() => {
         <div class="flex-between mt-8"><span class="text-dim text-sm">Discounts Given</span><span class="num text-sm">− ${Fmt.money(discounts)}</span></div>
         <div class="flex-between mt-16" style="padding-top:12px; border-top:1px solid var(--border);">
           <span style="font-weight:700;">Est. Profit</span>
-          <span class="num" style="font-weight:700; color:var(--teal);">${Fmt.money(profit)}</span>
+          <span class="num" style="font-weight:700; color:var(--accent);">${Fmt.money(profit)}</span>
         </div>
       </div>
     `;

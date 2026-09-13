@@ -2475,7 +2475,7 @@ a:active .icon-svg {
 /* Placement variants — the text sits above-left of the target with the
    arrow curving down toward it (matching the reference), or flipped/
    rotated for a target that sits elsewhere relative to the note. */
-.doodle-hint--br .doodle-hint__arrow { margin-left: auto; }
+.doodle-hint--br .doodle-hint__arrow { margin-left: auto; transform: scaleX(-1); }
 .doodle-hint--bl .doodle-hint__arrow { transform: scaleX(-1); }
 .doodle-hint--tr { display: flex; flex-direction: column-reverse; }
 .doodle-hint--tr .doodle-hint__arrow { transform: scaleY(-1); margin-left: auto; }

@@ -13,8 +13,29 @@ const Sales = (() => {
   let dateFilter = 'all';    // 'all' | 'today' | 'week' | 'month'
 
   async function render(container) {
-    document.getElementById('topbarActions').innerHTML = '';
+    const actions = document.getElementById('topbarActions');
+    actions.innerHTML = `<button class="icon-btn tappable" id="scanReceiptBtn" title="Scan a receipt">${Icon('scan')}</button>`;
+    actions.querySelector('#scanReceiptBtn').addEventListener('click', () => scanForReceipt(container));
     await renderList(container);
+  }
+
+  /** Opens the camera, decodes a receipt's barcode (its receiptNumber —
+   *  see Barcode128 in app.js), and jumps straight to that sale's detail/
+   *  receipt view. Works for ANY past sale, regardless of the current
+   *  search/filter state of the list underneath. */
+  function scanForReceipt(container) {
+    Scanner.openContinuous({
+      title: 'Scan Receipt',
+      onScan: async (code) => {
+        const sale = await DB.getByIndex('sales', 'receiptNumber', code);
+        if (sale) {
+          Scanner.closeActive();
+          setTimeout(() => openDetail(sale, container), 260);
+          return { text: `\u2713 ${sale.receiptNumber}`, variant: 'success' };
+        }
+        return { text: `Not a receipt: ${code}`, variant: 'warn' };
+      },
+    });
   }
 
   function inDateRange(sale) {

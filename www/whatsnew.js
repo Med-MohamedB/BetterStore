@@ -11,6 +11,9 @@ const WhatsNew = (() => {
   // Add a new entry here each release; oldest-first doesn't matter since
   // only the current version's list is ever shown.
   const ITEMS = [
+    { icon: Icon('scan'), text: 'Every receipt now has a real, scannable barcode (both on-screen and in the printed PDF), and Sales has a new scan icon in the top bar \u2014 scan any past receipt\u2019s barcode to jump straight to that sale, no searching needed.' },
+    { icon: Icon('receipt'), text: 'Redesigned the receipt layout to match a classic itemized paper receipt \u2014 Qty/Item/Price columns, item discounts shown as their own line, an items-sold count, and a proper footer with the receipt number, date, and time.' },
+    { icon: '👆', text: 'Flipped the direction of the empty-state hint arrow \u2014 let me know if it should go back or point somewhere else entirely.' },
     { icon: Icon('check-circle'), text: 'Fixed the "add your first..." hint arrow overlapping the empty-state text when the promo banner is showing (it pushes everything down, which the hint wasn\u2019t accounting for) \u2014 it now checks for that and keeps clear.' },
     { icon: Icon('shield'), text: 'Every "delete this?" / "clear everything?" / "refund?" confirmation across the app now uses a real themed dialog instead of the browser\u2019s plain native popup \u2014 covers Products, Categories, Customers, Suppliers, Sales refunds, POS cart/checkout, and backup restore/wipe.' },
     { icon: '✍️', text: 'The empty-state hint arrows now use a real handwriting font instead of a generic system fallback \u2014 should look meaningfully more like an actual note, not just slanted text.' },

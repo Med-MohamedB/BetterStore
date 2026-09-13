@@ -771,12 +771,115 @@ window.enableSwipeRows = enableSwipeRows;
 /* never drift out of sync with each other or with the store's info.      */
 /* ---------------------------------------------------------------------- */
 
+/* ---------------------------------------------------------------------- */
+/* Barcode128 — a real, scannable Code128 (Set B) barcode generator, used */
+/* on receipts so a sale's receipt number can be scanned back up later    */
+/* (see Sales' "Scan to Find" and the receiptNumber field in Ids.js).     */
+/* Set B covers ASCII 32-126 — uppercase, digits, hyphens, everything     */
+/* Ids.receiptNumber() actually produces — so there's no need for the     */
+/* full auto-switching-between-sets complexity a general-purpose library  */
+/* would have. The bar-pattern table below is copied verbatim from        */
+/* JsBarcode's own constants.js (MIT-licensed, github.com/lindell/        */
+/* JsBarcode) rather than transcribed from memory, and the output was     */
+/* round-trip verified (encoded here, decoded with a real Code128 reader, */
+/* got the exact input back) before shipping — a broken barcode is worse  */
+/* than no barcode at all.                                                */
+/* ---------------------------------------------------------------------- */
+const Barcode128 = (() => {
+  // Each entry is a symbol's bar/space pattern, written as a decimal
+  // literal whose digits only ever happen to be 0/1 — .toString() on it
+  // gives the pattern directly ('1' = one bar-width module, '0' = one
+  // space-width module). Index 104 = START (Set B), 106 = STOP.
+  const BARS = [
+    11011001100, 11001101100, 11001100110, 10010011000, 10010001100,
+    10001001100, 10011001000, 10011000100, 10001100100, 11001001000,
+    11001000100, 11000100100, 10110011100, 10011011100, 10011001110,
+    10111001100, 10011101100, 10011100110, 11001110010, 11001011100,
+    11001001110, 11011100100, 11001110100, 11101101110, 11101001100,
+    11100101100, 11100100110, 11101100100, 11100110100, 11100110010,
+    11011011000, 11011000110, 11000110110, 10100011000, 10001011000,
+    10001000110, 10110001000, 10001101000, 10001100010, 11010001000,
+    11000101000, 11000100010, 10110111000, 10110001110, 10001101110,
+    10111011000, 10111000110, 10001110110, 11101110110, 11010001110,
+    11000101110, 11011101000, 11011100010, 11011101110, 11101011000,
+    11101000110, 11100010110, 11101101000, 11101100010, 11100011010,
+    11101111010, 11001000010, 11110001010, 10100110000, 10100001100,
+    10010110000, 10010000110, 10000101100, 10000100110, 10110010000,
+    10110000100, 10011010000, 10011000010, 10000110100, 10000110010,
+    11000010010, 11001010000, 11110111010, 11000010100, 10001111010,
+    10100111100, 10010111100, 10010011110, 10111100100, 10011110100,
+    10011110010, 11110100100, 11110010100, 11110010010, 11011011110,
+    11011110110, 11110110110, 10101111000, 10100011110, 10001011110,
+    10111101000, 10111100010, 11110101000, 11110100010, 10111011110,
+    10111101110, 11101011110, 11110101110, 11010000100, 11010010000,
+    11010011100, 1100011101011,
+  ];
+  const START_B = 104;
+  const STOP = 106;
+
+  /** Encodes `text` into the full module pattern as a string of '1'/'0'
+   *  characters. Returns null (never a malformed barcode) if `text` has
+   *  a character outside ASCII 32-126. */
+  function encode(text) {
+    if (!/^[\x20-\x7E]+$/.test(text)) return null;
+    const codes = [START_B];
+    for (let i = 0; i < text.length; i++) codes.push(text.charCodeAt(i) - 32);
+    let checksum = codes[0];
+    for (let i = 1; i < codes.length; i++) checksum += codes[i] * i;
+    codes.push(checksum % 103);
+    codes.push(STOP);
+    return codes.map((c) => BARS[c].toString()).join('');
+  }
+
+  /** Renders `text` as an inline SVG barcode (bars only — callers add
+   *  their own human-readable text label below if wanted). Width scales
+   *  with text length automatically via the viewBox. Returns '' rather
+   *  than a broken-looking barcode if `text` can't be encoded. */
+  function svg(text, { moduleWidth = 2, height = 50 } = {}) {
+    const pattern = encode(text);
+    if (!pattern) return '';
+    let x = 0;
+    let bars = '';
+    for (let i = 0; i < pattern.length; i++) {
+      if (pattern[i] === '1') bars += `<rect x="${x}" y="0" width="${moduleWidth}" height="${height}" />`;
+      x += moduleWidth;
+    }
+    return `<svg viewBox="0 0 ${x} ${height}" width="100%" height="${height}px" preserveAspectRatio="none" fill="currentColor" style="display:block;">${bars}</svg>`;
+  }
+
+  /** Draws the same barcode directly onto a jsPDF document (mm units) at
+   *  (x, y). Returns the total width drawn, so the caller can center
+   *  it or place a label under it. */
+  function drawOnPDF(doc, text, x, y, { moduleWidth = 0.32, height = 12 } = {}) {
+    const pattern = encode(text);
+    if (!pattern) return 0;
+    let cx = x;
+    doc.setFillColor(0, 0, 0);
+    for (let i = 0; i < pattern.length; i++) {
+      if (pattern[i] === '1') doc.rect(cx, y, moduleWidth, height, 'F');
+      cx += moduleWidth;
+    }
+    return cx - x;
+  }
+
+  return { encode, svg, drawOnPDF };
+})();
+window.Barcode128 = Barcode128;
+
 const Receipt = (() => {
   /* On-screen / on-paper HTML block, rendered inside a Sheet and also    */
-  /* dropped into #printArea for the browser fallback print path.         */
+  /* dropped into #printArea for the browser fallback print path. Column  */
+  /* layout (Qty / Item / Price) with a scannable barcode at the bottom —  */
+  /* see Barcode128 above and Sales' "Scan to Find" (looks a real sale    */
+  /* back up by decoding this same receiptNumber).                        */
   function html(sale, store) {
     const refunded = sale.status === 'refunded';
+    const partial = sale.status === 'partially_refunded';
     const footerText = store.receiptFooter !== '' ? (store.receiptFooter || 'Thank you for your purchase!') : '';
+    const itemCount = sale.items.reduce((s, it) => s + it.qty, 0);
+    const barcodeSvg = Barcode128.svg(sale.receiptNumber, { moduleWidth: 1.6, height: 44 });
+    const dashedRow = '<div style="border-top:1px dashed var(--border); margin:10px 0;"></div>';
+
     return `
       <div class="receipt-print">
         <div style="text-align:center;">
@@ -785,28 +888,42 @@ const Receipt = (() => {
           ${store.address ? `<div class="text-dim text-sm">${escapeHTML(store.address)}</div>` : ''}
           ${store.phone ? `<div class="text-dim text-sm">${escapeHTML(store.phone)}</div>` : ''}
         </div>
-        <div class="flex-between mt-16 text-sm"><span class="text-dim">Receipt</span><span class="num">${sale.receiptNumber}</span></div>
-        <div class="flex-between text-sm"><span class="text-dim">Date</span><span class="num">${Fmt.dateTime(sale.date)}</span></div>
-        ${refunded ? `<div class="mt-8"><span class="badge badge--danger">Refunded</span></div>` : ''}
-        <div style="border-top:1px dashed var(--border); margin:12px 0;"></div>
+        ${refunded ? `<div class="mt-8" style="text-align:center;"><span class="badge badge--danger">Refunded</span></div>`
+          : partial ? `<div class="mt-8" style="text-align:center;"><span class="badge badge--danger">Partially Refunded</span></div>` : ''}
+        ${dashedRow}
+        <div class="flex-between text-sm text-dim" style="font-weight:700; text-transform:uppercase; letter-spacing:0.02em;">
+          <span>Qty&nbsp;&nbsp;Item</span><span>Price</span>
+        </div>
+        ${dashedRow}
         ${sale.items.map((it) => `
-          <div class="flex-between text-sm" style="margin-bottom:4px;">
-            <span>${it.qty}× ${escapeHTML(it.name)} <span class="text-dim">@ ${Fmt.money(it.price)}</span></span>
-            <span class="num">${Fmt.money(it.price * it.qty - (it.discount || 0))}</span>
+          <div class="flex-between text-sm" style="margin-bottom:3px;">
+            <span>${it.qty}\u00d7&nbsp;&nbsp;${escapeHTML(it.name)}</span>
+            <span class="num">${Fmt.money(it.price * it.qty)}</span>
           </div>
-          ${it.discount ? `<div class="flex-between text-sm text-dim" style="margin-bottom:4px; margin-top:-2px;"><span>&nbsp;&nbsp;Item discount</span><span class="num">− ${Fmt.money(it.discount)}</span></div>` : ''}
+          ${it.discount ? `<div class="flex-between text-sm text-dim" style="margin-bottom:6px; margin-top:-2px;"><span>&nbsp;&nbsp;&nbsp;&nbsp;*** Item Discount</span><span class="num">\u2212 ${Fmt.money(it.discount)}</span></div>` : ''}
         `).join('')}
-        <div style="border-top:1px dashed var(--border); margin:12px 0;"></div>
+        <div class="text-center text-dim text-sm mt-8" style="text-align:center;">${itemCount} item${itemCount !== 1 ? 's' : ''} sold</div>
+        ${dashedRow}
         <div class="flex-between text-sm"><span class="text-dim">Subtotal</span><span class="num">${Fmt.money(sale.subtotal)}</span></div>
-        ${(sale.itemDiscounts || sale.discount) ? `<div class="flex-between text-sm"><span class="text-dim">Discount</span><span class="num">− ${Fmt.money((sale.itemDiscounts || 0) + (sale.discount || 0))}</span></div>` : ''}
+        ${sale.itemDiscounts ? `<div class="flex-between text-sm"><span class="text-dim">Item Discounts</span><span class="num">\u2212 ${Fmt.money(sale.itemDiscounts)}</span></div>` : ''}
+        ${sale.discount ? `<div class="flex-between text-sm"><span class="text-dim">Order Discount</span><span class="num">\u2212 ${Fmt.money(sale.discount)}</span></div>` : ''}
         ${sale.tax ? `<div class="flex-between text-sm"><span class="text-dim">Tax</span><span class="num">${Fmt.money(sale.tax)}</span></div>` : ''}
-        <div class="flex-between mt-8" style="font-weight:700; color:var(--accent); font-size:15px;"><span>Total</span><span class="num">${Fmt.money(sale.total)}</span></div>
-        <div class="flex-between text-sm mt-8"><span class="text-dim">Payment</span><span>${sale.paymentMethod}</span></div>
+        ${dashedRow}
+        <div class="flex-between" style="font-weight:800; color:var(--accent); font-size:17px;"><span>Total</span><span class="num">${Fmt.money(sale.total)}</span></div>
+        <div class="flex-between text-sm mt-8"><span class="text-dim">Payment</span><span style="text-transform:capitalize;">${escapeHTML(sale.paymentMethod)}</span></div>
         ${sale.paymentMethod === 'cash' && sale.amountReceived != null ? `
-          <div class="flex-between text-sm"><span class="text-dim">Received</span><span class="num">${Fmt.money(sale.amountReceived)}</span></div>
+          <div class="flex-between text-sm"><span class="text-dim">Tendered</span><span class="num">${Fmt.money(sale.amountReceived)}</span></div>
           <div class="flex-between text-sm"><span class="text-dim">Change</span><span class="num">${Fmt.money(sale.change)}</span></div>
         ` : ''}
+        ${dashedRow}
+        <div class="text-center" style="text-align:center; font-weight:700; letter-spacing:0.04em; margin-bottom:10px;">THANK YOU</div>
+        ${barcodeSvg ? `<div style="color:var(--text); padding:0 8px;">${barcodeSvg}</div>` : ''}
+        <div class="text-center text-dim text-sm" style="text-align:center; letter-spacing:0.08em; margin-top:4px;">${sale.receiptNumber}</div>
         ${footerText ? `<div class="text-center text-dim text-sm mt-16" style="text-align:center;">${escapeHTML(footerText)}</div>` : ''}
+        ${dashedRow}
+        <div class="flex-between text-dim" style="font-size:11px;">
+          <span class="num">${sale.receiptNumber}</span><span class="num">${Fmt.dateTime(sale.date)}</span>
+        </div>
       </div>
     `;
   }
@@ -822,20 +939,24 @@ const Receipt = (() => {
     lines.push(`Receipt: ${sale.receiptNumber}`);
     lines.push(`Date: ${Fmt.dateTime(sale.date)}`);
     if (sale.status === 'refunded') lines.push('*** REFUNDED ***');
+    else if (sale.status === 'partially_refunded') lines.push('*** PARTIALLY REFUNDED ***');
     lines.push('--------------------------------');
+    let itemCount = 0;
     sale.items.forEach((it) => {
-      const lineTotal = it.price * it.qty - (it.discount || 0);
-      lines.push(`${it.qty}x ${it.name} @ ${Fmt.money(it.price)}  =  ${Fmt.money(lineTotal)}`);
+      itemCount += it.qty;
+      lines.push(`${it.qty}x ${it.name} @ ${Fmt.money(it.price)}  =  ${Fmt.money(it.price * it.qty)}`);
+      if (it.discount) lines.push(`    *** Item Discount: -${Fmt.money(it.discount)}`);
     });
+    lines.push(`${itemCount} item${itemCount !== 1 ? 's' : ''} sold`);
     lines.push('--------------------------------');
     lines.push(`Subtotal: ${Fmt.money(sale.subtotal)}`);
-    const discountTotal = (sale.itemDiscounts || 0) + (sale.discount || 0);
-    if (discountTotal) lines.push(`Discount: -${Fmt.money(discountTotal)}`);
+    if (sale.itemDiscounts) lines.push(`Item Discounts: -${Fmt.money(sale.itemDiscounts)}`);
+    if (sale.discount) lines.push(`Order Discount: -${Fmt.money(sale.discount)}`);
     if (sale.tax) lines.push(`Tax: ${Fmt.money(sale.tax)}`);
     lines.push(`Total: ${Fmt.money(sale.total)}`);
     lines.push(`Payment: ${sale.paymentMethod}`);
     if (sale.paymentMethod === 'cash' && sale.amountReceived != null) {
-      lines.push(`Received: ${Fmt.money(sale.amountReceived)}`);
+      lines.push(`Tendered: ${Fmt.money(sale.amountReceived)}`);
       lines.push(`Change: ${Fmt.money(sale.change)}`);
     }
     const footerText = store.receiptFooter !== '' ? (store.receiptFooter || 'Thank you for your purchase!') : '';
@@ -862,7 +983,15 @@ async function buildReceiptPDF(sale, store) {
   const contentWidth = pageWidth - margin * 2;
   const lineH = 5;
   const footerText = store.receiptFooter !== '' ? (store.receiptFooter || 'Thank you for your purchase!') : '';
-  const discountTotal = (sale.itemDiscounts || 0) + (sale.discount || 0);
+  const itemCount = sale.items.reduce((s, it) => s + it.qty, 0);
+  // Module width is computed from the actual pattern length further down
+  // (barcodePattern/barcodeModule) rather than a fixed value — a fixed
+  // width would overflow this 80mm-wide receipt's printable area once
+  // the receiptNumber (source of the encoded text) gets much past ~15
+  // characters, silently cutting the barcode off mid-scan.
+  const barcodePattern = Barcode128.encode(sale.receiptNumber);
+  const barcodeModule = barcodePattern ? Math.min(0.42, contentWidth / barcodePattern.length) : 0.32;
+  const barcodeHeight = 11;
   const logoFormat = (dataUrl) => {
     if (/^data:image\/png/i.test(dataUrl)) return 'PNG';
     if (/^data:image\/webp/i.test(dataUrl)) return 'WEBP';
@@ -894,25 +1023,34 @@ async function buildReceiptPDF(sale, store) {
   const addrLines = store.address ? wrap(store.address, 8.5) : [];
   const phoneLines = store.phone ? wrap(store.phone, 8.5) : [];
   h += (addrLines.length + phoneLines.length) * 4;
-  h += 9 + lineH; // spacing + receipt# row
-  h += lineH; // date row
-  if (sale.status === 'refunded') h += lineH;
-  h += 5; // divider
+  h += 5; // spacing after header
+  if (sale.status === 'refunded' || sale.status === 'partially_refunded') h += lineH + 1;
+  h += 5; // divider before column header
+  h += lineH; // "Qty Item / Price" column header row
+  h += 5; // divider after column header
 
   const itemLines = sale.items.map((it) => {
-    const left = wrap(`${it.qty}\u00d7 ${it.name}  @ ${Fmt.money(it.price)}`, 9);
+    const left = wrap(`${it.qty}\u00d7 ${it.name}`, 9);
     return { rows: left.length, hasDiscount: !!it.discount };
   });
   itemLines.forEach((it) => { h += it.rows * lineH; if (it.hasDiscount) h += lineH; });
+  h += lineH; // "N items sold" line
 
   h += 5; // divider
   h += lineH; // subtotal
-  if (discountTotal) h += lineH;
+  if (sale.itemDiscounts) h += lineH;
+  if (sale.discount) h += lineH;
   if (sale.tax) h += lineH;
   h += lineH + 2; // total
   h += lineH; // payment
   if (sale.paymentMethod === 'cash' && sale.amountReceived != null) h += lineH * 2;
+  h += 5; // divider
+  h += lineH + 2; // "THANK YOU"
+  h += barcodeHeight + 3; // barcode graphic
+  h += lineH; // receiptNumber text under barcode
   if (footerText) { h += 6; h += wrap(footerText, 8).length * 4; }
+  h += 5; // divider
+  h += lineH; // bottom footer row (receipt# + date/time)
   h += 6; // torn-edge strip
   h += margin;
 
@@ -959,37 +1097,43 @@ async function buildReceiptPDF(sale, store) {
   doc.setTextColor(25);
   y += 5;
 
-  row('Receipt', sale.receiptNumber, { dim: true });
-  y += lineH;
-  row('Date', Fmt.dateTime(sale.date), { dim: true });
-  y += lineH;
-  if (sale.status === 'refunded') {
+  if (sale.status === 'refunded' || sale.status === 'partially_refunded') {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(200, 60, 90);
-    doc.text('REFUNDED', margin, y);
+    doc.text(sale.status === 'refunded' ? 'REFUNDED' : 'PARTIALLY REFUNDED', cx, y, { align: 'center' });
     doc.setTextColor(25);
-    y += lineH;
+    y += lineH + 1;
   }
   divider();
 
+  row('Qty  Item', 'Price', { size: 8, bold: true, dim: true });
+  y += lineH;
+  divider();
+
   sale.items.forEach((it) => {
-    const left = wrap(`${it.qty}\u00d7 ${it.name}  @ ${Fmt.money(it.price)}`, 9);
-    const lineTotal = it.price * it.qty - (it.discount || 0);
+    const left = wrap(`${it.qty}\u00d7 ${it.name}`, 9);
     left.forEach((l, i) => {
-      row(l, i === 0 ? Fmt.money(lineTotal) : undefined, { size: 9 });
+      row(l, i === 0 ? Fmt.money(it.price * it.qty) : undefined, { size: 9 });
       y += lineH;
     });
     if (it.discount) {
-      row('  Item discount', `\u2212 ${Fmt.money(it.discount)}`, { size: 8, dim: true });
+      row('    *** Item Discount', `\u2212 ${Fmt.money(it.discount)}`, { size: 8, dim: true });
       y += lineH;
     }
   });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(140);
+  doc.text(`${itemCount} item${itemCount !== 1 ? 's' : ''} sold`, cx, y, { align: 'center' });
+  doc.setTextColor(25);
+  y += lineH;
   divider();
 
   row('Subtotal', Fmt.money(sale.subtotal), { dim: true });
   y += lineH;
-  if (discountTotal) { row('Discount', `\u2212 ${Fmt.money(discountTotal)}`, { dim: true }); y += lineH; }
+  if (sale.itemDiscounts) { row('Item Discounts', `\u2212 ${Fmt.money(sale.itemDiscounts)}`, { dim: true }); y += lineH; }
+  if (sale.discount) { row('Order Discount', `\u2212 ${Fmt.money(sale.discount)}`, { dim: true }); y += lineH; }
   if (sale.tax) { row('Tax', Fmt.money(sale.tax), { dim: true }); y += lineH; }
   y += 1;
   row('Total', Fmt.money(sale.total), { size: 11, bold: true, color: accentRgb });
@@ -997,17 +1141,47 @@ async function buildReceiptPDF(sale, store) {
   row('Payment', sale.paymentMethod, { dim: true });
   y += lineH;
   if (sale.paymentMethod === 'cash' && sale.amountReceived != null) {
-    row('Received', Fmt.money(sale.amountReceived), { dim: true }); y += lineH;
+    row('Tendered', Fmt.money(sale.amountReceived), { dim: true }); y += lineH;
     row('Change', Fmt.money(sale.change), { dim: true }); y += lineH;
   }
+  divider();
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(25);
+  doc.text('THANK YOU', cx, y, { align: 'center' });
+  y += lineH + 2;
+
+  // Real, scannable Code128 barcode of this sale's receipt number — see
+  // Barcode128 above and Sales' "Scan to Find".
+  if (barcodePattern) {
+    const barcodeWidth = barcodePattern.length * barcodeModule;
+    Barcode128.drawOnPDF(doc, sale.receiptNumber, cx - barcodeWidth / 2, y, { moduleWidth: barcodeModule, height: barcodeHeight });
+    y += barcodeHeight + 3;
+  }
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(140);
+  doc.text(sale.receiptNumber, cx, y, { align: 'center' });
+  doc.setTextColor(25);
+  y += lineH;
 
   if (footerText) {
-    y += 4;
+    y += 1;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(140);
     wrap(footerText, 8).forEach((l) => { doc.text(l, cx, y, { align: 'center' }); y += 4; });
   }
+  y += 1;
+  divider();
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(140);
+  doc.text(sale.receiptNumber, margin, y);
+  doc.text(Fmt.dateTime(sale.date), pageWidth - margin, y, { align: 'right' });
+  doc.setTextColor(25);
+  y += lineH;
 
   // Torn-edge zigzag — echoes tearing the receipt off a thermal roll.
   y += 4;
@@ -1345,7 +1519,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.9.12';
+const CURRENT_VERSION = '1.9.9.13';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via

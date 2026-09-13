@@ -31,9 +31,20 @@ const Donate = (() => {
     show();
   }
 
+  /** Shows the exact same card as the real (gated) prompt, but skips the
+   *  cooldown-timestamp write — so previewing it from Settings doesn't
+   *  push the next genuine natural appearance back by three weeks. Used
+   *  by the "Preview donate prompt" row in More. Tapping "Don't ask
+   *  again" from a preview is still permanent, same as the real thing —
+   *  that button doesn't know the difference, by design. */
+  function preview() { render(); }
+
   function show() {
     localStorage.setItem(LAST_SHOWN_KEY, String(Date.now()));
+    render();
+  }
 
+  function render() {
     const overlay = document.createElement('div');
     overlay.className = 'onboard-overlay';
     overlay.style.pointerEvents = 'auto';
@@ -66,6 +77,6 @@ const Donate = (() => {
     });
   }
 
-  return { maybeShow };
+  return { maybeShow, preview };
 })();
 window.Donate = Donate;

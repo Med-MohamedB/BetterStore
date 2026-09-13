@@ -1287,7 +1287,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.9.8';
+const CURRENT_VERSION = '1.9.9.10';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -2017,7 +2017,7 @@ function openAboutSheet() {
     </div>
 
     <div class="section-title" style="margin-bottom:12px;">Troubleshooting</div>
-    <div class="list-row tappable" id="aboutDiagnosticsRow" style="margin-bottom:24px;">
+    <div class="list-row tappable" id="aboutDiagnosticsRow" style="margin-bottom:8px;">
       <div class="list-row__icon">${Icon('stethoscope')}</div>
       <div class="list-row__body">
         <div class="list-row__title">Run Diagnostics</div>
@@ -2025,12 +2025,36 @@ function openAboutSheet() {
       </div>
       <div class="list-row__trailing text-faint">›</div>
     </div>
+    <div class="list" style="margin-bottom:24px;">
+      <div class="list-row tappable" id="previewWhatsNewRow">
+        <div class="list-row__icon">${Icon('star')}</div>
+        <div class="list-row__body">
+          <div class="list-row__title">Preview What's New</div>
+          <div class="list-row__subtitle">See the changelog card on demand</div>
+        </div>
+        <div class="list-row__trailing text-faint">›</div>
+      </div>
+      <div class="list-row tappable" id="previewDonateRow">
+        <div class="list-row__icon">${Icon('gift')}</div>
+        <div class="list-row__body">
+          <div class="list-row__title">Preview Donate Prompt</div>
+          <div class="list-row__subtitle">Rare on its own \u2014 15+ sales, random chance, weeks apart</div>
+        </div>
+        <div class="list-row__trailing text-faint">›</div>
+      </div>
+    </div>
 
     <div class="text-faint text-sm" style="text-align:center; margin-top:28px;" id="aboutVersionFooter">Better Store</div>
   `;
 
   const sheetEl = Sheet.open({ title: 'About This App', bodyHTML });
   sheetEl.querySelector('#aboutDiagnosticsRow').addEventListener('click', showDiagnostics);
+  sheetEl.querySelector('#previewWhatsNewRow').addEventListener('click', () => {
+    if (window.WhatsNew) WhatsNew.show();
+  });
+  sheetEl.querySelector('#previewDonateRow').addEventListener('click', () => {
+    if (window.Donate) Donate.preview();
+  });
   getAppVersionLabel().then((label) => {
     const el = sheetEl.querySelector('#aboutVersionFooter');
     if (el) el.textContent = `Better Store · ${label}`;

@@ -425,22 +425,35 @@ const DoodleHint = (() => {
     el.className = `doodle-hint doodle-hint--${corner}`;
     el.dataset.hintId = id;
     el.style.position = 'fixed';
+    el.style.visibility = 'hidden'; // measured below before it's actually placed/shown
     // Right edge sits slightly PAST the target's right edge (not short of
     // it) so the arrow — which hugs the right side of the note — lands
     // directly over the button instead of trailing off to its left.
     const rightPos = Math.max(8, window.innerWidth - r.right - 10);
+    el.style.right = `${rightPos}px`;
+    el.innerHTML = `<div class="doodle-hint__text">${escapeHTML(text)}</div>${ARROW_SVG}`;
+    document.body.appendChild(el);
+    const noteHeight = el.offsetHeight;
+
     if (corner === 'tr') {
       // Target is near the top of the screen — note sits below it, arrow
       // curves up into the target's bottom-left corner.
       el.style.top = `${r.bottom + 6}px`;
-      el.style.right = `${rightPos}px`;
     } else {
       // Target is lower on screen — note sits above it, arrow curves down.
-      el.style.bottom = `${window.innerHeight - r.top + 10}px`;
-      el.style.right = `${rightPos}px`;
+      // Ideal position points straight at the target, but the content
+      // this hint accompanies (an empty-state's own illustration/title/
+      // subtitle) can grow taller than usual — e.g. a promo banner
+      // pushing everything down — and overlap it. `.empty-state__hint`
+      // is that subtitle text; if it's on screen, never render above its
+      // bottom edge, even if that means sitting a bit further from the
+      // target than the "ideal" spot.
+      const idealTop = r.top - 10 - noteHeight;
+      const avoidEl = document.querySelector('.empty-state__hint');
+      const minTop = avoidEl ? avoidEl.getBoundingClientRect().bottom + 14 : -Infinity;
+      el.style.top = `${Math.max(idealTop, minTop)}px`;
     }
-    el.innerHTML = `<div class="doodle-hint__text">${escapeHTML(text)}</div>${ARROW_SVG}`;
-    document.body.appendChild(el);
+    el.style.visibility = '';
     return el;
   }
 
@@ -1332,7 +1345,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.9.11';
+const CURRENT_VERSION = '1.9.9.12';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via

@@ -11,6 +11,7 @@ const WhatsNew = (() => {
   // Add a new entry here each release; oldest-first doesn't matter since
   // only the current version's list is ever shown.
   const ITEMS = [
+    { icon: Icon('check-circle'), text: 'Fixed the "add your first..." hint arrow overlapping the empty-state text when the promo banner is showing (it pushes everything down, which the hint wasn\u2019t accounting for) \u2014 it now checks for that and keeps clear.' },
     { icon: Icon('shield'), text: 'Every "delete this?" / "clear everything?" / "refund?" confirmation across the app now uses a real themed dialog instead of the browser\u2019s plain native popup \u2014 covers Products, Categories, Customers, Suppliers, Sales refunds, POS cart/checkout, and backup restore/wipe.' },
     { icon: '✍️', text: 'The empty-state hint arrows now use a real handwriting font instead of a generic system fallback \u2014 should look meaningfully more like an actual note, not just slanted text.' },
     { icon: '🙏', text: 'Removed the "Don\u2019t ask again" option from the donate prompt.' },

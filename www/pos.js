@@ -21,10 +21,10 @@ const POS = (() => {
     actions.innerHTML = `
       <button class="icon-btn tappable" id="posClearBtn" title="Clear cart">${Icon('trash')}</button>
     `;
-    actions.querySelector('#posClearBtn').addEventListener('click', (e) => {
+    actions.querySelector('#posClearBtn').addEventListener('click', async (e) => {
       if (!cart.length) return;
       Icon.shake(e.currentTarget.querySelector('.icon-svg'));
-      if (confirm('Clear the current cart?')) {
+      if (await Confirm.show('Clear the current cart?', { danger: true, confirmText: 'Clear Cart' })) {
         cart = []; totalDiscount = 0;
         updateCartBadge(0);
         renderCart(container);
@@ -353,7 +353,7 @@ const POS = (() => {
         Toast.error('Amount received is less than the total');
         return;
       }
-      if (posSettings.confirmBeforeSale && !confirm(`Complete this sale for ${Fmt.money(grandTotal)}?`)) return;
+      if (posSettings.confirmBeforeSale && !(await Confirm.show(`Complete this sale for ${Fmt.money(grandTotal)}?`, { confirmText: 'Complete Sale' }))) return;
 
       btn.disabled = true;
       btn.textContent = 'Completing\u2026';

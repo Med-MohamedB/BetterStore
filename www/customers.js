@@ -147,7 +147,7 @@ const Customers = (() => {
     });
     sheetEl.querySelector('#deleteCustomerBtn').addEventListener('click', async (e) => {
       Icon.shake(e.currentTarget.querySelector('.icon-svg'));
-      if (!confirm(`Delete "${c.name}"? Their past sales stay on record.`)) return;
+      if (!(await Confirm.show(`Delete "${c.name}"? Their past sales stay on record.`, { danger: true }))) return;
       await DB.delete('customers', c.id);
       Toast.success('Customer deleted');
       Sheet.close();

@@ -15,6 +15,27 @@
    this is a cash-handling app and digits must never jitter or misalign.
    ========================================================================== */
 
+/* Caveat (OFL-licensed, bundled locally in fonts/ — see fonts/OFL.txt) —
+   the real handwriting font for doodle-hint callouts, replacing the old
+   generic `cursive` fallback (see .doodle-hint__text below). Subsetted to
+   Latin + common punctuation only (the hint strings are English/French),
+   which is most of why these files are ~55-60KB instead of Caveat's
+   normal ~250KB+ (it also ships Cyrillic/Vietnamese we don't need here). */
+@font-face {
+  font-family: 'Caveat';
+  src: url('fonts/Caveat-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Caveat';
+  src: url('fonts/Caveat-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* --- Neutrals: kraft paper (light, default) --- */
   --bg: #EFE6D8;
@@ -967,6 +988,61 @@ main#view {
   transition: opacity var(--dur) var(--ease-out);
 }
 .sheet-backdrop.open { opacity: 1; }
+
+/* ==========================================================================
+   Confirm — themed replacement for window.confirm() (see Confirm in
+   app.js). Sits above Sheets (221) since a delete confirmation is often
+   triggered from inside one (e.g. a product detail sheet's delete
+   button), but below the full-screen onboarding/whatsnew/donate overlay
+   (9999) since those are rarer, bigger takeovers.
+   ========================================================================== */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+}
+.confirm-card {
+  width: min(340px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, var(--radius));
+  padding: 26px 22px 22px;
+  text-align: center;
+  box-shadow: var(--shadow-lg, var(--shadow));
+}
+.confirm-card__icon {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--danger-bg);
+  color: var(--coral);
+}
+.confirm-card--positive .confirm-card__icon {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.confirm-card__message {
+  font-size: 15.5px;
+  line-height: 1.5;
+  color: var(--text);
+  margin-bottom: 22px;
+  white-space: pre-line;
+}
+.confirm-card__actions {
+  display: flex;
+  gap: 10px;
+}
+.confirm-card__actions .btn { height: 46px; font-size: 14.5px; }
 
 .sheet {
   position: fixed;
@@ -2355,10 +2431,10 @@ a:active .icon-svg {
    from a nudge — not a tutorial overlay, it sits right next to the actual
    button. Dismissed forever (see DoodleHint in app.js) the moment the
    action it's pointing at actually happens, never by a close button.
-   The handwriting look relies on the browser's generic `cursive` font
-   family since bundling a webfont file wasn't practical here — quality of
-   that varies by device, but it degrades to a legible slanted script
-   everywhere rather than breaking.
+   Uses the real Caveat handwriting webfont (see @font-face near the top
+   of this file) instead of the old generic `cursive` fallback — 'Segoe
+   Print'/'Bradley Hand' kept as a fallback stack in case the font file
+   somehow fails to load, so it degrades gracefully rather than breaking.
    ========================================================================== */
 .doodle-hint {
   position: absolute;
@@ -2380,9 +2456,10 @@ a:active .icon-svg {
   to { opacity: 0; transform: rotate(-2deg) scale(0.9); }
 }
 .doodle-hint__text {
-  font-family: 'Segoe Print', 'Bradley Hand', cursive;
-  font-size: 21px;
-  line-height: 1.3;
+  font-family: 'Caveat', 'Segoe Print', 'Bradley Hand', cursive;
+  font-weight: 700;
+  font-size: 25px;
+  line-height: 1.15;
   color: var(--text-dim);
   /* A soft carved-in look rather than a UI label sitting on top of the
      background — a light shadow below (matching --bg) reads as a groove,

@@ -249,7 +249,7 @@ const Sales = (() => {
         .map((item, idx) => ({ productId: item.productId, qty: qtyByIdx[idx] }))
         .filter((s) => s.qty > 0);
       const totalAmount = sheetEl.querySelector('#refundTotalAmount').textContent;
-      if (!confirm(`Refund ${totalAmount} and restore stock for the selected items?`)) return;
+      if (!(await Confirm.show(`Refund ${totalAmount} and restore stock for the selected items?`, { danger: true, confirmText: 'Refund' }))) return;
       btn.disabled = true;
       btn.textContent = 'Refunding\u2026';
       try {

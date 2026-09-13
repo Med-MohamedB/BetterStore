@@ -159,7 +159,7 @@ const Backup = (() => {
     }
 
     const summary = STORE_NAMES.map((n) => `${n}: ${(parsed.data[n] || []).length}`).join(', ');
-    if (!confirm(`Import this backup? This REPLACES all current data.\n\n${summary}`)) return;
+    if (!(await Confirm.show(`Import this backup? This REPLACES all current data.\n\n${summary}`, { danger: true, confirmText: 'Import' }))) return;
     const confirmed = await Security.requirePin('Confirm your PIN to restore this backup');
     if (!confirmed) { Toast.show('Cancelled'); return; }
 
@@ -236,8 +236,8 @@ const Backup = (() => {
   }
 
   async function clearAllData(container) {
-    if (!confirm('Delete EVERYTHING — products, sales, customers, suppliers, history? This cannot be undone. Export a backup first if you\u2019re not sure.')) return;
-    if (!confirm('Really clear all data? This is your last check.')) return;
+    if (!(await Confirm.show('Delete EVERYTHING \u2014 products, sales, customers, suppliers, history? This cannot be undone. Export a backup first if you\u2019re not sure.', { danger: true, confirmText: 'Delete Everything' }))) return;
+    if (!(await Confirm.show('Really clear all data? This is your last check.', { danger: true, confirmText: 'Yes, Clear It' }))) return;
     const confirmed = await Security.requirePin('Confirm your PIN to clear all data');
     if (!confirmed) { Toast.show('Cancelled'); return; }
     for (const name of STORE_NAMES) await DB.clear(name);

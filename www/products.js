@@ -238,7 +238,7 @@ const Products = (() => {
         const cat = btn.dataset.deleteCategory;
         const products = await DB.getAll('products');
         const affected = products.filter((p) => (p.category || 'Uncategorized') === cat);
-        if (!confirm(`Delete category "${cat}"? ${affected.length} product${affected.length !== 1 ? 's' : ''} will move to Uncategorized — none will be deleted.`)) return;
+        if (!(await Confirm.show(`Delete category "${cat}"? ${affected.length} product${affected.length !== 1 ? 's' : ''} will move to Uncategorized — none will be deleted.`, { danger: true, confirmText: 'Delete Category' }))) return;
         for (const p of affected) {
           await DB.put('products', { ...p, category: '', lastUpdated: new Date() });
         }
@@ -413,7 +413,7 @@ const Products = (() => {
   async function confirmDelete(id, container) {
     const p = await DB.get('products', id);
     if (!p) return;
-    if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) {
+    if (!(await Confirm.show(`Delete "${p.name}"? This cannot be undone.`, { danger: true }))) {
       renderResults(container); // snap swiped row back
       return;
     }
@@ -757,7 +757,7 @@ const Products = (() => {
 
     sheetEl.querySelector('#delBtn').addEventListener('click', async (e) => {
       Icon.shake(e.currentTarget.querySelector('.icon-svg'));
-      if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
+      if (!(await Confirm.show(`Delete "${p.name}"? This cannot be undone.`, { danger: true }))) return;
       await DB.delete('products', p.id);
       Toast.success(`${p.name} deleted`);
       Sheet.close();

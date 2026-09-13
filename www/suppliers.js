@@ -157,7 +157,7 @@ const Suppliers = (() => {
     });
     sheetEl.querySelector('#deleteSupplierBtn').addEventListener('click', async (e) => {
       Icon.shake(e.currentTarget.querySelector('.icon-svg'));
-      if (!confirm(`Delete "${s.name}"? Linked products keep their supplier name as text.`)) return;
+      if (!(await Confirm.show(`Delete "${s.name}"? Linked products keep their supplier name as text.`, { danger: true }))) return;
       await DB.delete('suppliers', s.id);
       Toast.success('Supplier deleted');
       Sheet.close();

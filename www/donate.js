@@ -6,12 +6,15 @@
      - Cooldown of several weeks between appearances even if it qualifies.
      - A random roll on top of that cooldown, so it doesn't arrive on a
        predictable schedule.
-     - A permanent "Don't ask again" that's actually respected forever.
    ========================================================================== */
 
 const Donate = (() => {
   const LAST_SHOWN_KEY = 'sa_donate_last_shown';
-  const NEVER_KEY = 'sa_donate_never';
+  const NEVER_KEY = 'sa_donate_never'; // no longer settable from the UI (the
+                                        // "Don't ask again" button was
+                                        // removed) — this check stays only
+                                        // so anyone who already set it on an
+                                        // older version keeps being honored.
   const MIN_SALES = 15;       // only people getting real use out of it
   const COOLDOWN_DAYS = 21;   // at most once every three weeks
   const SHOW_CHANCE = 0.15;   // and even then, only a 1-in-~7 chance
@@ -32,11 +35,9 @@ const Donate = (() => {
   }
 
   /** Shows the exact same card as the real (gated) prompt, but skips the
-   *  cooldown-timestamp write — so previewing it from Settings doesn't
-   *  push the next genuine natural appearance back by three weeks. Used
-   *  by the "Preview donate prompt" row in More. Tapping "Don't ask
-   *  again" from a preview is still permanent, same as the real thing —
-   *  that button doesn't know the difference, by design. */
+   *  cooldown-timestamp write — so previewing it from About doesn't push
+   *  the next genuine natural appearance back by three weeks. Used by
+   *  "Preview Donate Prompt" in About This App → Troubleshooting. */
   function preview() { render(); }
 
   function show() {
@@ -59,7 +60,6 @@ const Donate = (() => {
       <div class="onboard-finale__sub">It\u2019s built and maintained by one person. If it\u2019s genuinely been useful for your business, a donation \u2014 big or small \u2014 helps keep it going. Completely optional, no pressure.</div>
       <button class="onboard-start-btn tappable" id="donateShowMeBtn">See how</button>
       <button class="onboard-skip-btn tappable" id="donateLaterBtn" style="margin-top:10px; width:100%;">Maybe later</button>
-      <button class="onboard-skip-btn tappable" id="donateNeverBtn" style="margin-top:2px; width:100%; opacity:0.55; font-size:11.5px;">Don\u2019t ask again</button>
     `;
     overlay.appendChild(card);
     Fx.animate(card, { opacity: [0, 1], scale: [0.85, 1], y: [16, 0] }, { type: 'spring', stiffness: 380, damping: 16 });
@@ -71,10 +71,6 @@ const Donate = (() => {
       if (window.openAboutSheet) openAboutSheet();
     });
     card.querySelector('#donateLaterBtn').addEventListener('click', close);
-    card.querySelector('#donateNeverBtn').addEventListener('click', () => {
-      localStorage.setItem(NEVER_KEY, '1');
-      close();
-    });
   }
 
   return { maybeShow, preview };

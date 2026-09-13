@@ -11,6 +11,9 @@ const WhatsNew = (() => {
   // Add a new entry here each release; oldest-first doesn't matter since
   // only the current version's list is ever shown.
   const ITEMS = [
+    { icon: Icon('shield'), text: 'Every "delete this?" / "clear everything?" / "refund?" confirmation across the app now uses a real themed dialog instead of the browser\u2019s plain native popup \u2014 covers Products, Categories, Customers, Suppliers, Sales refunds, POS cart/checkout, and backup restore/wipe.' },
+    { icon: '✍️', text: 'The empty-state hint arrows now use a real handwriting font instead of a generic system fallback \u2014 should look meaningfully more like an actual note, not just slanted text.' },
+    { icon: '🙏', text: 'Removed the "Don\u2019t ask again" option from the donate prompt.' },
     { icon: Icon('gift'), text: 'Added a "Preview Popups" spot in More \u2192 About This App \u2192 Troubleshooting \u2014 lets you see the What\u2019s New card and the donate prompt on demand (the donate one only shows up naturally very rarely: 15+ sales, random chance, weeks apart).' },
     { icon: '🎨', text: 'Found the real source of the leftover green: several UI elements \u2014 the revenue trend badge, the promo banner\u2019s glowing border, success badges/toasts, and even the update-download progress bar \u2014 were quietly using a hardcoded green regardless of your theme pack instead of actually following it. All switched to follow the active pack now.' },
     { icon: Icon('zap'), text: 'Faster launches, especially on older phones \u2014 scripts now load in parallel instead of one at a time, and the barcode scanner / PDF export libraries (744KB combined) only load when you actually use those features instead of on every single launch.' },

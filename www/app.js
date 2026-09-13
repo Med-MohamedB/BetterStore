@@ -590,6 +590,51 @@ const Sheet = (() => {
 window.Sheet = Sheet;
 
 /* ---------------------------------------------------------------------- */
+/* Confirm — a real themed confirmation dialog, Promise-based so call      */
+/* sites read almost exactly like the native confirm() they replace:      */
+/*   if (!(await Confirm.show('Delete this?', { danger: true }))) return; */
+/* Replaces every window.confirm() in the app (delete/clear/refund/etc.)  */
+/* — the native one is an unstyled OS popup that looks nothing like the   */
+/* rest of the app and blocks the JS thread synchronously.                */
+/* ---------------------------------------------------------------------- */
+const Confirm = (() => {
+  function show(message, { danger = false, confirmText, cancelText = 'Cancel' } = {}) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'confirm-overlay';
+      document.body.appendChild(overlay);
+      Fx.animate(overlay, { opacity: [0, 1] }, { duration: 0.15 });
+
+      const card = document.createElement('div');
+      card.className = `confirm-card${danger ? '' : ' confirm-card--positive'}`;
+      card.innerHTML = `
+        <div class="confirm-card__icon">${Icon(danger ? 'alert-triangle' : 'check-circle', { size: 26 })}</div>
+        <div class="confirm-card__message">${escapeHTML(message)}</div>
+        <div class="confirm-card__actions">
+          <button class="btn btn-secondary tappable" id="confirmCancelBtn">${escapeHTML(cancelText)}</button>
+          <button class="btn ${danger ? 'btn-danger' : 'btn-primary'} tappable" id="confirmOkBtn">${escapeHTML(confirmText || (danger ? 'Delete' : 'Confirm'))}</button>
+        </div>
+      `;
+      overlay.appendChild(card);
+      Fx.animate(card, { opacity: [0, 1], scale: [0.92, 1], y: [10, 0] }, { type: 'spring', stiffness: 420, damping: 22 });
+
+      let done = false;
+      const finish = (result) => {
+        if (done) return; // backdrop click + button click can both fire on the same tap on some WebViews
+        done = true;
+        Fx.animate(overlay, { opacity: [1, 0] }, { duration: 0.15 }).finished.then(() => overlay.remove());
+        resolve(result);
+      };
+      card.querySelector('#confirmCancelBtn').addEventListener('click', () => finish(false));
+      card.querySelector('#confirmOkBtn').addEventListener('click', () => finish(true));
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(false); });
+    });
+  }
+  return { show };
+})();
+window.Confirm = Confirm;
+
+/* ---------------------------------------------------------------------- */
 /* Swipe-to-reveal for list rows (edit / delete actions)                   */
 /* Wrap a .list-row in the markup returned by swipeRowHTML(), then call    */
 /* enableSwipeRows(container) once after inserting it into the DOM.        */
@@ -1287,7 +1332,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.9.10';
+const CURRENT_VERSION = '1.9.9.11';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via

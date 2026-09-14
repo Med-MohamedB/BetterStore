@@ -188,6 +188,29 @@
   .live-chip.admob .live-chip__dot { background: var(--warn); }
   .live-chip__text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-dim); }
   .live-chip__refresh { flex-shrink: 0; color: var(--text-dim); font-size: 14px; padding: 2px 4px; }
+
+  /* A real confirmation step for the single highest-stakes action in this
+     panel (Push Forced Update blocks every device below that version) —
+     there wasn't one before at all. */
+  .confirm-overlay {
+    position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .confirm-overlay[hidden] { display: none !important; }
+  .confirm-card {
+    width: min(340px, 100%); background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 26px 22px 22px; text-align: center;
+    box-shadow: 0 1px 2px rgba(43,42,37,0.06), 0 8px 24px rgba(43,42,37,0.08);
+  }
+  .confirm-card__icon {
+    width: 50px; height: 50px; margin: 0 auto 14px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--danger-bg); color: var(--danger);
+  }
+  .confirm-card__title { font-size: 16px; font-weight: 800; margin-bottom: 8px; }
+  .confirm-card__message { font-size: 13.5px; line-height: 1.5; color: var(--text-dim); margin-bottom: 20px; }
+  .confirm-card__actions { display: flex; gap: 10px; }
+  .confirm-card__actions button { height: 44px; border-radius: var(--radius-sm); font-size: 14px; }
 </style>
 </head>
 <body>
@@ -353,6 +376,11 @@
 
       <section data-tab-panel="update" hidden>
         <div class="card">
+          <div class="live-chip off" id="updateLiveChip">
+            <span class="live-chip__dot"></span>
+            <span class="live-chip__text" id="updateLiveChipText">Checking…</span>
+            <button class="live-chip__refresh" id="updateLiveChipRefresh" title="Refresh"><span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span></button>
+          </div>
           <h2>Recent Builds</h2>
           <div class="hint" style="margin-top:0; margin-bottom:10px;">Pick a successful (green) build to push as a forced update. Red = failed, orange = still running.</div>
           <div class="run-list" id="runList">Loading…</div>
@@ -367,6 +395,18 @@
           <div class="hint" id="pushStatus" style="margin-top:10px;"></div>
         </div>
       </section>
+      <div class="confirm-overlay" id="pushConfirmOverlay" hidden>
+        <div class="confirm-card">
+          <div class="confirm-card__icon"><span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span></div>
+          <div class="confirm-card__title" id="pushConfirmTitle">Push this version?</div>
+          <div class="confirm-card__message">Every device below this version gets blocked from using the app until they update. This takes effect for everyone within a few minutes — there's no undo, only pushing a different version after.</div>
+          <div class="confirm-card__actions">
+            <button class="btn-secondary" id="pushConfirmCancelBtn" style="flex:1;">Cancel</button>
+            <button class="btn-primary" id="pushConfirmOkBtn" style="flex:1; background:var(--danger);">Push It</button>
+          </div>
+        </div>
+      </div>
+
 
       <section data-tab-panel="connection" hidden>
         <div class="card">
@@ -763,6 +803,72 @@
   let runsLoaded = false;
   let selectedRun = null;
 
+  async function loadUpdateStatus({ silent } = {}) {
+    const token = els.ghToken.value.trim();
+    const owner = els.ghOwner.value.trim();
+    const repo = els.ghRepo.value.trim();
+    const chip = document.getElementById('updateLiveChip');
+    const chipText = document.getElementById('updateLiveChipText');
+    if (!owner || !token) {
+      chip.className = 'live-chip off';
+      chipText.textContent = 'Not checked yet \u2014 fill in Connection settings';
+      return;
+    }
+    chip.className = 'live-chip off';
+    chipText.textContent = 'Checking\u2026';
+    try {
+      const branch = els.ghBranch.value.trim() || 'main';
+      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/update-config.json?ref=${encodeURIComponent(branch)}`, {
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' },
+      });
+      if (res.status === 404) {
+        chip.className = 'live-chip off';
+        chipText.textContent = '\u26aa No forced update currently set';
+        return;
+      }
+      if (!res.ok) {
+        chip.className = 'live-chip off';
+        chipText.textContent = silent ? 'Couldn\u2019t check current status' : await friendlyGitHubError(res);
+        return;
+      }
+      const data = await res.json();
+      const cfg = JSON.parse(b64DecodeUnicode(data.content.replace(/\n/g, '')));
+      chip.className = 'live-chip on';
+      chipText.textContent = `\ud83d\udfe2 Currently requiring v${cfg.minVersion || '?'}`;
+    } catch (e) {
+      chip.className = 'live-chip off';
+      chipText.textContent = 'Couldn\u2019t reach GitHub';
+    }
+  }
+  document.getElementById('updateLiveChipRefresh').addEventListener('click', () => { if (!busy) loadUpdateStatus(); });
+
+  /** Shows the Push Forced Update confirmation card, resolving true/false.
+   *  This is the single highest-stakes action in the panel (blocks every
+   *  device below the pushed version) and previously had NO confirmation
+   *  step at all — one misclick and it just fired. */
+  function showPushConfirm(version) {
+    return new Promise((resolve) => {
+      const overlay = document.getElementById('pushConfirmOverlay');
+      const okBtn = document.getElementById('pushConfirmOkBtn');
+      const cancelBtn = document.getElementById('pushConfirmCancelBtn');
+      document.getElementById('pushConfirmTitle').textContent = `Push v${version}?`;
+      overlay.hidden = false;
+      const cleanup = (result) => {
+        overlay.hidden = true;
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+        overlay.removeEventListener('click', onBackdrop);
+        resolve(result);
+      };
+      const onOk = () => cleanup(true);
+      const onCancel = () => cleanup(false);
+      const onBackdrop = (e) => { if (e.target === overlay) cleanup(false); };
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+      overlay.addEventListener('click', onBackdrop);
+    });
+  }
+
   function timeAgo(iso) {
     const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
     if (s < 60) return `${s}s ago`;
@@ -850,6 +956,7 @@
 
   document.getElementById('pushUpdateBtn').addEventListener('click', async () => {
     if (!selectedRun) { document.getElementById('pushStatus').textContent = 'Select a build above first.'; return; }
+    if (!(await showPushConfirm(selectedRun.version))) return;
     saveSettings();
     const token = els.ghToken.value.trim();
     const owner = els.ghOwner.value.trim();
@@ -883,6 +990,8 @@
       });
       if (!res.ok) { statusEl.textContent = await friendlyGitHubError(res); return; }
       statusEl.textContent = `✅ Pushed! Every device will be notified and blocked below v${selectedRun.version} once GitHub\u2019s CDN catches up (a few minutes).`;
+      document.getElementById('updateLiveChip').className = 'live-chip on';
+      document.getElementById('updateLiveChipText').textContent = `\ud83d\udfe2 Currently requiring v${selectedRun.version}`;
     } catch (e) {
       statusEl.textContent = 'Failed to push: ' + e.message;
     } finally {
@@ -908,6 +1017,12 @@
     document.getElementById('authGate').hidden = true;
     document.getElementById('panelRoot').hidden = false;
     document.getElementById('userAvatarImg').src = user.avatar_url || '';
+    // Both status chips used to just sit on "Checking…" forever until
+    // someone remembered to manually hit refresh — including right after
+    // logging in, when checking current state is the first thing anyone
+    // actually wants. Load both automatically now.
+    loadCurrent({ silent: true });
+    loadUpdateStatus({ silent: true });
   }
 
   async function verifyAndEnter(token, { silent } = {}) {

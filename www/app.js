@@ -1519,7 +1519,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.9.13';
+const CURRENT_VERSION = '1.9.9.14';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -2165,6 +2165,14 @@ function renderMore(container) {
         </div>
         <div class="list-row__trailing text-faint">›</div>
       </div>
+      <div class="list-row tappable" id="languageRow">
+        <div class="list-row__icon" style="font-size:20px;">${(I18n.LANGUAGES.find((l) => l.code === I18n.locale) || I18n.LANGUAGES[0]).flag}</div>
+        <div class="list-row__body">
+          <div class="list-row__title">${I18n.t('language.rowTitle')}</div>
+          <div class="list-row__subtitle">${I18n.t('language.rowSubtitle')}</div>
+        </div>
+        <div class="list-row__trailing text-faint">›</div>
+      </div>
       <div class="list-row tappable" id="viewTermsRow">
         <div class="list-row__icon">${Icon('scroll')}</div>
         <div class="list-row__body">
@@ -2187,6 +2195,9 @@ function renderMore(container) {
     <div class="text-faint text-sm" style="text-align:center; margin-top:20px;" id="moreVersionFooter">Better Store</div>
   `;
   container.querySelector('#aboutAppRow').addEventListener('click', openAboutSheet);
+  container.querySelector('#languageRow').addEventListener('click', () => {
+    if (window.Language) Language.openFromMenu();
+  });
   container.querySelector('#replayTourRow').addEventListener('click', () => {
     if (window.Onboarding) Onboarding.replay();
   });
@@ -2377,7 +2388,13 @@ window.showDiagnostics = showDiagnostics;
 
   await DB.openDB();
   await applyTheme();
+  if (window.I18n) { await I18n.init(); I18n.applyStaticDOM(); }
   await Fmt.init();
+
+  // Language picker runs before Terms/Onboarding — "the first onboarding
+  // screen" — and no-ops instantly once a language's actually been
+  // chosen, so it's safe to call on every single launch.
+  if (window.Language) await Language.maybeGate();
 
   if (window.Terms) await Terms.requireAcceptance();
 

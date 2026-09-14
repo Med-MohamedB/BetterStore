@@ -1942,6 +1942,33 @@ body.swipe-active .topbar {
 }
 .onboard-start-btn:active { transform: scale(0.98); }
 .onboard-start-btn:disabled { opacity: 0.4; }
+/* ==========================================================================
+   Language picker — see language.js. Reuses .onboard-overlay as its
+   backdrop but needs its own centering (that base class intentionally
+   has none — see the .onboard-finale comment above) since this is a
+   fully custom layout, not the finale-card pattern.
+   ========================================================================== */
+.onboard-overlay.language-screen { align-items: center; justify-content: center; padding: 24px; }
+.language-screen__inner { width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center; }
+.language-screen__art { width: 100%; max-width: 300px; margin-bottom: 22px; }
+.language-screen__art img { width: 100%; height: auto; display: block; }
+.language-screen__heading { text-align: center; margin-bottom: 26px; }
+.language-screen__heading div { font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.7; }
+.language-screen__list { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.language-option {
+  display: flex; align-items: center; gap: 14px;
+  width: 100%; padding: 16px 18px; border-radius: var(--radius-lg, var(--radius));
+  background: var(--surface); border: 1px solid var(--border);
+  font-size: 16px; font-weight: 700; color: var(--text);
+  transition: transform var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.language-option:active { transform: scale(0.97); }
+.language-option--picked { border-color: var(--accent); background: var(--accent-bg); }
+.language-option__flag { font-size: 26px; line-height: 1; flex-shrink: 0; }
+.language-option__name { flex: 1; text-align: start; }
+.language-option__chevron { color: var(--text-faint); flex-shrink: 0; }
+[dir="rtl"] .language-option__chevron { transform: scaleX(-1); }
+
 .onboard-finale {
   position: relative;
   z-index: 3;

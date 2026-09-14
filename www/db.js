@@ -222,6 +222,8 @@ const DEFAULT_SETTINGS = {
     theme: 'system', // 'light' | 'dark' | 'system'
     accentColor: '#2F5233', // kept only so older saved settings don't break; superseded by themePack
     themePack: 'standard', // key into THEME_PACKS in app.js
+    locale: null, // 'en' | 'ar' | 'fr' — null means "not chosen yet", which is
+                   // what sends a fresh install to the language picker first
   },
   pos: {
     defaultPaymentMethod: 'cash',

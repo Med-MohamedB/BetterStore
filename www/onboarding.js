@@ -12,27 +12,32 @@
 const Onboarding = (() => {
   const FLAG = 'sa_onboarding_complete';
 
+  // title/sub are i18n keys, resolved via I18n.t() inside slideHTML() at
+  // render time (not here) — SLIDES itself is evaluated once at module
+  // load, before I18n.init() has necessarily run, so baking in literal
+  // translated strings here would freeze them at whatever the default
+  // locale was at that moment.
   const SLIDES = [
     {
       imgBase: 'onboard-welcome',
-      title: 'Run your store from your pocket',
-      sub: 'Sell, track stock, and see what\u2019s selling \u2014 all in one place.',
+      titleKey: 'onboarding.welcomeTitle',
+      subKey: 'onboarding.welcomeSub',
     },
     {
       type: 'storename',
       imgBase: 'onboard-storename',
-      title: 'What\u2019s your store called?',
-      sub: 'Shows on receipts and the dashboard \u2014 you can change it later in Settings.',
+      titleKey: 'onboarding.storeNameTitle',
+      subKey: 'onboarding.storeNameSub',
     },
     {
       imgBase: 'onboard-scan',
-      title: 'Scan instead of typing',
-      sub: 'Point the camera at any barcode to add or sell an item in one tap.',
+      titleKey: 'onboarding.scanTitle',
+      subKey: 'onboarding.scanSub',
     },
     {
       imgBase: 'onboard-restock',
-      title: 'Always know what\u2019s low',
-      sub: 'Get a nudge before you run out of anything.',
+      titleKey: 'onboarding.restockTitle',
+      subKey: 'onboarding.restockSub',
     },
   ];
 
@@ -71,7 +76,7 @@ const Onboarding = (() => {
       </div>
       <div class="onboard-footer">
         <div class="onboard-dots">${SLIDES.map((_, i) => `<div class="onboard-dot${i === 0 ? ' active' : ''}"></div>`).join('')}</div>
-        <button class="onboard-next-btn tappable" id="obNext">Next</button>
+        <button class="onboard-next-btn tappable" id="obNext">${escapeHTML(I18n.t('common.next'))}</button>
       </div>
     `;
     document.body.appendChild(overlayEl);
@@ -94,10 +99,10 @@ const Onboarding = (() => {
     return `
       <div class="onboard-slide" data-slide="${i}">
         <div class="onboard-slide__art"><img src="${themedIllustration(s.imgBase, 'onboarding')}" alt="" class="onboard-slide__img" data-parallax></div>
-        <div class="onboard-slide__title">${escapeHTML(s.title)}</div>
-        <div class="onboard-slide__sub">${escapeHTML(s.sub)}</div>
+        <div class="onboard-slide__title">${escapeHTML(I18n.t(s.titleKey))}</div>
+        <div class="onboard-slide__sub">${escapeHTML(I18n.t(s.subKey))}</div>
         ${s.type === 'storename' ? `
-          <input type="text" id="obStoreName" class="onboard-slide__input" placeholder="My Store" maxlength="60" value="${escapeHTML(storeNameValue)}">
+          <input type="text" id="obStoreName" class="onboard-slide__input" placeholder="${escapeHTML(I18n.t('onboarding.storeNamePlaceholder'))}" maxlength="60" value="${escapeHTML(storeNameValue)}">
         ` : ''}
       </div>
     `;
@@ -163,7 +168,7 @@ const Onboarding = (() => {
 
     overlayEl.querySelectorAll('.onboard-dot').forEach((d, i) => d.classList.toggle('active', i === index));
     const nextBtn = overlayEl.querySelector('#obNext');
-    nextBtn.textContent = index === SLIDES.length - 1 ? 'Get Started' : 'Next';
+    nextBtn.textContent = index === SLIDES.length - 1 ? I18n.t('common.getStarted') : I18n.t('common.next');
   }
 
   function finish() {

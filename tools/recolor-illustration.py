@@ -64,10 +64,11 @@ def hex_to_hsv(hex_color):
     return colorsys.rgb_to_hsv(r, g, b)
 
 
-def recolor(im, target_hex, green_hue=(75, 190), min_sat=0.04, sat_match=0.0, val_match=0.0):
+def recolor(im, target_hex, green_hue=(75, 190), min_sat=0.04, sat_match=0.0, val_match=0.0, exclude_boxes=None):
     im = im.convert('RGBA')
     arr = np.asarray(im).astype(np.float32) / 255.0
     r, g, b, a = arr[..., 0], arr[..., 1], arr[..., 2], arr[..., 3]
+    h_px, w_px = arr.shape[0], arr.shape[1]
 
     maxc = np.max(arr[..., :3], axis=-1)
     minc = np.min(arr[..., :3], axis=-1)
@@ -89,6 +90,17 @@ def recolor(im, target_hex, green_hue=(75, 190), min_sat=0.04, sat_match=0.0, va
 
     lo, hi = green_hue
     mask = (hue_deg >= lo) & (hue_deg <= hi) & (s >= min_sat)
+
+    # Exclusion boxes (fractional [x0,y0,x1,y1], 0-1 of image width/height) —
+    # for content like flag icons that legitimately contain the same green
+    # hue as the app's own UI chrome, but must never be recolored (a flag
+    # is a flag in every theme pack, not a design accent). These pixels
+    # are simply never included in the recolor mask at all.
+    if exclude_boxes:
+        yy, xx = np.mgrid[0:h_px, 0:w_px]
+        for (x0, y0, x1, y1) in exclude_boxes:
+            box = (xx >= x0 * w_px) & (xx <= x1 * w_px) & (yy >= y0 * h_px) & (yy <= y1 * h_px)
+            mask = mask & ~box
 
     target_h, target_s, target_v = hex_to_hsv(target_hex)
     # Anchor the rotation on the illustration's dominant green hue rather
@@ -143,12 +155,17 @@ def main():
     ap.add_argument('--min-sat', type=float, default=0.04)
     ap.add_argument('--sat-match', type=float, default=0.0)
     ap.add_argument('--val-match', type=float, default=0.0)
+    ap.add_argument('--exclude', action='append', default=[],
+                    help='Fractional box "x0,y0,x1,y1" (0-1 of width/height) to leave '
+                         'completely untouched regardless of hue — e.g. a flag icon that '
+                         'happens to share the source green\'s hue. Repeatable.')
     args = ap.parse_args()
 
     lo, hi = (float(x) for x in args.green_hue.split('-'))
+    exclude_boxes = [tuple(float(v) for v in box.split(',')) for box in args.exclude]
     im = Image.open(args.input)
     out = recolor(im, args.target_hex, green_hue=(lo, hi), min_sat=args.min_sat,
-                  sat_match=args.sat_match, val_match=args.val_match)
+                  sat_match=args.sat_match, val_match=args.val_match, exclude_boxes=exclude_boxes)
     out.save(args.output)
     print(f'Wrote {args.output}')
 

@@ -1,11 +1,9 @@
 {
   "active": false,
-  "style": "simple",
+  "style": "image",
   "adMode": "personal",
   "url": "",
   "expiresAt": null,
-  "icon": "🎯",
-  "image": null,
-  "title": "",
-  "subtitle": ""
+  "bannerImage": null,
+  "bannerHeight": 160
 }

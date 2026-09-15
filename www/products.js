@@ -80,14 +80,14 @@ const Products = (() => {
 
   function openBarcodeView(product) {
     const code = product.barcode || product.sku;
-    if (!code) { Toast.error('This product has no barcode or SKU to display'); return; }
+    if (!code) { Toast.error(I18n.t('products.noBarcodeToShow')); return; }
 
     const compatible = isCode39Compatible(code);
     const bodyHTML = `
       <div style="background:#fff; border-radius:12px; padding:16px; display:flex; flex-direction:column; align-items:center;">
         ${compatible
           ? `<canvas id="barcodeCanvas"></canvas>`
-          : `<div style="padding:24px; color:#666; text-align:center; font-size:13px;">This code uses characters Code 39 can't encode as bars — shown as text only below.</div>`
+          : `<div style="padding:24px; color:#666; text-align:center; font-size:13px;">${I18n.t('products.code39Unsupported')}</div>`
         }
         <div style="font-family:var(--font-num); font-size:13px; letter-spacing:2px; color:#111; margin-top:8px;">${escapeHTML(code)}</div>
       </div>
@@ -95,11 +95,11 @@ const Products = (() => {
     `;
     const footerHTML = `
       <div class="flex gap-8">
-        <button class="btn btn-secondary tappable" id="printBarcodeBtn">${Icon('printer')} Print</button>
-        <button class="btn btn-secondary tappable" id="shareBarcodeBtn">${Icon('share')} Share</button>
+        <button class="btn btn-secondary tappable" id="printBarcodeBtn">${Icon('printer')} ${I18n.t('products.print')}</button>
+        <button class="btn btn-secondary tappable" id="shareBarcodeBtn">${Icon('share')} ${I18n.t('products.share')}</button>
       </div>`;
 
-    const sheetEl = Sheet.open({ title: 'Barcode', bodyHTML, footerHTML });
+    const sheetEl = Sheet.open({ title: I18n.t('products.barcodeSheetTitle'), bodyHTML, footerHTML });
     if (compatible) {
       const canvas = sheetEl.querySelector('#barcodeCanvas');
       drawCode39(canvas, code);
@@ -125,7 +125,7 @@ const Products = (() => {
     sheetEl.querySelector('#shareBarcodeBtn').addEventListener('click', async () => {
       const shared = await shareText({ title: product.name, text: code });
       if (!shared && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
-        Toast.show('Sharing isn\u2019t supported on this browser');
+        Toast.show(I18n.t('products.sharingNotSupported'));
       }
     });
   }
@@ -147,8 +147,8 @@ const Products = (() => {
   function setProductsTopbar() {
     const actions = document.getElementById('topbarActions');
     actions.innerHTML = `
-      <button class="icon-btn tappable" id="categoriesBtn" title="Manage categories">${Icon('tag')}</button>
-      <button class="icon-btn tappable" id="sortBtn" title="Sort">⇅</button>
+      <button class="icon-btn tappable" id="categoriesBtn" title="${I18n.t('products.manageCategories')}">${Icon('tag')}</button>
+      <button class="icon-btn tappable" id="sortBtn" title="${I18n.t('products.sort')}">⇅</button>
     `;
     actions.querySelector('#categoriesBtn').addEventListener('click', openCategoryManager);
     actions.querySelector('#sortBtn').addEventListener('click', cycleSortMode);
@@ -166,35 +166,35 @@ const Products = (() => {
 
     const bodyHTML = `
       <div class="field">
-        <label>New category</label>
+        <label>${I18n.t('products.newCategoryLabel')}</label>
         <div class="flex gap-8">
-          <input type="text" id="newCategoryInput" placeholder="e.g. Beverages" style="flex:1;">
-          <button class="btn btn-primary btn-sm tappable" id="addCategoryBtn" style="width:auto; padding:0 16px;">Add</button>
+          <input type="text" id="newCategoryInput" placeholder="${I18n.t('products.categoryPlaceholder')}" style="flex:1;">
+          <button class="btn btn-primary btn-sm tappable" id="addCategoryBtn" style="width:auto; padding:0 16px;">${I18n.t('common.add')}</button>
         </div>
       </div>
-      <div class="section-title">Existing Categories</div>
+      <div class="section-title">${I18n.t('products.existingCategories')}</div>
       <div class="list" id="categoryManagerList">
         ${categories.length ? categories.map((cat) => categoryRowHTML(cat, products)).join('') : `
           <div class="empty-state">
             <div class="empty-state__icon">${Icon('tag', { size: 32 })}</div>
-            <div class="empty-state__title">No categories yet</div>
-            <div class="empty-state__hint">Categories appear here once a product uses one.</div>
+            <div class="empty-state__title">${I18n.t('products.noCategoriesYet')}</div>
+            <div class="empty-state__hint">${I18n.t('products.categoriesHint')}</div>
           </div>
         `}
       </div>
     `;
-    const sheetEl = Sheet.open({ title: 'Manage Categories', bodyHTML });
+    const sheetEl = Sheet.open({ title: I18n.t('products.manageCategoriesTitle'), bodyHTML });
 
     sheetEl.querySelector('#addCategoryBtn').addEventListener('click', () => {
       const input = sheetEl.querySelector('#newCategoryInput');
       const name = input.value.trim();
-      if (!name) { Toast.error('Enter a category name'); return; }
+      if (!name) { Toast.error(I18n.t('products.enterCategoryName')); return; }
       // A category with no products yet isn't stored anywhere on its own
       // (categories only exist as strings on products) — the honest thing
       // is to let the user know it'll appear once they assign it, rather
       // than pretend to create an empty record.
       input.value = '';
-      Toast.show(`"${name}" will appear once a product uses it — try adding it from a product's Category field`);
+      Toast.show(I18n.t('products.categoryWillAppear', { name }));
     });
 
     wireCategoryRows(sheetEl);
@@ -210,8 +210,8 @@ const Products = (() => {
           <div class="list-row__subtitle">${count} product${count !== 1 ? 's' : ''}</div>
         </div>
         <div class="list-row__trailing flex gap-8">
-          <button class="chip tappable" data-rename-category="${escapeHTML(cat)}">Rename</button>
-          <button class="chip tappable" data-delete-category="${escapeHTML(cat)}" style="color:var(--coral);">Delete</button>
+          <button class="chip tappable" data-rename-category="${escapeHTML(cat)}">${I18n.t('products.rename')}</button>
+          <button class="chip tappable" data-delete-category="${escapeHTML(cat)}" style="color:var(--coral);">${I18n.t('common.delete')}</button>
         </div>
       </div>`;
   }
@@ -220,14 +220,14 @@ const Products = (() => {
     sheetEl.querySelectorAll('[data-rename-category]').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const oldName = btn.dataset.renameCategory;
-        const newName = prompt(`Rename category "${oldName}" to:`, oldName);
+        const newName = prompt(I18n.t('products.renamePromptTitle', { old: oldName }), oldName);
         if (!newName || !newName.trim() || newName.trim() === oldName) return;
         const products = await DB.getAll('products');
         const affected = products.filter((p) => (p.category || 'Uncategorized') === oldName);
         for (const p of affected) {
           await DB.put('products', { ...p, category: newName.trim(), lastUpdated: new Date() });
         }
-        Toast.success(`Renamed to "${newName.trim()}" (${affected.length} product${affected.length !== 1 ? 's' : ''})`);
+        Toast.success(I18n.t('products.renamedToast', { name: newName.trim(), count: affected.length, plural: affected.length !== 1 ? 's' : '' }));
         Sheet.close();
         setTimeout(openCategoryManager, 260);
         if (Router.current === 'products') renderShell(document.getElementById('view'));
@@ -238,11 +238,11 @@ const Products = (() => {
         const cat = btn.dataset.deleteCategory;
         const products = await DB.getAll('products');
         const affected = products.filter((p) => (p.category || 'Uncategorized') === cat);
-        if (!(await Confirm.show(`Delete category "${cat}"? ${affected.length} product${affected.length !== 1 ? 's' : ''} will move to Uncategorized — none will be deleted.`, { danger: true, confirmText: 'Delete Category' }))) return;
+        if (!(await Confirm.show(I18n.t('products.deleteCategoryConfirm', { cat, count: affected.length, plural: affected.length !== 1 ? 's' : '' }), { danger: true, confirmText: I18n.t('products.deleteCategory') }))) return;
         for (const p of affected) {
           await DB.put('products', { ...p, category: '', lastUpdated: new Date() });
         }
-        Toast.success(`"${cat}" deleted — products moved to Uncategorized`);
+        Toast.success(I18n.t('products.categoryDeletedToast', { cat }));
         Sheet.close();
         setTimeout(openCategoryManager, 260);
         if (Router.current === 'products') renderShell(document.getElementById('view'));
@@ -253,8 +253,8 @@ const Products = (() => {
   function cycleSortMode() {
     const order = ['name', 'stock', 'price'];
     sortMode = order[(order.indexOf(sortMode) + 1) % order.length];
-    const labels = { name: 'Name (A–Z)', stock: 'Stock (low first)', price: 'Price (low first)' };
-    Toast.show(`Sorted by ${labels[sortMode]}`);
+    const labels = { name: I18n.t('products.sortName'), stock: I18n.t('products.sortStock'), price: I18n.t('products.sortPrice') };
+    Toast.show(I18n.t('products.sortedBy', { label: labels[sortMode] }));
     renderResults(document.getElementById('view'));
   }
 
@@ -267,16 +267,16 @@ const Products = (() => {
     container.innerHTML = `
       <div class="search-bar">
         <span class="search-bar__icon">${Icon('search')}</span>
-        <input type="text" id="productSearch" placeholder="Search name, barcode, SKU..." value="${escapeHTML(searchQuery)}">
+        <input type="text" id="productSearch" placeholder="${I18n.t('products.searchPlaceholder')}" value="${escapeHTML(searchQuery)}">
         <button class="search-bar__clear tappable" id="clearSearch" style="${searchQuery ? '' : 'display:none;'}">${Icon('x', { size: 14 })}</button>
       </div>
 
       <div class="chip-row" id="categoryChips">
-        ${categories.map((c) => `<button class="chip tappable${c === activeCategory ? ' active' : ''}" data-cat="${escapeHTML(c)}">${escapeHTML(c)}</button>`).join('')}
+        ${categories.map((c) => `<button class="chip tappable${c === activeCategory ? ' active' : ''}" data-cat="${escapeHTML(c)}">${escapeHTML(c === 'All' ? I18n.t('common.all') : c === 'Uncategorized' ? I18n.t('products.uncategorized') : c)}</button>`).join('')}
       </div>
 
       <div id="productListWrap"></div>
-      <button class="screen-fab tappable" id="productFab" title="Add product">${Icon('plus')}</button>
+      <button class="screen-fab tappable" id="productFab" title="${I18n.t('products.addProduct')}">${Icon('plus')}</button>
     `;
     container.querySelector('#productFab').addEventListener('click', () => openForm());
 
@@ -345,8 +345,8 @@ const Products = (() => {
         ${products.length
           ? `<div class="empty-state__icon">${Icon('package', { size: 32 })}</div>`
           : `<img class="empty-state__illustration" src="${themedIllustration('empty-products')}" alt="">`}
-        <div class="empty-state__title">${products.length ? 'No products match' : 'No products yet'}</div>
-        <div class="empty-state__hint">${products.length ? 'Try a different search or category.' : 'Tap the button below to add your first product.'}</div>
+        <div class="empty-state__title">${products.length ? I18n.t('products.noProductsMatch') : I18n.t('products.noProductsYet')}</div>
+        <div class="empty-state__hint">${products.length ? I18n.t('products.tryDifferentSearch') : I18n.t('products.tapToAddFirst')}</div>
       </div>
     `;
 
@@ -354,7 +354,7 @@ const Products = (() => {
     const listEl = wrap.querySelector('#productList');
     if (!filtered.length && !products.length) {
       const fab = document.getElementById('productFab');
-      if (fab) DoodleHint.show('addFirstProduct', fab, 'Add your first product', 'br');
+      if (fab) DoodleHint.show('addFirstProduct', fab, I18n.t('products.addFirstProductHint'), 'br');
     }
     if (listEl) {
       enableSwipeRows(listEl, {
@@ -386,9 +386,9 @@ const Products = (() => {
   function stockBadge(p) {
     const qty = p.quantity ?? 0;
     const min = p.minStock ?? 0;
-    if (qty <= 0) return `<span class="badge badge--danger">Out of stock</span>`;
-    if (qty <= min) return `<span class="badge badge--warn">Low · ${qty}</span>`;
-    return `<span class="badge badge--success">${qty} in stock</span>`;
+    if (qty <= 0) return `<span class="badge badge--danger">${I18n.t('products.outOfStock')}</span>`;
+    if (qty <= min) return `<span class="badge badge--warn">${I18n.t('products.lowStock', { qty })}</span>`;
+    return `<span class="badge badge--success">${I18n.t('products.inStock', { qty })}</span>`;
   }
 
   function productRowHTML(p) {
@@ -400,7 +400,7 @@ const Products = (() => {
         <div class="list-row__icon">${thumb}</div>
         <div class="list-row__body">
           <div class="list-row__title">${escapeHTML(p.name)}</div>
-          <div class="list-row__subtitle">${escapeHTML(p.category || 'Uncategorized')} · ${escapeHTML(p.sku || 'No SKU')}</div>
+          <div class="list-row__subtitle">${escapeHTML(p.category || I18n.t('products.uncategorized'))} · ${escapeHTML(p.sku || I18n.t('products.noSku'))}</div>
         </div>
         <div class="list-row__trailing">
           <div class="list-row__amount num">${Fmt.money(p.sellingPrice)}</div>
@@ -413,12 +413,12 @@ const Products = (() => {
   async function confirmDelete(id, container) {
     const p = await DB.get('products', id);
     if (!p) return;
-    if (!(await Confirm.show(`Delete "${p.name}"? This cannot be undone.`, { danger: true }))) {
+    if (!(await Confirm.show(I18n.t('products.form.deleteConfirm', { name: p.name }), { danger: true }))) {
       renderResults(container); // snap swiped row back
       return;
     }
     await DB.delete('products', id);
-    Toast.success(`${p.name} deleted`);
+    Toast.success(I18n.t('products.detail.deleted', { name: p.name }));
     renderResults(container);
   }
 
@@ -436,89 +436,89 @@ const Products = (() => {
 
     const bodyHTML = `
       <div class="image-picker tappable" id="imagePicker">
-        ${p.image ? `<img src="${p.image}" alt="">` : `<span class="image-picker__icon">${Icon('camera', { size: 28 })}</span><span>Add photo</span>`}
+        ${p.image ? `<img src="${p.image}" alt="">` : `<span class="image-picker__icon">${Icon('camera', { size: 28 })}</span><span>${I18n.t('products.form.addPhoto')}</span>`}
       </div>
       <input type="file" accept="image/*" capture="environment" id="imageInput" style="display:none">
 
       <div class="field">
-        <label>Product name *</label>
-        <input type="text" id="f_name" value="${escapeHTML(p.name)}" placeholder="e.g. Coca Cola 1L">
+        <label>${I18n.t('products.form.nameLabel')}</label>
+        <input type="text" id="f_name" value="${escapeHTML(p.name)}" placeholder="${I18n.t('products.form.namePlaceholder')}">
       </div>
 
       <div class="field-row">
         <div class="field">
-          <label>Barcode</label>
-          <input type="text" id="f_barcode" value="${escapeHTML(p.barcode)}" placeholder="Scan or type">
+          <label>${I18n.t('products.form.barcodeLabel')}</label>
+          <input type="text" id="f_barcode" value="${escapeHTML(p.barcode)}" placeholder="${I18n.t('products.form.barcodePlaceholder')}">
         </div>
         <div class="field" style="flex:0 0 auto; align-self:flex-end;">
-          <button class="btn btn-secondary btn-sm tappable" id="scanBarcodeFieldBtn" type="button" title="Scan barcode">${Icon('camera')}</button>
+          <button class="btn btn-secondary btn-sm tappable" id="scanBarcodeFieldBtn" type="button" title="${I18n.t('products.form.scanBarcode')}">${Icon('camera')}</button>
         </div>
         <div class="field" style="flex:0 0 auto; align-self:flex-end;">
-          <button class="btn btn-secondary btn-sm tappable" id="genBarcodeBtn" type="button">Generate</button>
+          <button class="btn btn-secondary btn-sm tappable" id="genBarcodeBtn" type="button">${I18n.t('products.form.generate')}</button>
         </div>
       </div>
 
       <div class="field-row">
         <div class="field">
-          <label>SKU</label>
-          <input type="text" id="f_sku" value="${escapeHTML(p.sku)}" placeholder="Optional">
+          <label>${I18n.t('products.form.skuLabel')}</label>
+          <input type="text" id="f_sku" value="${escapeHTML(p.sku)}" placeholder="${I18n.t('products.form.optional')}">
         </div>
         <div class="field">
-          <label>Category</label>
-          <input type="text" id="f_category" value="${escapeHTML(p.category)}" placeholder="e.g. Drinks" list="categoryList">
+          <label>${I18n.t('products.form.categoryLabel')}</label>
+          <input type="text" id="f_category" value="${escapeHTML(p.category)}" placeholder="${I18n.t('products.form.categoryPlaceholder')}" list="categoryList">
           <datalist id="categoryList"></datalist>
         </div>
       </div>
 
       <div class="field-row">
         <div class="field">
-          <label>Purchase price</label>
+          <label>${I18n.t('products.form.purchasePriceLabel')}</label>
           <input type="number" inputmode="decimal" id="f_purchasePrice" value="${p.purchasePrice}" placeholder="0" min="0">
         </div>
         <div class="field">
-          <label>Selling price *</label>
+          <label>${I18n.t('products.form.sellingPriceLabel')}</label>
           <input type="number" inputmode="decimal" id="f_sellingPrice" value="${p.sellingPrice}" placeholder="0" min="0">
         </div>
       </div>
 
       <div class="field-row">
         <div class="field">
-          <label>Discount price</label>
-          <input type="number" inputmode="decimal" id="f_discountPrice" value="${p.discountPrice ?? ''}" placeholder="Optional" min="0">
+          <label>${I18n.t('products.form.discountPriceLabel')}</label>
+          <input type="number" inputmode="decimal" id="f_discountPrice" value="${p.discountPrice ?? ''}" placeholder="${I18n.t('products.form.optional')}" min="0">
         </div>
         <div class="field">
-          <label>Unit</label>
-          <input type="text" id="f_unit" value="${escapeHTML(p.unit || 'pcs')}" placeholder="pcs, kg, bottle...">
+          <label>${I18n.t('products.form.unitLabel')}</label>
+          <input type="text" id="f_unit" value="${escapeHTML(p.unit || 'pcs')}" placeholder="${I18n.t('products.form.unitPlaceholder')}">
         </div>
       </div>
 
       <div class="field-row">
         <div class="field">
-          <label>Quantity in stock</label>
+          <label>${I18n.t('products.form.stockLabel')}</label>
           <input type="number" inputmode="numeric" id="f_quantity" value="${p.quantity}" min="0">
         </div>
         <div class="field">
-          <label>Minimum stock level</label>
+          <label>${I18n.t('products.form.minStockLabel')}</label>
           <input type="number" inputmode="numeric" id="f_minStock" value="${p.minStock}" min="0">
         </div>
       </div>
 
       <div class="field">
-        <label>Supplier</label>
-        <input type="text" id="f_supplier" value="${escapeHTML(p.supplier || '')}" placeholder="Optional" list="supplierList">
+        <label>${I18n.t('products.form.supplierLabel')}</label>
+        <input type="text" id="f_supplier" value="${escapeHTML(p.supplier || '')}" placeholder="${I18n.t('products.form.optional')}" list="supplierList">
         <datalist id="supplierList"></datalist>
       </div>
 
       <div class="field">
-        <label>Description</label>
-        <textarea id="f_description" placeholder="Optional notes about this product">${escapeHTML(p.description || '')}</textarea>
+        <label>${I18n.t('products.form.descriptionLabel')}</label>
+        <textarea id="f_description" placeholder="${I18n.t('products.form.descriptionPlaceholder')}">${escapeHTML(p.description || '')}</textarea>
       </div>
     `;
 
-    const footerHTML = `<button class="btn btn-primary tappable" id="saveProductBtn">${isEdit ? 'Save Changes' : 'Add Product'}</button>`;
+    const footerHTML = `<button class="btn btn-primary tappable" id="saveProductBtn">${isEdit ? I18n.t('products.form.saveChanges') : I18n.t('products.form.addTitle')}</button>`;
 
     const sheetEl = Sheet.open({
-      title: isEdit ? 'Edit Product' : 'Add Product',
+      title: isEdit ? I18n.t('products.form.editTitle') : I18n.t('products.form.addTitle'),
       bodyHTML,
       footerHTML,
     });
@@ -553,7 +553,7 @@ const Products = (() => {
       const code = await Scanner.scanOnce();
       if (code) {
         sheetEl.querySelector('#f_barcode').value = code;
-        Toast.success('Barcode scanned');
+        Toast.success(I18n.t('products.form.barcodeScanned'));
       }
     });
 
@@ -573,16 +573,16 @@ const Products = (() => {
       const minStock = parseInt(sheetEl.querySelector('#f_minStock').value, 10) || 0;
       const barcode = sheetEl.querySelector('#f_barcode').value.trim();
 
-      if (!name) { Toast.error('Product name is required'); return; }
-      if (isNaN(sellingPrice)) { Toast.error('Selling price is required'); return; }
-      if (sellingPrice < 0 || purchasePrice < 0) { Toast.error('Prices can\u2019t be negative'); return; }
-      if (discountPrice !== null && discountPrice < 0) { Toast.error('Discount price can\u2019t be negative'); return; }
-      if (quantity < 0 || minStock < 0) { Toast.error('Stock quantities can\u2019t be negative'); return; }
+      if (!name) { Toast.error(I18n.t('products.form.nameRequired')); return; }
+      if (isNaN(sellingPrice)) { Toast.error(I18n.t('products.form.priceRequired')); return; }
+      if (sellingPrice < 0 || purchasePrice < 0) { Toast.error(I18n.t('products.form.pricesNegative')); return; }
+      if (discountPrice !== null && discountPrice < 0) { Toast.error(I18n.t('products.form.discountNegative')); return; }
+      if (quantity < 0 || minStock < 0) { Toast.error(I18n.t('products.form.stockNegative')); return; }
 
       if (barcode) {
         const existing = await DB.getByIndex('products', 'barcode', barcode);
         if (existing && existing.id !== p.id) {
-          Toast.error(`Barcode already used by "${existing.name}"`);
+          Toast.error(I18n.t('products.form.barcodeUsed', { name: existing.name }));
           return;
         }
       }
@@ -608,11 +608,11 @@ const Products = (() => {
         record.id = p.id;
         record.dateAdded = p.dateAdded;
         await DB.put('products', record);
-        Toast.success('Product updated');
+        Toast.success(I18n.t('products.form.updated'));
       } else {
         record.dateAdded = new Date();
         await DB.add('products', record);
-        Toast.success('Product added');
+        Toast.success(I18n.t('products.form.added'));
         DoodleHint.complete('addFirstProduct');
       }
 
@@ -657,52 +657,52 @@ const Products = (() => {
       <div class="mt-16 flex-between">
         <div>
           <div style="font-size:18px; font-weight:700;">${escapeHTML(p.name)}</div>
-          <div class="text-dim text-sm mt-8">${escapeHTML(p.category || 'Uncategorized')} · ${escapeHTML(p.sku || 'No SKU')}</div>
+          <div class="text-dim text-sm mt-8">${escapeHTML(p.category || I18n.t('products.uncategorized'))} · ${escapeHTML(p.sku || I18n.t('products.noSku'))}</div>
         </div>
         <div class="list-row__amount num" style="font-size:19px;">${Fmt.money(p.sellingPrice)}</div>
       </div>
 
       <div class="mt-16 stat-grid">
         <div class="stat-card">
-          <div class="stat-card__label">In Stock</div>
+          <div class="stat-card__label">${I18n.t('products.detail.inStock')}</div>
           <div class="stat-card__value num">${p.quantity} <span style="font-size:13px; font-weight:600; color:var(--text-dim);">${escapeHTML(p.unit || 'pcs')}</span></div>
         </div>
         <div class="stat-card">
-          <div class="stat-card__label">Profit / unit</div>
+          <div class="stat-card__label">${I18n.t('products.detail.profitPerUnit')}</div>
           <div class="stat-card__value teal num">${Fmt.money((p.sellingPrice || 0) - (p.purchasePrice || 0))}</div>
         </div>
       </div>
 
-      <div class="section-title">Adjust Stock</div>
+      <div class="section-title">${I18n.t('products.detail.adjustStock')}</div>
       <div class="card flex-between">
         <div class="stepper">
           <button class="stepper__btn tappable" id="stockMinus">−</button>
           <div class="stepper__value num" id="stockValue">${p.quantity}</div>
           <button class="stepper__btn tappable" id="stockPlus">+</button>
         </div>
-        <button class="btn btn-secondary btn-sm tappable" id="saveStockBtn">Save</button>
+        <button class="btn btn-secondary btn-sm tappable" id="saveStockBtn">${I18n.t('common.save')}</button>
       </div>
 
-      <div class="section-title">Details</div>
+      <div class="section-title">${I18n.t('products.detail.details')}</div>
       <div class="card">
-        <div class="flex-between mt-8" style="margin-top:0;"><span class="text-dim text-sm">Barcode</span><span class="num num-id text-sm">${escapeHTML(p.barcode || '—')}</span></div>
-        <div class="flex-between mt-8"><span class="text-dim text-sm">Purchase price</span><span class="num text-sm">${Fmt.money(p.purchasePrice)}</span></div>
-        <div class="flex-between mt-8"><span class="text-dim text-sm">Discount price</span><span class="num text-sm">${p.discountPrice ? Fmt.money(p.discountPrice) : '—'}</span></div>
-        <div class="flex-between mt-8"><span class="text-dim text-sm">Minimum stock</span><span class="num text-sm">${p.minStock}</span></div>
-        <div class="flex-between mt-8"><span class="text-dim text-sm">Supplier</span><span class="text-sm">${escapeHTML(p.supplier || '—')}</span></div>
+        <div class="flex-between mt-8" style="margin-top:0;"><span class="text-dim text-sm">${I18n.t('products.detail.barcode')}</span><span class="num num-id text-sm">${escapeHTML(p.barcode || '—')}</span></div>
+        <div class="flex-between mt-8"><span class="text-dim text-sm">${I18n.t('products.detail.purchasePrice')}</span><span class="num text-sm">${Fmt.money(p.purchasePrice)}</span></div>
+        <div class="flex-between mt-8"><span class="text-dim text-sm">${I18n.t('products.detail.discountPrice')}</span><span class="num text-sm">${p.discountPrice ? Fmt.money(p.discountPrice) : '—'}</span></div>
+        <div class="flex-between mt-8"><span class="text-dim text-sm">${I18n.t('products.detail.minStock')}</span><span class="num text-sm">${p.minStock}</span></div>
+        <div class="flex-between mt-8"><span class="text-dim text-sm">${I18n.t('products.detail.supplier')}</span><span class="text-sm">${escapeHTML(p.supplier || '—')}</span></div>
         ${p.description ? `<div class="mt-8 text-sm text-dim" style="line-height:1.5;">${escapeHTML(p.description)}</div>` : ''}
       </div>
     `;
 
     const footerHTML = `
       <div class="flex gap-8">
-        <button class="btn btn-secondary tappable" id="barcodeBtn">Barcode</button>
-        <button class="btn btn-secondary tappable" id="dupBtn">Duplicate</button>
-        <button class="btn btn-secondary tappable" id="editBtn">Edit</button>
+        <button class="btn btn-secondary tappable" id="barcodeBtn">${I18n.t('products.detail.barcode')}</button>
+        <button class="btn btn-secondary tappable" id="dupBtn">${I18n.t('products.detail.duplicate')}</button>
+        <button class="btn btn-secondary tappable" id="editBtn">${I18n.t('common.edit')}</button>
         <button class="btn btn-danger tappable" id="delBtn" style="max-width:52px; padding:0;">${Icon('trash')}</button>
       </div>`;
 
-    const sheetEl = Sheet.open({ title: 'Product Details', bodyHTML, footerHTML });
+    const sheetEl = Sheet.open({ title: I18n.t('products.detail.title'), bodyHTML, footerHTML });
 
     let pendingQty = p.quantity;
     const valueEl = sheetEl.querySelector('#stockValue');
@@ -716,17 +716,17 @@ const Products = (() => {
     });
     sheetEl.querySelector('#saveStockBtn').addEventListener('click', async () => {
       const delta = pendingQty - p.quantity;
-      if (delta === 0) { Toast.show('No change'); return; }
+      if (delta === 0) { Toast.show(I18n.t('products.detail.noChange')); return; }
       await DB.put('products', { ...p, quantity: pendingQty, lastUpdated: new Date() });
       await DB.add('inventoryLog', {
         productId: p.id,
         productName: p.name,
         change: delta,
         newQuantity: pendingQty,
-        reason: 'Manual adjustment',
+        reason: I18n.t('products.detail.manualAdjustment'),
         date: new Date(),
       });
-      Toast.success(`Stock updated to ${pendingQty}`);
+      Toast.success(I18n.t('products.detail.stockUpdated', { qty: pendingQty }));
       Sheet.close();
       if (Router.current === 'products') renderResults(document.getElementById('view'));
     });
@@ -739,13 +739,13 @@ const Products = (() => {
     sheetEl.querySelector('#dupBtn').addEventListener('click', async () => {
       const copy = { ...p };
       delete copy.id;
-      copy.name = `${p.name} (Copy)`;
+      copy.name = `${p.name}${I18n.t('products.detail.copySuffix')}`;
       copy.barcode = '';
       copy.sku = '';
       copy.dateAdded = new Date();
       copy.lastUpdated = new Date();
       await DB.add('products', copy);
-      Toast.success('Product duplicated');
+      Toast.success(I18n.t('products.detail.duplicated'));
       Sheet.close();
       if (Router.current === 'products') renderShell(document.getElementById('view'));
     });
@@ -757,9 +757,9 @@ const Products = (() => {
 
     sheetEl.querySelector('#delBtn').addEventListener('click', async (e) => {
       Icon.shake(e.currentTarget.querySelector('.icon-svg'));
-      if (!(await Confirm.show(`Delete "${p.name}"? This cannot be undone.`, { danger: true }))) return;
+      if (!(await Confirm.show(I18n.t('products.form.deleteConfirm', { name: p.name }), { danger: true }))) return;
       await DB.delete('products', p.id);
-      Toast.success(`${p.name} deleted`);
+      Toast.success(I18n.t('products.detail.deleted', { name: p.name }));
       Sheet.close();
       if (Router.current === 'products') renderResults(document.getElementById('view'));
     });

@@ -27,7 +27,7 @@ const Suppliers = (() => {
     container.innerHTML = `
       <div class="search-bar">
         <span class="search-bar__icon">${Icon('search')}</span>
-        <input type="text" id="supplierSearch" placeholder="Search name, phone, email..." value="${escapeHTML(searchQuery)}">
+        <input type="text" id="supplierSearch" placeholder="${I18n.t('suppliers.searchPlaceholder')}" value="${escapeHTML(searchQuery)}">
         ${searchQuery ? `<button class="search-bar__clear tappable" id="clearSupplierSearch">${Icon('x', { size: 14 })}</button>` : ''}
       </div>
 
@@ -40,15 +40,15 @@ const Suppliers = (() => {
           ${suppliers.length
             ? `<div class="empty-state__icon">${Icon('truck', { size: 32 })}</div>`
             : `<img class="empty-state__illustration" src="${themedIllustration('empty-suppliers')}" alt="">`}
-          <div class="empty-state__title">${suppliers.length ? 'No suppliers match' : 'No suppliers yet'}</div>
-          <div class="empty-state__hint">${suppliers.length ? 'Try a different search.' : 'Tap the button below to add your first supplier.'}</div>
+          <div class="empty-state__title">${suppliers.length ? I18n.t('suppliers.noSuppliersMatch') : I18n.t('suppliers.noSuppliersYet')}</div>
+          <div class="empty-state__hint">${suppliers.length ? I18n.t('suppliers.tryDifferentSearch') : I18n.t('suppliers.tapToAddFirst')}</div>
         </div>
       `}
-      <button class="screen-fab tappable" id="supplierFab" title="Add supplier">${Icon('plus')}</button>
+      <button class="screen-fab tappable" id="supplierFab" title="${I18n.t('suppliers.addSupplier')}">${Icon('plus')}</button>
     `;
     container.querySelector('#supplierFab').addEventListener('click', () => openForm());
     if (!filtered.length && !suppliers.length) {
-      DoodleHint.show('addFirstSupplier', container.querySelector('#supplierFab'), 'Add your first supplier', 'br');
+      DoodleHint.show('addFirstSupplier', container.querySelector('#supplierFab'), I18n.t('suppliers.addFirstSupplierHint'), 'br');
     }
 
     const searchInput = container.querySelector('#supplierSearch');
@@ -75,9 +75,9 @@ const Suppliers = (() => {
         <div class="list-row__icon">${Icon('truck')}</div>
         <div class="list-row__body">
           <div class="list-row__title">${escapeHTML(s.name)}</div>
-          <div class="list-row__subtitle">${escapeHTML(s.phone || 'No phone')}</div>
+          <div class="list-row__subtitle">${escapeHTML(s.phone || I18n.t('suppliers.noPhone'))}</div>
         </div>
-        <div class="list-row__trailing"><span class="badge badge--neutral">${linked.length} product${linked.length !== 1 ? 's' : ''}</span></div>
+        <div class="list-row__trailing"><span class="badge badge--neutral">${I18n.t('suppliers.productCount', { count: linked.length, plural: linked.length !== 1 ? 's' : '' })}</span></div>
       </div>`;
   }
 
@@ -86,18 +86,18 @@ const Suppliers = (() => {
     const s = existing || { name: '', phone: '', email: '', address: '', notes: '' };
 
     const bodyHTML = `
-      <div class="field"><label>Name *</label><input type="text" id="f_name" value="${escapeHTML(s.name)}" placeholder="Supplier name"></div>
-      <div class="field"><label>Phone</label><input type="tel" id="f_phone" value="${escapeHTML(s.phone)}" placeholder="Optional"></div>
-      <div class="field"><label>Email</label><input type="text" id="f_email" value="${escapeHTML(s.email)}" placeholder="Optional"></div>
-      <div class="field"><label>Address</label><input type="text" id="f_address" value="${escapeHTML(s.address)}" placeholder="Optional"></div>
-      <div class="field"><label>Notes</label><textarea id="f_notes" placeholder="Optional">${escapeHTML(s.notes || '')}</textarea></div>
+      <div class="field"><label>${I18n.t('suppliers.form.nameLabel')}</label><input type="text" id="f_name" value="${escapeHTML(s.name)}" placeholder="${I18n.t('suppliers.form.namePlaceholder')}"></div>
+      <div class="field"><label>${I18n.t('suppliers.form.phoneLabel')}</label><input type="tel" id="f_phone" value="${escapeHTML(s.phone)}" placeholder="${I18n.t('suppliers.form.optional')}"></div>
+      <div class="field"><label>${I18n.t('suppliers.form.emailLabel')}</label><input type="text" id="f_email" value="${escapeHTML(s.email)}" placeholder="${I18n.t('suppliers.form.optional')}"></div>
+      <div class="field"><label>${I18n.t('suppliers.form.addressLabel')}</label><input type="text" id="f_address" value="${escapeHTML(s.address)}" placeholder="${I18n.t('suppliers.form.optional')}"></div>
+      <div class="field"><label>${I18n.t('suppliers.form.notesLabel')}</label><textarea id="f_notes" placeholder="${I18n.t('suppliers.form.optional')}">${escapeHTML(s.notes || '')}</textarea></div>
     `;
-    const footerHTML = `<button class="btn btn-primary tappable" id="saveSupplierBtn">${isEdit ? 'Save Changes' : 'Add Supplier'}</button>`;
-    const sheetEl = Sheet.open({ title: isEdit ? 'Edit Supplier' : 'Add Supplier', bodyHTML, footerHTML });
+    const footerHTML = `<button class="btn btn-primary tappable" id="saveSupplierBtn">${isEdit ? I18n.t('suppliers.form.saveChanges') : I18n.t('suppliers.form.addTitle')}</button>`;
+    const sheetEl = Sheet.open({ title: isEdit ? I18n.t('suppliers.form.editTitle') : I18n.t('suppliers.form.addTitle'), bodyHTML, footerHTML });
 
     sheetEl.querySelector('#saveSupplierBtn').addEventListener('click', async () => {
       const name = sheetEl.querySelector('#f_name').value.trim();
-      if (!name) { Toast.error('Supplier name is required'); return; }
+      if (!name) { Toast.error(I18n.t('suppliers.form.nameRequired')); return; }
 
       const record = {
         name,
@@ -106,8 +106,8 @@ const Suppliers = (() => {
         address: sheetEl.querySelector('#f_address').value.trim(),
         notes: sheetEl.querySelector('#f_notes').value.trim(),
       };
-      if (isEdit) { record.id = s.id; await DB.put('suppliers', record); Toast.success('Supplier updated'); }
-      else { await DB.add('suppliers', record); Toast.success('Supplier added'); DoodleHint.complete('addFirstSupplier'); }
+      if (isEdit) { record.id = s.id; await DB.put('suppliers', record); Toast.success(I18n.t('suppliers.form.updated')); }
+      else { await DB.add('suppliers', record); Toast.success(I18n.t('suppliers.form.added')); DoodleHint.complete('addFirstSupplier'); }
 
       Sheet.close();
       if (Router.current === 'suppliers') renderList(document.getElementById('view'));
@@ -127,17 +127,17 @@ const Suppliers = (() => {
         ${s.address ? `<div class="text-dim text-sm">${escapeHTML(s.address)}</div>` : ''}
       </div>
       <div class="stat-grid mt-16">
-        <div class="stat-card"><div class="stat-card__label">Products Supplied</div><div class="stat-card__value num">${linked.length}</div></div>
-        <div class="stat-card"><div class="stat-card__label">Stock Value</div><div class="stat-card__value teal num">${Fmt.money(inventoryValue)}</div></div>
+        <div class="stat-card"><div class="stat-card__label">${I18n.t('suppliers.detail.productsSupplied')}</div><div class="stat-card__value num">${linked.length}</div></div>
+        <div class="stat-card"><div class="stat-card__label">${I18n.t('suppliers.detail.stockValue')}</div><div class="stat-card__value teal num">${Fmt.money(inventoryValue)}</div></div>
       </div>
       ${s.notes ? `<div class="card mt-16"><div class="text-sm">${escapeHTML(s.notes)}</div></div>` : ''}
       ${linked.length ? `
-        <div class="section-title">Products</div>
+        <div class="section-title">${I18n.t('suppliers.detail.productsSectionTitle')}</div>
         <div class="list">
           ${linked.map((p) => `
             <div class="list-row">
               <div class="list-row__icon">${p.image ? `<img src="${p.image}" alt="">` : Icon('package')}</div>
-              <div class="list-row__body"><div class="list-row__title">${escapeHTML(p.name)}</div><div class="list-row__subtitle">${p.quantity} ${escapeHTML(p.unit || 'pcs')} in stock</div></div>
+              <div class="list-row__body"><div class="list-row__title">${escapeHTML(p.name)}</div><div class="list-row__subtitle">${I18n.t('suppliers.detail.inStockUnit', { qty: p.quantity, unit: escapeHTML(p.unit || 'pcs') })}</div></div>
               <div class="list-row__trailing"><div class="list-row__amount num">${Fmt.money(p.sellingPrice)}</div></div>
             </div>
           `).join('')}
@@ -146,10 +146,10 @@ const Suppliers = (() => {
     `;
     const footerHTML = `
       <div class="flex gap-8">
-        <button class="btn btn-secondary tappable" id="editSupplierBtn">Edit</button>
+        <button class="btn btn-secondary tappable" id="editSupplierBtn">${I18n.t('suppliers.detail.edit')}</button>
         <button class="btn btn-danger tappable" id="deleteSupplierBtn" style="max-width:60px;">${Icon('trash')}</button>
       </div>`;
-    const sheetEl = Sheet.open({ title: 'Supplier', bodyHTML, footerHTML });
+    const sheetEl = Sheet.open({ title: I18n.t('suppliers.detail.title'), bodyHTML, footerHTML });
 
     sheetEl.querySelector('#editSupplierBtn').addEventListener('click', () => {
       Sheet.close();
@@ -157,9 +157,9 @@ const Suppliers = (() => {
     });
     sheetEl.querySelector('#deleteSupplierBtn').addEventListener('click', async (e) => {
       Icon.shake(e.currentTarget.querySelector('.icon-svg'));
-      if (!(await Confirm.show(`Delete "${s.name}"? Linked products keep their supplier name as text.`, { danger: true }))) return;
+      if (!(await Confirm.show(I18n.t('suppliers.detail.deleteConfirm', { name: s.name }), { danger: true }))) return;
       await DB.delete('suppliers', s.id);
-      Toast.success('Supplier deleted');
+      Toast.success(I18n.t('suppliers.detail.deleted'));
       Sheet.close();
       if (Router.current === 'suppliers') renderList(listContainer);
     });

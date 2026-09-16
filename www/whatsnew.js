@@ -11,6 +11,8 @@ const WhatsNew = (() => {
   // Add a new entry here each release; oldest-first doesn't matter since
   // only the current version's list is ever shown.
   const ITEMS = [
+    { icon: Icon('users'), text: 'Customers is now fully translated \\u2014 the list, add/edit form, customer details, and the POS customer picker, in all 3 languages. That\\u2019s Products, POS, Sales, Settings, and Customers all done \\u2014 Suppliers, Inventory, Reports, and Backup are next.' },
+    { icon: Icon('settings'), text: 'Settings is now fully translated \\u2014 store info, appearance, Point of Sale, inventory, and the PIN/biometric lock screens, in all 3 languages. That\\u2019s Products, POS, Sales, and Settings all done \\u2014 Customers, Suppliers, Inventory, Reports, and Backup are next.' },
     { icon: Icon('cart'), text: 'POS and Sales are now fully translated too \u2014 cart, checkout, payment, receipts, refunds, and the receipt scanner, in all 3 languages. That\u2019s Products, POS, and Sales all done \u2014 Customers, Suppliers, Inventory, Reports, Settings, and Backup are next.' },
     { icon: Icon('package'), text: 'Products is now fully translated \u2014 every label, button, form field, and message across adding/editing products, categories, barcodes, and stock adjustments, in all 3 languages.' },
     { icon: '🌐', text: 'Started adding multiple languages \u2014 English, Arabic (with the Algerian flag), and French. New language picker is the very first screen on a fresh install, and reachable anytime from More \u2192 Language. Navigation, onboarding, and common buttons are translated so far; more screens are being translated in the next few updates.' },

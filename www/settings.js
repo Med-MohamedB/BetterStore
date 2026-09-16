@@ -17,25 +17,25 @@ const SettingsScreen = (() => {
     ]);
 
     container.innerHTML = `
-      <div class="section-title">Store</div>
+      <div class="section-title">${I18n.t('settings.sectionStore')}</div>
       <div class="image-picker tappable" id="logoPicker" style="height:100px;">
-        ${store.logo ? `<img src="${store.logo}" alt="">` : `<span class="image-picker__icon">${Icon('building', { size: 28 })}</span><span>Store logo</span>`}
+        ${store.logo ? `<img src="${store.logo}" alt="">` : `<span class="image-picker__icon">${Icon('building', { size: 28 })}</span><span>${I18n.t('settings.storeLogo')}</span>`}
       </div>
       <input type="file" accept="image/*" id="logoInput" style="display:none">
-      <div class="field mt-16"><label>Store name</label><input type="text" id="s_name" value="${escapeHTML(store.name)}"></div>
-      <div class="field"><label>Phone</label><input type="tel" id="s_phone" value="${escapeHTML(store.phone)}"></div>
-      <div class="field"><label>Address</label><input type="text" id="s_address" value="${escapeHTML(store.address)}"></div>
-      <div class="field"><label>Currency</label><input type="text" id="s_currency" value="${escapeHTML(store.currency)}" placeholder="DZD" list="currencyList">
+      <div class="field mt-16"><label>${I18n.t('settings.storeNameLabel')}</label><input type="text" id="s_name" value="${escapeHTML(store.name)}"></div>
+      <div class="field"><label>${I18n.t('settings.phoneLabel')}</label><input type="tel" id="s_phone" value="${escapeHTML(store.phone)}"></div>
+      <div class="field"><label>${I18n.t('settings.addressLabel')}</label><input type="text" id="s_address" value="${escapeHTML(store.address)}"></div>
+      <div class="field"><label>${I18n.t('settings.currencyLabel')}</label><input type="text" id="s_currency" value="${escapeHTML(store.currency)}" placeholder="DZD" list="currencyList">
         <datalist id="currencyList"><option value="DZD"><option value="USD"><option value="EUR"><option value="MAD"><option value="TND"><option value="GBP"></datalist>
       </div>
 
-      <div class="section-title">Appearance</div>
+      <div class="section-title">${I18n.t('settings.sectionAppearance')}</div>
       <div class="chip-row" id="themeChips">
-        ${[['light', `${Icon('sun', { size: 15 })} Light`], ['dark', `${Icon('moon', { size: 15 })} Dark`], ['system', `${Icon('monitor', { size: 15 })} System`]].map(([k, label]) => `
+        ${[['light', `${Icon('sun', { size: 15 })} ${I18n.t('settings.themeLight')}`], ['dark', `${Icon('moon', { size: 15 })} ${I18n.t('settings.themeDark')}`], ['system', `${Icon('monitor', { size: 15 })} ${I18n.t('settings.themeSystem')}`]].map(([k, label]) => `
           <button class="chip tappable${appearance.theme === k ? ' active' : ''}" data-theme-choice="${k}">${label}</button>
         `).join('')}
       </div>
-      <div class="text-dim text-sm mt-16" style="margin-bottom:10px;">Theme</div>
+      <div class="text-dim text-sm mt-16" style="margin-bottom:10px;">${I18n.t('settings.themeLabel')}</div>
       <div class="theme-pack-grid" id="themePackGrid">
         ${Object.entries(THEME_PACKS).map(([key, pack]) => `
           <button class="theme-pack-card tappable${appearance.themePack === key ? ' active' : ''}" data-theme-pack="${key}">
@@ -47,55 +47,55 @@ const SettingsScreen = (() => {
         `).join('')}
       </div>
 
-      <div class="section-title">Point of Sale</div>
+      <div class="section-title">${I18n.t('settings.sectionPos')}</div>
       <div class="field">
-        <label>Default payment method</label>
+        <label>${I18n.t('settings.defaultPaymentLabel')}</label>
         <select id="s_defaultPayment">
-          ${['cash', 'card', 'bank transfer', 'other'].map((m) => `<option value="${m}" ${pos.defaultPaymentMethod === m ? 'selected' : ''}>${m.charAt(0).toUpperCase() + m.slice(1)}</option>`).join('')}
+          ${[['cash', I18n.t('settings.paymentCash')], ['card', I18n.t('settings.paymentCard')], ['bank transfer', I18n.t('settings.paymentBankTransfer')], ['other', I18n.t('settings.paymentOther')]].map(([m, label]) => `<option value="${m}" ${pos.defaultPaymentMethod === m ? 'selected' : ''}>${label}</option>`).join('')}
         </select>
       </div>
       <div class="card flex-between">
-        <span class="text-sm">Enable tax</span>
+        <span class="text-sm">${I18n.t('settings.enableTax')}</span>
         <input type="checkbox" id="s_taxEnabled" ${pos.taxEnabled ? 'checked' : ''} style="width:20px;height:20px;">
       </div>
-      <div class="field mt-8"><label>Tax percentage</label><input type="number" inputmode="decimal" id="s_taxPercent" value="${pos.taxPercent}" min="0" max="100"></div>
+      <div class="field mt-8"><label>${I18n.t('settings.taxPercentLabel')}</label><input type="number" inputmode="decimal" id="s_taxPercent" value="${pos.taxPercent}" min="0" max="100"></div>
       <div class="card flex-between">
-        <span class="text-sm">Confirm before completing sale</span>
+        <span class="text-sm">${I18n.t('settings.confirmBeforeSale')}</span>
         <input type="checkbox" id="s_confirmSale" ${pos.confirmBeforeSale ? 'checked' : ''} style="width:20px;height:20px;">
       </div>
-      <div class="field mt-8"><label>Receipt footer</label><input type="text" id="s_receiptFooter" value="${escapeHTML(pos.receiptFooter)}"></div>
+      <div class="field mt-8"><label>${I18n.t('settings.receiptFooterLabel')}</label><input type="text" id="s_receiptFooter" value="${escapeHTML(pos.receiptFooter)}"></div>
 
-      <div class="section-title">Inventory</div>
+      <div class="section-title">${I18n.t('settings.sectionInventory')}</div>
       <div class="card flex-between">
-        <span class="text-sm">Low-stock warnings</span>
+        <span class="text-sm">${I18n.t('settings.lowStockWarnings')}</span>
         <input type="checkbox" id="s_lowStockWarn" ${inventory.lowStockWarnings ? 'checked' : ''} style="width:20px;height:20px;">
       </div>
-      <div class="field mt-8"><label>Default minimum stock</label><input type="number" inputmode="numeric" id="s_defaultMinStock" value="${inventory.defaultMinStock}" min="0"></div>
+      <div class="field mt-8"><label>${I18n.t('settings.defaultMinStockLabel')}</label><input type="number" inputmode="numeric" id="s_defaultMinStock" value="${inventory.defaultMinStock}" min="0"></div>
 
-      <div class="section-title">Security</div>
+      <div class="section-title">${I18n.t('settings.sectionSecurity')}</div>
       <div class="card flex-between">
-        <span class="text-sm">Enable PIN lock</span>
+        <span class="text-sm">${I18n.t('settings.enablePinLock')}</span>
         <input type="checkbox" id="s_pinEnabled" ${security.pinEnabled ? 'checked' : ''} style="width:20px;height:20px;">
       </div>
-      ${security.pinEnabled ? `<div class="text-dim text-sm mt-8">PIN is set. <button class="chip tappable" id="changePinBtn" style="margin-left:6px;">Change PIN</button></div>` : ''}
+      ${security.pinEnabled ? `<div class="text-dim text-sm mt-8">${I18n.t('settings.pinIsSet')} <button class="chip tappable" id="changePinBtn" style="margin-left:6px;">${I18n.t('settings.changePin')}</button></div>` : ''}
       <div class="card flex-between mt-8" id="bioRow" style="display:none;">
-        <span class="text-sm">Unlock with Face/Fingerprint</span>
+        <span class="text-sm">${I18n.t('settings.unlockBiometric')}</span>
         <input type="checkbox" id="s_bioEnabled" ${security.biometricEnabled ? 'checked' : ''} style="width:20px;height:20px;">
       </div>
 
-      <div class="section-title">Data</div>
+      <div class="section-title">${I18n.t('settings.sectionData')}</div>
       <a class="list-row tappable" href="#backup">
         <div class="list-row__icon">${Icon('database')}</div>
-        <div class="list-row__body"><div class="list-row__title">Backup & Restore</div><div class="list-row__subtitle">Export, import, clear data</div></div>
+        <div class="list-row__body"><div class="list-row__title">${I18n.t('settings.backupTitle')}</div><div class="list-row__subtitle">${I18n.t('settings.backupSubtitle')}</div></div>
         <div class="list-row__trailing text-faint">›</div>
       </a>
 
-      <div class="section-title">About</div>
+      <div class="section-title">${I18n.t('settings.sectionAbout')}</div>
       <div class="list-row tappable" id="aboutAppRow">
         <div class="list-row__icon"><img src="img/profile.jpg" alt="" style="width:32px; height:32px; border-radius:50%; object-fit:cover;" onerror="this.replaceWith('ℹ️');"></div>
         <div class="list-row__body">
-          <div class="list-row__title">About This App</div>
-          <div class="list-row__subtitle">Credits, contact & support</div>
+          <div class="list-row__title">${I18n.t('settings.aboutTitle')}</div>
+          <div class="list-row__subtitle">${I18n.t('settings.aboutSubtitle')}</div>
         </div>
         <div class="list-row__trailing text-faint">›</div>
       </div>
@@ -125,7 +125,7 @@ const SettingsScreen = (() => {
       const dataUrl = await compressLogoToDataURL(file);
       picker.innerHTML = `<img src="${dataUrl}" alt="">`;
       await save({ logo: dataUrl });
-      Toast.success('Logo updated');
+      Toast.success(I18n.t('settings.logoUpdated'));
     });
   }
 
@@ -156,7 +156,7 @@ const SettingsScreen = (() => {
         await Settings.set('appearance', { theme: chip.dataset.themeChoice });
         await applyTheme();
         container.querySelectorAll('[data-theme-choice]').forEach((c) => c.classList.toggle('active', c === chip));
-        Toast.success('Theme updated');
+        Toast.success(I18n.t('settings.themeUpdated'));
       });
     });
     container.querySelectorAll('[data-theme-pack]').forEach((card) => {
@@ -175,7 +175,7 @@ const SettingsScreen = (() => {
             check.remove();
           }
         });
-        Toast.success(`${THEME_PACKS[key].name} theme applied`);
+        Toast.success(I18n.t('settings.themePackApplied', { name: THEME_PACKS[key].name }));
       });
     });
   }
@@ -206,18 +206,18 @@ const SettingsScreen = (() => {
     container.querySelector('#s_pinEnabled').addEventListener('change', async (e) => {
       if (e.target.checked) {
         Security.promptSetPin((pin) => {
-          if (pin) { render(container); Toast.success('PIN lock enabled'); }
+          if (pin) { render(container); Toast.success(I18n.t('settings.pinLockEnabled')); }
           else { e.target.checked = false; }
         });
       } else {
         await Settings.set('security', { pinEnabled: false, pin: null, biometricEnabled: false, biometricCredentialId: null });
         render(container);
-        Toast.show('PIN lock disabled');
+        Toast.show(I18n.t('settings.pinLockDisabled'));
       }
     });
     const changeBtn = container.querySelector('#changePinBtn');
     if (changeBtn) changeBtn.addEventListener('click', () => {
-      Security.promptSetPin((pin) => { if (pin) Toast.success('PIN updated'); });
+      Security.promptSetPin((pin) => { if (pin) Toast.success(I18n.t('settings.pinUpdated')); });
     });
 
     const bioToggle = container.querySelector('#s_bioEnabled');
@@ -226,14 +226,14 @@ const SettingsScreen = (() => {
         if (e.target.checked) {
           const ok = await Security.registerBiometric();
           if (ok) {
-            Toast.success('Biometric unlock enabled');
+            Toast.success(I18n.t('settings.biometricEnabled'));
           } else {
             e.target.checked = false;
-            Toast.error('Couldn\u2019t set up biometric unlock');
+            Toast.error(I18n.t('settings.biometricSetupFailed'));
           }
         } else {
           await Settings.set('security', { biometricEnabled: false, biometricCredentialId: null });
-          Toast.show('Biometric unlock disabled');
+          Toast.show(I18n.t('settings.biometricDisabled'));
         }
       });
     }
@@ -273,10 +273,10 @@ const Security = (() => {
     overlay.className = 'pin-overlay open';
     overlay.innerHTML = `
       <div class="pin-lock-icon">${Icon('lock', { size: 32 })}</div>
-      <div class="pin-title" id="pinTitle">Set a PIN</div>
-      <div class="pin-sub">Choose a 4-6 digit PIN, then tap ${Icon('check', { size: 12 })} to confirm</div>
+      <div class="pin-title" id="pinTitle">${I18n.t('settings.security.setPinTitle')}</div>
+      <div class="pin-sub">${I18n.t('settings.security.choosePinSub', { check: Icon('check', { size: 12 }) })}</div>
       ${keypadHTML(0, true)}
-      <button class="btn btn-secondary mt-16 tappable" id="pinCancel" style="max-width:200px;">Cancel</button>
+      <button class="btn btn-secondary mt-16 tappable" id="pinCancel" style="max-width:200px;">${I18n.t('common.cancel')}</button>
     `;
     document.body.appendChild(overlay);
 
@@ -302,16 +302,16 @@ const Security = (() => {
       if (stage === 'first') {
         firstPin = entered;
         stage = 'confirm';
-        reset('Confirm your PIN, then tap \u2713');
-        overlay.querySelector('#pinTitle').textContent = 'Confirm PIN';
+        reset(I18n.t('settings.security.confirmPinSub'));
+        overlay.querySelector('#pinTitle').textContent = I18n.t('settings.security.confirmPinTitle');
       } else if (entered === firstPin) {
         await Settings.set('security', { pinEnabled: true, pin: firstPin });
         overlay.remove();
         onDone(firstPin);
       } else {
-        reset('PINs didn\u2019t match \u2014 try again');
+        reset(I18n.t('settings.security.pinsNoMatch'));
         stage = 'first';
-        overlay.querySelector('#pinTitle').textContent = 'Set a PIN';
+        overlay.querySelector('#pinTitle').textContent = I18n.t('settings.security.setPinTitle');
       }
     }
 
@@ -377,7 +377,7 @@ const Security = (() => {
       const plugin = nativeBiometric();
       if (!plugin) return false;
       try {
-        const result = await plugin.verify({ reason: 'Confirm your fingerprint or face to enable biometric unlock' });
+        const result = await plugin.verify({ reason: I18n.t('settings.security.biometricConfirmReason') });
         if (!result || !result.verified) return false;
         // No WebAuthn credential exists on native — the OS-level
         // BiometricPrompt itself is the gate, so a fixed marker is
@@ -419,7 +419,7 @@ const Security = (() => {
       const plugin = nativeBiometric();
       if (!plugin) return false;
       try {
-        const result = await plugin.verify({ reason: 'Unlock Better Store' });
+        const result = await plugin.verify({ reason: I18n.t('settings.security.biometricUnlockReason') });
         return !!(result && result.verified);
       } catch (e) {
         console.warn('Native biometric verification failed or was cancelled:', e);
@@ -451,10 +451,10 @@ const Security = (() => {
       overlay.className = 'pin-overlay open';
       overlay.innerHTML = `
         <div class="pin-lock-icon">${Icon('lock', { size: 32 })}</div>
-        <div class="pin-title">Enter PIN</div>
-        <div class="pin-sub" id="pinLockSub">Enter your PIN to unlock</div>
+        <div class="pin-title">${I18n.t('settings.security.enterPinTitle')}</div>
+        <div class="pin-sub" id="pinLockSub">${I18n.t('settings.security.enterPinSub')}</div>
         ${keypadHTML(0)}
-        ${canBiometric ? `<button class="btn btn-secondary mt-16 tappable" id="bioBtn" style="max-width:240px;">${Icon('shield')} Use Face/Fingerprint</button>` : ''}
+        ${canBiometric ? `<button class="btn btn-secondary mt-16 tappable" id="bioBtn" style="max-width:240px;">${Icon('shield')} ${I18n.t('settings.security.useFaceFingerprint')}</button>` : ''}
       `;
       document.body.appendChild(overlay);
 
@@ -478,7 +478,7 @@ const Security = (() => {
               unlock();
             } else {
               if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
-              overlay.querySelector('#pinLockSub').textContent = 'Incorrect PIN \u2014 try again';
+              overlay.querySelector('#pinLockSub').textContent = I18n.t('settings.security.incorrectPin');
               overlay.querySelector('.pin-dots').classList.add('shake');
               setTimeout(() => {
                 entered = '';
@@ -493,10 +493,10 @@ const Security = (() => {
       const bioBtn = overlay.querySelector('#bioBtn');
       async function tryBiometric() {
         if (!bioBtn) return;
-        bioBtn.innerHTML = `${Icon('shield')} Checking\u2026`;
+        bioBtn.innerHTML = `${Icon('shield')} ${I18n.t('settings.security.checking')}`;
         const ok = await verifyBiometric(security.biometricCredentialId);
         if (ok) { unlock(); return; }
-        bioBtn.innerHTML = `${Icon('shield')} Use Face/Fingerprint`;
+        bioBtn.innerHTML = `${Icon('shield')} ${I18n.t('settings.security.useFaceFingerprint')}`;
       }
       if (bioBtn) {
         bioBtn.addEventListener('click', tryBiometric);
@@ -530,10 +530,10 @@ const Security = (() => {
       overlay.className = 'pin-overlay open';
       overlay.innerHTML = `
         <div class="pin-lock-icon">${Icon('alert-triangle', { size: 32 })}</div>
-        <div class="pin-title">Confirm PIN</div>
-        <div class="pin-sub" id="pinConfirmSub">${escapeHTML(reason || 'Enter your PIN to continue')}</div>
+        <div class="pin-title">${I18n.t('settings.security.confirmPinTitle')}</div>
+        <div class="pin-sub" id="pinConfirmSub">${escapeHTML(reason || I18n.t('settings.security.confirmPinReason'))}</div>
         ${keypadHTML(0)}
-        <button class="btn btn-secondary mt-16 tappable" id="pinConfirmCancel" style="max-width:200px;">Cancel</button>
+        <button class="btn btn-secondary mt-16 tappable" id="pinConfirmCancel" style="max-width:200px;">${I18n.t('common.cancel')}</button>
       `;
       document.body.appendChild(overlay);
 
@@ -557,7 +557,7 @@ const Security = (() => {
               done(true);
             } else {
               if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
-              overlay.querySelector('#pinConfirmSub').textContent = 'Incorrect PIN \u2014 try again';
+              overlay.querySelector('#pinConfirmSub').textContent = I18n.t('settings.security.incorrectPin');
               overlay.querySelector('.pin-dots').classList.add('shake');
               setTimeout(() => {
                 entered = '';

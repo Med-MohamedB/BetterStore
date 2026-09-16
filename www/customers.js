@@ -29,7 +29,7 @@ const Customers = (() => {
     container.innerHTML = `
       <div class="search-bar">
         <span class="search-bar__icon">${Icon('search')}</span>
-        <input type="text" id="customerSearch" placeholder="Search name, phone, email..." value="${escapeHTML(searchQuery)}">
+        <input type="text" id="customerSearch" placeholder="${I18n.t('customers.searchPlaceholder')}" value="${escapeHTML(searchQuery)}">
         ${searchQuery ? `<button class="search-bar__clear tappable" id="clearCustomerSearch">${Icon('x', { size: 14 })}</button>` : ''}
       </div>
 
@@ -42,15 +42,15 @@ const Customers = (() => {
           ${customers.length
             ? `<div class="empty-state__icon">${Icon('user', { size: 32 })}</div>`
             : `<img class="empty-state__illustration" src="${themedIllustration('empty-customers')}" alt="">`}
-          <div class="empty-state__title">${customers.length ? 'No customers match' : 'No customers yet'}</div>
-          <div class="empty-state__hint">${customers.length ? 'Try a different search.' : 'Tap the button below to add your first customer.'}</div>
+          <div class="empty-state__title">${customers.length ? I18n.t('customers.noCustomersMatch') : I18n.t('customers.noCustomersYet')}</div>
+          <div class="empty-state__hint">${customers.length ? I18n.t('customers.tryDifferentSearch') : I18n.t('customers.tapToAddFirst')}</div>
         </div>
       `}
-      <button class="screen-fab tappable" id="customerFab" title="Add customer">${Icon('plus')}</button>
+      <button class="screen-fab tappable" id="customerFab" title="${I18n.t('customers.addCustomer')}">${Icon('plus')}</button>
     `;
     container.querySelector('#customerFab').addEventListener('click', () => openForm());
     if (!filtered.length && !customers.length) {
-      DoodleHint.show('addFirstCustomer', container.querySelector('#customerFab'), 'Add your first customer', 'br');
+      DoodleHint.show('addFirstCustomer', container.querySelector('#customerFab'), I18n.t('customers.addFirstCustomerHint'), 'br');
     }
 
     const searchInput = container.querySelector('#customerSearch');
@@ -81,7 +81,7 @@ const Customers = (() => {
         <div class="list-row__icon">${Icon('user')}</div>
         <div class="list-row__body">
           <div class="list-row__title">${escapeHTML(c.name)}</div>
-          <div class="list-row__subtitle">${escapeHTML(c.phone || 'No phone')} · ${count} order${count !== 1 ? 's' : ''}</div>
+          <div class="list-row__subtitle">${escapeHTML(c.phone || I18n.t('customers.noPhone'))} · ${I18n.t('customers.orderCount', { count, plural: count !== 1 ? 's' : '' })}</div>
         </div>
         <div class="list-row__trailing"><div class="list-row__amount num">${Fmt.money(total)}</div></div>
       </div>`;
@@ -92,17 +92,17 @@ const Customers = (() => {
     const c = existing || { name: '', phone: '', email: '', notes: '' };
 
     const bodyHTML = `
-      <div class="field"><label>Name *</label><input type="text" id="f_name" value="${escapeHTML(c.name)}" placeholder="Customer name"></div>
-      <div class="field"><label>Phone</label><input type="tel" id="f_phone" value="${escapeHTML(c.phone)}" placeholder="Optional"></div>
-      <div class="field"><label>Email</label><input type="text" id="f_email" value="${escapeHTML(c.email)}" placeholder="Optional"></div>
-      <div class="field"><label>Notes</label><textarea id="f_notes" placeholder="Optional">${escapeHTML(c.notes || '')}</textarea></div>
+      <div class="field"><label>${I18n.t('customers.form.nameLabel')}</label><input type="text" id="f_name" value="${escapeHTML(c.name)}" placeholder="${I18n.t('customers.form.namePlaceholder')}"></div>
+      <div class="field"><label>${I18n.t('customers.form.phoneLabel')}</label><input type="tel" id="f_phone" value="${escapeHTML(c.phone)}" placeholder="${I18n.t('customers.form.optional')}"></div>
+      <div class="field"><label>${I18n.t('customers.form.emailLabel')}</label><input type="text" id="f_email" value="${escapeHTML(c.email)}" placeholder="${I18n.t('customers.form.optional')}"></div>
+      <div class="field"><label>${I18n.t('customers.form.notesLabel')}</label><textarea id="f_notes" placeholder="${I18n.t('customers.form.optional')}">${escapeHTML(c.notes || '')}</textarea></div>
     `;
-    const footerHTML = `<button class="btn btn-primary tappable" id="saveCustomerBtn">${isEdit ? 'Save Changes' : 'Add Customer'}</button>`;
-    const sheetEl = Sheet.open({ title: isEdit ? 'Edit Customer' : 'Add Customer', bodyHTML, footerHTML });
+    const footerHTML = `<button class="btn btn-primary tappable" id="saveCustomerBtn">${isEdit ? I18n.t('customers.form.saveChanges') : I18n.t('customers.form.addTitle')}</button>`;
+    const sheetEl = Sheet.open({ title: isEdit ? I18n.t('customers.form.editTitle') : I18n.t('customers.form.addTitle'), bodyHTML, footerHTML });
 
     sheetEl.querySelector('#saveCustomerBtn').addEventListener('click', async () => {
       const name = sheetEl.querySelector('#f_name').value.trim();
-      if (!name) { Toast.error('Customer name is required'); return; }
+      if (!name) { Toast.error(I18n.t('customers.form.nameRequired')); return; }
 
       const record = {
         name,
@@ -110,8 +110,8 @@ const Customers = (() => {
         email: sheetEl.querySelector('#f_email').value.trim(),
         notes: sheetEl.querySelector('#f_notes').value.trim(),
       };
-      if (isEdit) { record.id = c.id; await DB.put('customers', record); Toast.success('Customer updated'); }
-      else { await DB.add('customers', record); Toast.success('Customer added'); DoodleHint.complete('addFirstCustomer'); }
+      if (isEdit) { record.id = c.id; await DB.put('customers', record); Toast.success(I18n.t('customers.form.updated')); }
+      else { await DB.add('customers', record); Toast.success(I18n.t('customers.form.added')); DoodleHint.complete('addFirstCustomer'); }
 
       Sheet.close();
       if (Router.current === 'customers') renderList(document.getElementById('view'));
@@ -128,18 +128,18 @@ const Customers = (() => {
         ${c.email ? `<div class="text-dim text-sm">${escapeHTML(c.email)}</div>` : ''}
       </div>
       <div class="stat-grid mt-16">
-        <div class="stat-card"><div class="stat-card__label">Total Purchases</div><div class="stat-card__value accent num">${Fmt.money(total)}</div></div>
-        <div class="stat-card"><div class="stat-card__label">Orders</div><div class="stat-card__value num">${count}</div></div>
+        <div class="stat-card"><div class="stat-card__label">${I18n.t('customers.detail.totalPurchases')}</div><div class="stat-card__value accent num">${Fmt.money(total)}</div></div>
+        <div class="stat-card"><div class="stat-card__label">${I18n.t('customers.detail.orders')}</div><div class="stat-card__value num">${count}</div></div>
       </div>
-      ${last ? `<div class="text-dim text-sm mt-16">Last purchase: ${Fmt.dateTime(last)}</div>` : ''}
+      ${last ? `<div class="text-dim text-sm mt-16">${I18n.t('customers.detail.lastPurchase', { date: Fmt.dateTime(last) })}</div>` : ''}
       ${c.notes ? `<div class="card mt-16"><div class="text-sm">${escapeHTML(c.notes)}</div></div>` : ''}
     `;
     const footerHTML = `
       <div class="flex gap-8">
-        <button class="btn btn-secondary tappable" id="editCustomerBtn">Edit</button>
+        <button class="btn btn-secondary tappable" id="editCustomerBtn">${I18n.t('customers.detail.edit')}</button>
         <button class="btn btn-danger tappable" id="deleteCustomerBtn" style="max-width:60px;">${Icon('trash')}</button>
       </div>`;
-    const sheetEl = Sheet.open({ title: 'Customer', bodyHTML, footerHTML });
+    const sheetEl = Sheet.open({ title: I18n.t('customers.detail.title'), bodyHTML, footerHTML });
 
     sheetEl.querySelector('#editCustomerBtn').addEventListener('click', () => {
       Sheet.close();
@@ -147,9 +147,9 @@ const Customers = (() => {
     });
     sheetEl.querySelector('#deleteCustomerBtn').addEventListener('click', async (e) => {
       Icon.shake(e.currentTarget.querySelector('.icon-svg'));
-      if (!(await Confirm.show(`Delete "${c.name}"? Their past sales stay on record.`, { danger: true }))) return;
+      if (!(await Confirm.show(I18n.t('customers.detail.deleteConfirm', { name: c.name }), { danger: true }))) return;
       await DB.delete('customers', c.id);
-      Toast.success('Customer deleted');
+      Toast.success(I18n.t('customers.detail.deleted'));
       Sheet.close();
       if (Router.current === 'customers') renderList(listContainer);
     });
@@ -160,11 +160,11 @@ const Customers = (() => {
     const bodyHTML = `
       <div class="search-bar">
         <span class="search-bar__icon">${Icon('search')}</span>
-        <input type="text" id="custPickerSearch" placeholder="Search or add a customer...">
+        <input type="text" id="custPickerSearch" placeholder="${I18n.t('customers.picker.searchPlaceholder')}">
       </div>
       <div id="custPickerResults" class="list"></div>
     `;
-    const sheetEl = Sheet.open({ title: 'Attach Customer', bodyHTML });
+    const sheetEl = Sheet.open({ title: I18n.t('customers.picker.title'), bodyHTML });
     const resultsEl = sheetEl.querySelector('#custPickerResults');
     const searchEl = sheetEl.querySelector('#custPickerSearch');
 
@@ -172,7 +172,7 @@ const Customers = (() => {
       const all = await DB.getAll('customers');
       const filtered = !q ? all : all.filter((c) => [c.name, c.phone].filter(Boolean).some((f) => f.toLowerCase().includes(q.toLowerCase())));
       resultsEl.innerHTML = `
-        ${q ? `<div class="list-row tappable" data-new-customer="1"><div class="list-row__icon">${Icon('plus')}</div><div class="list-row__body"><div class="list-row__title">Add "${escapeHTML(q)}" as new customer</div></div></div>` : ''}
+        ${q ? `<div class="list-row tappable" data-new-customer="1"><div class="list-row__icon">${Icon('plus')}</div><div class="list-row__body"><div class="list-row__title">${I18n.t('customers.picker.addNew', { query: escapeHTML(q) })}</div></div></div>` : ''}
         ${filtered.map((c) => `
           <div class="list-row tappable" data-pick-customer="${c.id}">
             <div class="list-row__icon">${Icon('user')}</div>

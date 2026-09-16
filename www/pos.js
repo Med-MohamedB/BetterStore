@@ -19,12 +19,12 @@ const POS = (() => {
   async function render(container) {
     const actions = document.getElementById('topbarActions');
     actions.innerHTML = `
-      <button class="icon-btn tappable" id="posClearBtn" title="Clear cart">${Icon('trash')}</button>
+      <button class="icon-btn tappable" id="posClearBtn" title="${I18n.t('pos.clearCart')}">${Icon('trash')}</button>
     `;
     actions.querySelector('#posClearBtn').addEventListener('click', async (e) => {
       if (!cart.length) return;
       Icon.shake(e.currentTarget.querySelector('.icon-svg'));
-      if (await Confirm.show('Clear the current cart?', { danger: true, confirmText: 'Clear Cart' })) {
+      if (await Confirm.show(I18n.t('pos.clearCartConfirm'), { danger: true, confirmText: I18n.t('pos.clearCart') })) {
         cart = []; totalDiscount = 0;
         updateCartBadge(0);
         renderCart(container);
@@ -55,7 +55,7 @@ const POS = (() => {
       });
     }
     updateCartBadge(cartCount());
-    Toast.success(`${product.name} added`);
+    Toast.success(I18n.t('pos.productAdded', { name: product.name }));
     if (Router.current === 'pos') renderCart(document.getElementById('view'));
   }
 
@@ -79,20 +79,20 @@ const POS = (() => {
 
     container.innerHTML = `
       <div class="flex gap-8">
-        <button class="btn btn-secondary tappable" id="scanAddBtn" style="flex:1;">${Icon('scan')} Scan</button>
-        <button class="btn btn-secondary tappable" id="searchAddBtn" style="flex:1;">${Icon('search')} Add Product</button>
+        <button class="btn btn-secondary tappable" id="scanAddBtn" style="flex:1;">${Icon('scan')} ${I18n.t('pos.scan')}</button>
+        <button class="btn btn-secondary tappable" id="searchAddBtn" style="flex:1;">${Icon('search')} ${I18n.t('pos.addProduct')}</button>
       </div>
 
       <button class="list-row tappable mt-16" id="customerRow" style="width:100%; border:1px solid var(--border); cursor:pointer;">
         <div class="list-row__icon">${Icon('user')}</div>
         <div class="list-row__body">
-          <div class="list-row__title">${selectedCustomer ? escapeHTML(selectedCustomer.name) : 'Walk-in customer'}</div>
-          <div class="list-row__subtitle">${selectedCustomer ? 'Tap to change' : 'Tap to attach a customer'}</div>
+          <div class="list-row__title">${selectedCustomer ? escapeHTML(selectedCustomer.name) : I18n.t('pos.walkInCustomer')}</div>
+          <div class="list-row__subtitle">${selectedCustomer ? I18n.t('pos.tapToChange') : I18n.t('pos.tapToAttach')}</div>
         </div>
-        <div class="list-row__trailing">${selectedCustomer ? `<span class="chip" id="clearCustomerChip" style="padding:4px 10px;">Clear</span>` : ''}</div>
+        <div class="list-row__trailing">${selectedCustomer ? `<span class="chip" id="clearCustomerChip" style="padding:4px 10px;">${I18n.t('pos.clearChip')}</span>` : ''}</div>
       </button>
 
-      <div class="section-title">Cart ${cart.length ? `· ${cart.reduce((s, c) => s + c.qty, 0)} item${cart.reduce((s, c) => s + c.qty, 0) !== 1 ? 's' : ''}` : ''}</div>
+      <div class="section-title">${I18n.t('pos.cart')} ${cart.length ? `· ${cart.reduce((s, c) => s + c.qty, 0)} item${cart.reduce((s, c) => s + c.qty, 0) !== 1 ? 's' : ''}` : ''}</div>
 
       ${cart.length ? `
         <div class="list stagger" id="cartList">
@@ -101,34 +101,34 @@ const POS = (() => {
       ` : `
         <div class="empty-state empty-state--illustrated">
           <img class="empty-state__illustration" src="${themedIllustration('empty-pos')}" alt="">
-          <div class="empty-state__title">Cart is empty</div>
-          <div class="empty-state__hint">Scan a barcode or tap "Add Product" to start a sale.</div>
+          <div class="empty-state__title">${I18n.t('pos.cartEmpty')}</div>
+          <div class="empty-state__hint">${I18n.t('pos.cartEmptyHint')}</div>
         </div>
       `}
 
       ${cart.length ? `
-        <div class="section-title">Summary</div>
+        <div class="section-title">${I18n.t('pos.summary')}</div>
         <div class="card">
-          <div class="flex-between"><span class="text-dim text-sm">Subtotal</span><span class="num text-sm">${Fmt.money(itemsSubtotal)}</span></div>
-          <div class="flex-between mt-8"><span class="text-dim text-sm">Item discounts</span><span class="num text-sm">− ${Fmt.money(itemDiscounts)}</span></div>
+          <div class="flex-between"><span class="text-dim text-sm">${I18n.t('pos.subtotal')}</span><span class="num text-sm">${Fmt.money(itemsSubtotal)}</span></div>
+          <div class="flex-between mt-8"><span class="text-dim text-sm">${I18n.t('pos.itemDiscounts')}</span><span class="num text-sm">− ${Fmt.money(itemDiscounts)}</span></div>
           <div class="flex-between mt-8" style="align-items:center;">
-            <span class="text-dim text-sm">Total discount</span>
+            <span class="text-dim text-sm">${I18n.t('pos.totalDiscount')}</span>
             <input type="number" inputmode="decimal" id="totalDiscountInput" value="${totalDiscount || ''}" placeholder="0"
               style="width:90px; height:32px; text-align:right; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); padding:0 8px;" class="num">
           </div>
-          ${posSettings.taxEnabled ? `<div class="flex-between mt-8"><span class="text-dim text-sm">Tax (${posSettings.taxPercent}%)</span><span class="num text-sm">${Fmt.money(taxAmount)}</span></div>` : ''}
+          ${posSettings.taxEnabled ? `<div class="flex-between mt-8"><span class="text-dim text-sm">${I18n.t('pos.tax', { pct: posSettings.taxPercent })}</span><span class="num text-sm">${Fmt.money(taxAmount)}</span></div>` : ''}
           <div class="flex-between mt-16" style="padding-top:12px; border-top:1px solid var(--border);">
-            <span style="font-weight:700;">Total</span>
+            <span style="font-weight:700;">${I18n.t('pos.total')}</span>
             <span class="num" style="font-weight:700; font-size:18px; color:var(--accent);">${Fmt.money(grandTotal)}</span>
           </div>
         </div>
-        <button class="btn btn-primary mt-16 tappable" id="chargeBtn">Charge ${Fmt.money(grandTotal)}</button>
+        <button class="btn btn-primary mt-16 tappable" id="chargeBtn">${I18n.t('pos.charge', { amount: Fmt.money(grandTotal) })}</button>
       ` : ''}
     `;
 
     container.querySelector('#scanAddBtn').addEventListener('click', () => {
       Scanner.openContinuous({
-        title: 'Scan to Cart',
+        title: I18n.t('pos.scanToCart'),
         onScan: async (code) => {
           const product = await DB.getByIndex('products', 'barcode', code);
           if (product) {
@@ -136,7 +136,7 @@ const POS = (() => {
             return { text: `✓ ${product.name}`, variant: 'success' };
           }
           return {
-            text: `Not found: ${code} \u2014 tap to add product`,
+            text: I18n.t('pos.notFound', { code }),
             variant: 'warn',
             onTap: () => {
               Scanner.closeActive();
@@ -166,7 +166,7 @@ const POS = (() => {
           renderCart(container);
         });
       } else {
-        Toast.show('Customer management isn\u2019t available yet');
+        Toast.show(I18n.t('pos.customerNotAvailable'));
       }
     });
 
@@ -217,7 +217,7 @@ const POS = (() => {
               <button class="stepper__btn tappable" style="width:26px;height:26px;font-size:14px;" data-stepper-plus="${item.productId}">+</button>
             </span>
             <button class="chip tappable" style="padding:3px 8px; font-size:11px;" data-item-discount="${item.productId}">
-              ${item.discount ? `− ${Fmt.money(item.discount)}` : 'Discount'}
+              ${item.discount ? `− ${Fmt.money(item.discount)}` : I18n.t('pos.discount')}
             </button>
           </div>
         </div>
@@ -239,7 +239,7 @@ const POS = (() => {
   function editItemDiscount(container, productId) {
     const item = cart.find((c) => String(c.productId) === String(productId));
     if (!item) return;
-    const input = prompt(`Discount amount for ${item.name}:`, item.discount || 0);
+    const input = prompt(I18n.t('pos.discountPromptTitle', { name: item.name }), item.discount || 0);
     if (input === null) return;
     const value = Math.max(0, parseFloat(input) || 0);
     item.discount = Math.min(value, item.price * item.qty);
@@ -254,11 +254,11 @@ const POS = (() => {
     const bodyHTML = `
       <div class="search-bar">
         <span class="search-bar__icon">${Icon('search')}</span>
-        <input type="text" id="pickerSearch" placeholder="Search name, barcode, SKU...">
+        <input type="text" id="pickerSearch" placeholder="${I18n.t('products.searchPlaceholder')}">
       </div>
       <div id="pickerResults" class="list"></div>
     `;
-    const sheetEl = Sheet.open({ title: 'Add Product', bodyHTML });
+    const sheetEl = Sheet.open({ title: I18n.t('pos.addProduct'), bodyHTML });
     const resultsEl = sheetEl.querySelector('#pickerResults');
     const searchEl = sheetEl.querySelector('#pickerSearch');
 
@@ -271,11 +271,11 @@ const POS = (() => {
           <div class="list-row__icon">${p.image ? `<img src="${p.image}" alt="">` : Icon('package')}</div>
           <div class="list-row__body">
             <div class="list-row__title">${escapeHTML(p.name)}</div>
-            <div class="list-row__subtitle">${p.quantity} ${escapeHTML(p.unit || 'pcs')} in stock</div>
+            <div class="list-row__subtitle">${I18n.t('pos.inStockUnit', { qty: p.quantity, unit: escapeHTML(p.unit || 'pcs') })}</div>
           </div>
           <div class="list-row__trailing"><div class="list-row__amount num">${Fmt.money(p.discountPrice ?? p.sellingPrice)}</div></div>
         </div>
-      `).join('') || `<div class="empty-state"><div class="empty-state__icon">${Icon('search', { size: 32 })}</div><div class="empty-state__title">No products found</div></div>`;
+      `).join('') || `<div class="empty-state"><div class="empty-state__icon">${Icon('search', { size: 32 })}</div><div class="empty-state__title">${I18n.t('pos.noProductsFound')}</div></div>`;
 
       resultsEl.querySelectorAll('[data-pick]').forEach((row) => {
         row.addEventListener('click', async () => {
@@ -301,33 +301,34 @@ const POS = (() => {
     const grandTotal = afterAllDiscounts + taxAmount;
 
     let method = posSettings.defaultPaymentMethod || 'cash';
+    const methodLabels = { cash: I18n.t('pos.methodCash'), card: I18n.t('pos.methodCard'), 'bank transfer': I18n.t('pos.methodBankTransfer'), other: I18n.t('pos.methodOther') };
 
     const bodyHTML = `
       <div class="flex-between">
-        <span class="text-dim text-sm">Total due</span>
+        <span class="text-dim text-sm">${I18n.t('pos.totalDue')}</span>
         <span class="num" style="font-weight:700; font-size:20px; color:var(--accent);">${Fmt.money(grandTotal)}</span>
       </div>
 
       <div class="chip-row mt-16" id="paymentChips" style="margin-bottom:4px;">
         ${['cash', 'card', 'bank transfer', 'other'].map((m) => `
-          <button class="chip tappable${m === method ? ' active' : ''}" data-method="${m}">${m.charAt(0).toUpperCase() + m.slice(1)}</button>
+          <button class="chip tappable${m === method ? ' active' : ''}" data-method="${m}">${methodLabels[m]}</button>
         `).join('')}
       </div>
 
       <div id="cashFields" style="${method === 'cash' ? '' : 'display:none;'}">
         <div class="field mt-16">
-          <label>Amount received</label>
+          <label>${I18n.t('pos.amountReceived')}</label>
           <input type="number" inputmode="decimal" id="amountReceived" placeholder="0">
         </div>
         <div class="flex-between">
-          <span class="text-dim text-sm">Change</span>
+          <span class="text-dim text-sm">${I18n.t('pos.change')}</span>
           <span class="num" id="changeDisplay" style="font-weight:700;">${Fmt.money(0)}</span>
         </div>
       </div>
     `;
-    const footerHTML = `<button class="btn btn-primary tappable" id="completeSaleBtn">Complete Sale</button>`;
+    const footerHTML = `<button class="btn btn-primary tappable" id="completeSaleBtn">${I18n.t('pos.completeSale')}</button>`;
 
-    const sheetEl = Sheet.open({ title: 'Payment', bodyHTML, footerHTML });
+    const sheetEl = Sheet.open({ title: I18n.t('pos.payment'), bodyHTML, footerHTML });
 
     sheetEl.querySelectorAll('[data-method]').forEach((chip) => {
       chip.addEventListener('click', () => {
@@ -350,13 +351,13 @@ const POS = (() => {
       if (btn.disabled) return; // guards against a rapid double-tap creating two sales
       const received = method === 'cash' ? (parseFloat(receivedInput.value) || 0) : grandTotal;
       if (method === 'cash' && received < grandTotal) {
-        Toast.error('Amount received is less than the total');
+        Toast.error(I18n.t('pos.amountLessThanTotal'));
         return;
       }
-      if (posSettings.confirmBeforeSale && !(await Confirm.show(`Complete this sale for ${Fmt.money(grandTotal)}?`, { confirmText: 'Complete Sale' }))) return;
+      if (posSettings.confirmBeforeSale && !(await Confirm.show(I18n.t('pos.completeSaleConfirm', { amount: Fmt.money(grandTotal) }), { confirmText: I18n.t('pos.completeSale') }))) return;
 
       btn.disabled = true;
-      btn.textContent = 'Completing\u2026';
+      btn.textContent = I18n.t('pos.completing');
       let sale;
       try {
         sale = await completeSale({
@@ -367,13 +368,13 @@ const POS = (() => {
         });
       } catch (err) {
         console.error('Sale failed:', err);
-        Toast.error('Something went wrong completing the sale \u2014 nothing was charged');
+        Toast.error(I18n.t('pos.saleFailedError'));
         btn.disabled = false;
-        btn.textContent = 'Complete Sale';
+        btn.textContent = I18n.t('pos.completeSale');
         return;
       }
 
-      await showSuccessCheck('Sale Complete', true);
+      await showSuccessCheck(I18n.t('pos.saleComplete'), true);
       Sheet.close();
       setTimeout(() => openReceipt(sale), 100);
     });
@@ -444,7 +445,7 @@ const POS = (() => {
           productName: product.name,
           change: -item.qty,
           newQuantity: newQty,
-          reason: `Sale ${receiptNumber}`,
+          reason: I18n.t('pos.saleReason', { receipt: receiptNumber }),
           date: new Date(),
         }));
       }
@@ -454,7 +455,7 @@ const POS = (() => {
     totalDiscount = 0;
     selectedCustomer = null;
     updateCartBadge(0);
-    Toast.success('Sale completed');
+    Toast.success(I18n.t('pos.saleCompletedToast'));
     return sale;
   }
 
@@ -467,13 +468,13 @@ const POS = (() => {
     const bodyHTML = Receipt.html(sale, store);
     const footerHTML = `
       <div class="flex gap-8">
-        <button class="btn btn-secondary tappable" id="printReceiptBtn">${Icon('printer')} Print</button>
-        <button class="btn btn-secondary tappable" id="shareReceiptBtn">${Icon('share')} Share</button>
+        <button class="btn btn-secondary tappable" id="printReceiptBtn">${Icon('printer')} ${I18n.t('products.print')}</button>
+        <button class="btn btn-secondary tappable" id="shareReceiptBtn">${Icon('share')} ${I18n.t('products.share')}</button>
       </div>
-      <button class="btn btn-primary mt-8 tappable" id="newSaleBtn">New Sale</button>
+      <button class="btn btn-primary mt-8 tappable" id="newSaleBtn">${I18n.t('pos.newSale')}</button>
     `;
 
-    const sheetEl = Sheet.open({ title: 'Receipt', bodyHTML, footerHTML, onClose: () => {
+    const sheetEl = Sheet.open({ title: I18n.t('pos.receipt'), bodyHTML, footerHTML, onClose: () => {
       if (Router.current === 'pos') renderCart(document.getElementById('view'));
     }});
 

@@ -14,7 +14,7 @@ const Sales = (() => {
 
   async function render(container) {
     const actions = document.getElementById('topbarActions');
-    actions.innerHTML = `<button class="icon-btn tappable" id="scanReceiptBtn" title="Scan a receipt">${Icon('scan')}</button>`;
+    actions.innerHTML = `<button class="icon-btn tappable" id="scanReceiptBtn" title="${I18n.t('sales.scanReceipt')}">${Icon('scan')}</button>`;
     actions.querySelector('#scanReceiptBtn').addEventListener('click', () => scanForReceipt(container));
     await renderList(container);
   }
@@ -25,7 +25,7 @@ const Sales = (() => {
    *  search/filter state of the list underneath. */
   function scanForReceipt(container) {
     Scanner.openContinuous({
-      title: 'Scan Receipt',
+      title: I18n.t('sales.scanReceiptTitle'),
       onScan: async (code) => {
         const sale = await DB.getByIndex('sales', 'receiptNumber', code);
         if (sale) {
@@ -33,7 +33,7 @@ const Sales = (() => {
           setTimeout(() => openDetail(sale, container), 260);
           return { text: `\u2713 ${sale.receiptNumber}`, variant: 'success' };
         }
-        return { text: `Not a receipt: ${code}`, variant: 'warn' };
+        return { text: I18n.t('sales.notAReceipt', { code }), variant: 'warn' };
       },
     });
   }
@@ -67,29 +67,29 @@ const Sales = (() => {
     container.innerHTML = `
       <div class="stat-grid">
         <div class="stat-card">
-          <div class="stat-card__label">Transactions</div>
+          <div class="stat-card__label">${I18n.t('sales.transactions')}</div>
           <div class="stat-card__value num">${filtered.length}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-card__label">Total</div>
+          <div class="stat-card__label">${I18n.t('sales.total')}</div>
           <div class="stat-card__value accent num">${Fmt.money(totalRevenue)}</div>
         </div>
       </div>
 
       <div class="search-bar mt-16">
         <span class="search-bar__icon">${Icon('search')}</span>
-        <input type="text" id="salesSearch" placeholder="Search receipt number..." value="${escapeHTML(searchQuery)}">
+        <input type="text" id="salesSearch" placeholder="${I18n.t('sales.searchPlaceholder')}" value="${escapeHTML(searchQuery)}">
         ${searchQuery ? `<button class="search-bar__clear tappable" id="clearSalesSearch">${Icon('x', { size: 14 })}</button>` : ''}
       </div>
 
       <div class="chip-row" id="dateChips">
-        ${[['all', 'All Time'], ['today', 'Today'], ['week', 'This Week'], ['month', 'This Month']].map(([k, label]) => `
+        ${[['all', I18n.t('sales.allTime')], ['today', I18n.t('sales.today')], ['week', I18n.t('sales.thisWeek')], ['month', I18n.t('sales.thisMonth')]].map(([k, label]) => `
           <button class="chip tappable${dateFilter === k ? ' active' : ''}" data-date="${k}">${label}</button>
         `).join('')}
       </div>
       <div class="chip-row" id="paymentChips" style="margin-top:-6px;">
         ${['all', 'cash', 'card', 'bank transfer', 'other'].map((m) => `
-          <button class="chip tappable${paymentFilter === m ? ' active' : ''}" data-payment="${m}">${m === 'all' ? 'All Methods' : m.charAt(0).toUpperCase() + m.slice(1)}</button>
+          <button class="chip tappable${paymentFilter === m ? ' active' : ''}" data-payment="${m}">${m === 'all' ? I18n.t('sales.allMethods') : I18n.t(`pos.method${m === 'bank transfer' ? 'BankTransfer' : m.charAt(0).toUpperCase() + m.slice(1)}`)}</button>
         `).join('')}
       </div>
 
@@ -102,8 +102,8 @@ const Sales = (() => {
           ${allSales.length
             ? `<div class="empty-state__icon">${Icon('receipt', { size: 32 })}</div>`
             : `<img class="empty-state__illustration" src="${themedIllustration('empty-sales')}" alt="">`}
-          <div class="empty-state__title">${allSales.length ? 'No sales found' : 'No sales yet'}</div>
-          <div class="empty-state__hint">${allSales.length ? 'Try a different filter.' : 'Make your first sale from the POS tab.'}</div>
+          <div class="empty-state__title">${allSales.length ? I18n.t('sales.noSalesFound') : I18n.t('sales.noSalesYet')}</div>
+          <div class="empty-state__hint">${allSales.length ? I18n.t('sales.tryDifferentFilter') : I18n.t('sales.makeFirstSale')}</div>
         </div>
       `}
     `;
@@ -140,8 +140,8 @@ const Sales = (() => {
         </div>
         <div class="list-row__trailing">
           <div class="list-row__amount num">${Fmt.money(s.total)}</div>
-          ${refunded ? `<div class="mt-8"><span class="badge badge--danger">Refunded</span></div>` : ''}
-          ${partial ? `<div class="mt-8"><span class="badge badge--warn">Partially Refunded</span></div>` : ''}
+          ${refunded ? `<div class="mt-8"><span class="badge badge--danger">${I18n.t('sales.refundedBadge')}</span></div>` : ''}
+          ${partial ? `<div class="mt-8"><span class="badge badge--warn">${I18n.t('sales.partiallyRefundedBadge')}</span></div>` : ''}
         </div>
       </div>`;
   }
@@ -155,13 +155,13 @@ const Sales = (() => {
 
     const footerHTML = `
       <div class="flex gap-8">
-        <button class="btn btn-secondary tappable" id="reprintBtn">${Icon('printer')} Reprint</button>
-        <button class="btn btn-secondary tappable" id="shareSaleBtn">${Icon('share')} Share</button>
+        <button class="btn btn-secondary tappable" id="reprintBtn">${Icon('printer')} ${I18n.t('sales.reprint')}</button>
+        <button class="btn btn-secondary tappable" id="shareSaleBtn">${Icon('share')} ${I18n.t('products.share')}</button>
       </div>
-      ${!refunded ? `<button class="btn btn-danger mt-8 tappable" id="refundBtn">${partial ? 'Refund More Items' : 'Refund Items'}</button>` : ''}
+      ${!refunded ? `<button class="btn btn-danger mt-8 tappable" id="refundBtn">${partial ? I18n.t('sales.refundMoreItems') : I18n.t('sales.refundItems')}</button>` : ''}
     `;
 
-    const sheetEl = Sheet.open({ title: 'Sale Detail', bodyHTML, footerHTML });
+    const sheetEl = Sheet.open({ title: I18n.t('sales.saleDetail'), bodyHTML, footerHTML });
 
     sheetEl.querySelector('#reprintBtn').addEventListener('click', () => printReceipt(sale, store));
     sheetEl.querySelector('#shareSaleBtn').addEventListener('click', () => shareReceipt(sale, store));
@@ -187,7 +187,7 @@ const Sales = (() => {
         <div class="list-row" data-refund-row="${idx}" style="padding:10px 0;">
           <div class="list-row__body">
             <div class="list-row__title">${escapeHTML(item.name)}</div>
-            <div class="list-row__subtitle">${Fmt.money(unitNet)} each${item.refundedQty ? ` · ${item.refundedQty} already refunded` : ''} · ${max} refundable</div>
+            <div class="list-row__subtitle">${Fmt.money(unitNet)} ${I18n.t('sales.each')}${item.refundedQty ? ` · ${I18n.t('sales.alreadyRefunded', { qty: item.refundedQty })}` : ''} · ${I18n.t('sales.refundable', { max })}</div>
           </div>
           <div class="flex gap-8" style="align-items:center;">
             <button class="stepper__btn tappable" style="width:30px;height:30px;font-size:16px;" data-refund-minus="${idx}">−</button>
@@ -200,22 +200,22 @@ const Sales = (() => {
 
     const bodyHTML = `
       <div class="flex-between" style="margin-bottom:6px;">
-        <span class="text-dim text-sm">Select items to refund</span>
-        <button class="chip tappable" id="refundToggleAllBtn">Deselect all</button>
+        <span class="text-dim text-sm">${I18n.t('sales.selectItemsToRefund')}</span>
+        <button class="chip tappable" id="refundToggleAllBtn">${I18n.t('sales.deselectAll')}</button>
       </div>
       ${refundableItems.map((item, idx) => rowHTML(item, idx)).join('<div style="border-top:1px solid var(--border);"></div>')}
     `;
 
     const footerHTML = `
       <div class="flex-between mt-8" style="font-weight:700;">
-        <span>Refund total</span><span class="num" id="refundTotalAmount">${Fmt.money(0)}</span>
+        <span>${I18n.t('sales.refundTotal')}</span><span class="num" id="refundTotalAmount">${Fmt.money(0)}</span>
       </div>
-      <button class="btn btn-danger mt-8 tappable" id="confirmRefundBtn" disabled>Select items to refund</button>
+      <button class="btn btn-danger mt-8 tappable" id="confirmRefundBtn" disabled>${I18n.t('sales.selectItemsToRefund')}</button>
     `;
 
     let onCloseSkip = false;
     const sheetEl = Sheet.open({
-      title: 'Refund Items',
+      title: I18n.t('sales.refundItems'),
       bodyHTML,
       footerHTML,
       onClose: () => { if (!onCloseSkip) openDetail(sale, listContainer); },
@@ -235,8 +235,8 @@ const Sales = (() => {
       const confirmBtn = sheetEl.querySelector('#confirmRefundBtn');
       const anySelected = qtyByIdx.some((q) => q > 0);
       confirmBtn.disabled = !anySelected;
-      confirmBtn.textContent = anySelected ? `Refund ${Fmt.money(total)}` : 'Select items to refund';
-      sheetEl.querySelector('#refundToggleAllBtn').textContent = anySelected ? 'Deselect all' : 'Select all';
+      confirmBtn.textContent = anySelected ? I18n.t('sales.refund', { amount: Fmt.money(total) }) : I18n.t('sales.selectItemsToRefund');
+      sheetEl.querySelector('#refundToggleAllBtn').textContent = anySelected ? I18n.t('sales.deselectAll') : I18n.t('sales.selectAll');
       compactifyNumbers(sheetEl);
     };
 
@@ -270,21 +270,21 @@ const Sales = (() => {
         .map((item, idx) => ({ productId: item.productId, qty: qtyByIdx[idx] }))
         .filter((s) => s.qty > 0);
       const totalAmount = sheetEl.querySelector('#refundTotalAmount').textContent;
-      if (!(await Confirm.show(`Refund ${totalAmount} and restore stock for the selected items?`, { danger: true, confirmText: 'Refund' }))) return;
+      if (!(await Confirm.show(I18n.t('sales.refundConfirm', { amount: totalAmount }), { danger: true, confirmText: I18n.t('sales.refundConfirmBtn') }))) return;
       btn.disabled = true;
-      btn.textContent = 'Refunding\u2026';
+      btn.textContent = I18n.t('sales.refunding');
       try {
         await refundSaleItems(sale, selections);
       } catch (err) {
         console.error('Refund failed:', err);
-        Toast.error('Something went wrong \u2014 the refund was not applied');
+        Toast.error(I18n.t('sales.refundFailedError'));
         btn.disabled = false;
         updateTotals();
         return;
       }
       onCloseSkip = true;
       Sheet.close();
-      Toast.success('Refund applied and stock restored');
+      Toast.success(I18n.t('sales.refundAppliedToast'));
       renderList(listContainer);
     });
 
@@ -322,7 +322,7 @@ const Sales = (() => {
             productName: product.name,
             change: refundQty,
             newQuantity: newQty,
-            reason: `Refund ${sale.receiptNumber}`,
+            reason: I18n.t('sales.refundReason', { receipt: sale.receiptNumber }),
             date: new Date(),
           }));
         }

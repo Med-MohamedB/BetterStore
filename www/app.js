@@ -183,23 +183,26 @@ const Router = (() => {
       </div>`;
   }
 
-  const TITLES = {
-    dashboard: ['Dashboard', null],
-    products: ['Products', null],
-    pos: ['New Sale', null],
-    inventory: ['Inventory', null],
-    more: ['More', null],
-    sales: ['Sales History', null],
-    reports: ['Reports', null],
-    customers: ['Customers', null],
-    suppliers: ['Suppliers', null],
-    settings: ['Settings', null],
-    backup: ['Backup & Restore', null],
-    scanner: ['Scan Product', null],
-  };
+  function getScreenTitle(name) {
+    const map = {
+      dashboard: I18n.t('screenTitles.dashboard'),
+      products: I18n.t('screenTitles.products'),
+      pos: I18n.t('screenTitles.pos'),
+      inventory: I18n.t('screenTitles.inventory'),
+      more: I18n.t('screenTitles.more'),
+      sales: I18n.t('screenTitles.sales'),
+      reports: I18n.t('screenTitles.reports'),
+      customers: I18n.t('screenTitles.customers'),
+      suppliers: I18n.t('screenTitles.suppliers'),
+      settings: I18n.t('screenTitles.settings'),
+      backup: I18n.t('screenTitles.backup'),
+      scanner: I18n.t('screenTitles.scanner'),
+    };
+    return map[name] || name;
+  }
 
   function setTopbar(name) {
-    const [title] = TITLES[name] || [name, null];
+    const title = getScreenTitle(name);
     // Rebuilt from scratch every navigation (rather than touching
     // .firstChild.textContent) so it's safe even after a route — like the
     // dashboard's store-branded header — has replaced the title's markup
@@ -1519,7 +1522,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.9.20';
+const CURRENT_VERSION = '1.9.9.21';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -1940,8 +1943,8 @@ async function renderDashboard(container) {
 
   const titleEl = document.getElementById('topbarTitle');
   titleEl.innerHTML = `
-    ${store.logo ? `<img src="${store.logo}" alt="" style="width:24px;height:24px;border-radius:7px;object-fit:cover;vertical-align:-6px;margin-right:7px;">` : ''}${escapeHTML(store.name || 'My Store')}
-    <small id="topbarSubtitle">Dashboard</small>
+    ${store.logo ? `<img src="${store.logo}" alt="" style="width:24px;height:24px;border-radius:7px;object-fit:cover;vertical-align:-6px;margin-right:7px;">` : ''}${escapeHTML(store.name || I18n.t('dashboard.defaultStoreName'))}
+    <small id="topbarSubtitle">${I18n.t('screenTitles.dashboard')}</small>
   `;
 
   const todayStart = Fmt.startOfToday().getTime();
@@ -1981,9 +1984,9 @@ async function renderDashboard(container) {
 
   const greeting = (() => {
     const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 18) return 'Good afternoon';
-    return 'Good evening';
+    if (h < 12) return I18n.t('dashboard.greetingMorning');
+    if (h < 18) return I18n.t('dashboard.greetingAfternoon');
+    return I18n.t('dashboard.greetingEvening');
   })();
 
   container.innerHTML = `
@@ -1994,68 +1997,68 @@ async function renderDashboard(container) {
 
     <div class="hero-card">
       <div class="hero-card__top">
-        <div class="hero-card__label">Today\u2019s Revenue</div>
+        <div class="hero-card__label">${I18n.t('dashboard.todaysRevenue')}</div>
         <div class="hero-card__trend ${trendUp ? 'up' : 'down'}">
           ${trendUp ? '▲' : '▼'} ${Math.abs(trendPct)}%
         </div>
       </div>
       <div class="hero-card__value num">${Fmt.money(todaysRevenue)}</div>
-      <div class="hero-card__sub">${transactionCount} sale${transactionCount === 1 ? '' : 's'} today</div>
+      <div class="hero-card__sub">${I18n.t('dashboard.saleCount', { count: transactionCount, plural: transactionCount === 1 ? '' : 's' })}</div>
       <div class="hero-card__spark">${sparklineSvg}</div>
-      <div class="hero-card__spark-label">Last 7 days</div>
+      <div class="hero-card__spark-label">${I18n.t('dashboard.last7Days')}</div>
     </div>
 
     <div class="stat-grid stat-grid--secondary">
       <div class="stat-card">
         <div class="stat-card__icon-badge coral">${Icon('cart')}</div>
-        <div class="stat-card__label">Sales</div>
+        <div class="stat-card__label">${I18n.t('dashboard.statSales')}</div>
         <div class="stat-card__value coral num">${transactionCount}</div>
       </div>
       <div class="stat-card">
         <div class="stat-card__icon-badge">${Icon('package')}</div>
-        <div class="stat-card__label">Products</div>
+        <div class="stat-card__label">${I18n.t('dashboard.statProducts')}</div>
         <div class="stat-card__value num">${productCount}</div>
       </div>
       <div class="stat-card">
         <div class="stat-card__icon-badge teal">${Icon('bar-chart')}</div>
-        <div class="stat-card__label">Inventory Value</div>
+        <div class="stat-card__label">${I18n.t('dashboard.statInventoryValue')}</div>
         <div class="stat-card__value teal num">${Fmt.money(inventoryValue)}</div>
       </div>
     </div>
 
     ${lowStock.length ? `
-      <div class="section-title">Low Stock</div>
+      <div class="section-title">${I18n.t('dashboard.lowStockTitle')}</div>
       <div class="list stagger">
         ${lowStock.slice(0, 5).map((p) => `
           <div class="list-row">
             <div class="list-row__icon warn">${Icon('alert-triangle')}</div>
             <div class="list-row__body">
               <div class="list-row__title">${escapeHTML(p.name)}</div>
-              <div class="list-row__subtitle">Minimum: ${p.minStock ?? 0}</div>
+              <div class="list-row__subtitle">${I18n.t('dashboard.minimumLabel', { min: p.minStock ?? 0 })}</div>
             </div>
             <div class="list-row__trailing">
-              <span class="badge badge--danger">${p.quantity} left</span>
+              <span class="badge badge--danger">${I18n.t('dashboard.leftBadge', { qty: p.quantity })}</span>
             </div>
           </div>
         `).join('')}
       </div>
     ` : ''}
 
-    <div class="section-title">Quick Actions</div>
+    <div class="section-title">${I18n.t('dashboard.quickActionsTitle')}</div>
     <div class="quick-actions">
-      ${quickAction('scanner', Icon('camera'), 'Scan')}
-      ${quickAction('pos', Icon('cart'), 'New Sale')}
-      ${quickAction('products/new', Icon('plus-circle'), 'Add Product')}
-      ${quickAction('products', Icon('package'), 'Products')}
-      ${quickAction('inventory', Icon('bar-chart'), 'Inventory')}
-      ${quickAction('sales', Icon('history'), 'Sales History')}
-      ${quickAction('customers', Icon('users'), 'Customers')}
-      ${quickAction('reports', Icon('trending-up'), 'Reports')}
+      ${quickAction('scanner', Icon('camera'), I18n.t('dashboard.qaScan'))}
+      ${quickAction('pos', Icon('cart'), I18n.t('dashboard.qaNewSale'))}
+      ${quickAction('products/new', Icon('plus-circle'), I18n.t('dashboard.qaAddProduct'))}
+      ${quickAction('products', Icon('package'), I18n.t('dashboard.qaProducts'))}
+      ${quickAction('inventory', Icon('bar-chart'), I18n.t('dashboard.qaInventory'))}
+      ${quickAction('sales', Icon('history'), I18n.t('dashboard.qaSalesHistory'))}
+      ${quickAction('customers', Icon('users'), I18n.t('dashboard.qaCustomers'))}
+      ${quickAction('reports', Icon('trending-up'), I18n.t('dashboard.qaReports'))}
     </div>
 
     <div class="section-title-row">
-      <div class="section-title" style="margin:0;">Recent Sales</div>
-      ${recentSales.length ? `<a href="#sales" class="section-title-row__link">View All ›</a>` : ''}
+      <div class="section-title" style="margin:0;">${I18n.t('dashboard.recentSalesTitle')}</div>
+      ${recentSales.length ? `<a href="#sales" class="section-title-row__link">${I18n.t('dashboard.viewAll')}</a>` : ''}
     </div>
     ${recentSales.length ? `
       <div class="list stagger">
@@ -2064,7 +2067,7 @@ async function renderDashboard(container) {
             <div class="list-row__icon">${Icon('receipt')}</div>
             <div class="list-row__body">
               <div class="list-row__title">${s.receiptNumber}</div>
-              <div class="list-row__subtitle">${Fmt.dateTime(s.date)} · ${s.paymentMethod}</div>
+              <div class="list-row__subtitle">${Fmt.dateTime(s.date)} · ${paymentMethodLabel(s.paymentMethod)}</div>
             </div>
             <div class="list-row__trailing">
               <div class="list-row__amount num">${Fmt.money(s.total)}</div>
@@ -2075,8 +2078,8 @@ async function renderDashboard(container) {
     ` : `
       <div class="empty-state">
         <div class="empty-state__icon">${Icon('receipt', { size: 32 })}</div>
-        <div class="empty-state__title">No sales yet</div>
-        <div class="empty-state__hint">Sales will show up here as soon as you make one.</div>
+        <div class="empty-state__title">${I18n.t('dashboard.noSalesYet')}</div>
+        <div class="empty-state__hint">${I18n.t('dashboard.noSalesHint')}</div>
       </div>
     `}
   `;
@@ -2118,6 +2121,20 @@ function quickAction(route, icon, label) {
       <span class="quick-action__icon">${icon}</span>
       <span>${label}</span>
     </a>`;
+}
+
+/** Translates a stored payment-method value ('cash', 'card', 'bank
+ *  transfer', 'other') into the current language's display label. The
+ *  stored value itself stays English since it's compared against
+ *  elsewhere (filters, defaults) — only the rendered text changes. */
+function paymentMethodLabel(method) {
+  const map = {
+    cash: I18n.t('common.paymentMethods.cash'),
+    card: I18n.t('common.paymentMethods.card'),
+    'bank transfer': I18n.t('common.paymentMethods.bankTransfer'),
+    other: I18n.t('common.paymentMethods.other'),
+  };
+  return map[method] || method;
 }
 
 function escapeHTML(str) {

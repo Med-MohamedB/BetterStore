@@ -136,7 +136,7 @@ const Sales = (() => {
         <div class="list-row__icon">${refunded ? Icon('undo') : partial ? Icon('undo') : Icon('receipt')}</div>
         <div class="list-row__body">
           <div class="list-row__title">${s.receiptNumber}</div>
-          <div class="list-row__subtitle">${Fmt.dateTime(s.date)} · ${s.paymentMethod}</div>
+          <div class="list-row__subtitle">${Fmt.dateTime(s.date)} · ${paymentMethodLabel(s.paymentMethod)}</div>
         </div>
         <div class="list-row__trailing">
           <div class="list-row__amount num">${Fmt.money(s.total)}</div>

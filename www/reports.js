@@ -100,31 +100,31 @@ const Reports = (() => {
 
     container.innerHTML = `
       <div class="chip-row">
-        ${[['today', 'Today'], ['yesterday', 'Yesterday'], ['week', 'This Week'], ['month', 'This Month'], ['custom', 'Custom']].map(([k, label]) => `
+        ${[['today', I18n.t('reports.rangeToday')], ['yesterday', I18n.t('reports.rangeYesterday')], ['week', I18n.t('reports.rangeWeek')], ['month', I18n.t('reports.rangeMonth')], ['custom', I18n.t('reports.rangeCustom')]].map(([k, label]) => `
           <button class="chip tappable${rangeMode === k ? ' active' : ''}" data-range="${k}">${label}</button>
         `).join('')}
       </div>
 
       ${rangeMode === 'custom' ? `
         <div class="field-row">
-          <div class="field"><label>From</label><input type="date" id="customStartInput" value="${customStart || ''}"></div>
-          <div class="field"><label>To</label><input type="date" id="customEndInput" value="${customEnd || ''}"></div>
+          <div class="field"><label>${I18n.t('reports.fromLabel')}</label><input type="date" id="customStartInput" value="${customStart || ''}"></div>
+          <div class="field"><label>${I18n.t('reports.toLabel')}</label><input type="date" id="customEndInput" value="${customEnd || ''}"></div>
         </div>
       ` : ''}
 
       <div class="stat-grid">
-        <div class="stat-card"><div class="stat-card__label">Revenue</div><div class="stat-card__value accent num">${Fmt.money(revenue)}</div></div>
-        <div class="stat-card"><div class="stat-card__label">Sales</div><div class="stat-card__value num">${txCount}</div></div>
-        <div class="stat-card"><div class="stat-card__label">Avg. Transaction</div><div class="stat-card__value num">${Fmt.money(avgTx)}</div></div>
-        <div class="stat-card"><div class="stat-card__label">Est. Profit</div><div class="stat-card__value teal num">${Fmt.money(profit)}</div></div>
+        <div class="stat-card"><div class="stat-card__label">${I18n.t('reports.statRevenue')}</div><div class="stat-card__value accent num">${Fmt.money(revenue)}</div></div>
+        <div class="stat-card"><div class="stat-card__label">${I18n.t('reports.statSales')}</div><div class="stat-card__value num">${txCount}</div></div>
+        <div class="stat-card"><div class="stat-card__label">${I18n.t('reports.statAvgTransaction')}</div><div class="stat-card__value num">${Fmt.money(avgTx)}</div></div>
+        <div class="stat-card"><div class="stat-card__label">${I18n.t('reports.statEstProfit')}</div><div class="stat-card__value teal num">${Fmt.money(profit)}</div></div>
       </div>
 
-      <div class="section-title">Revenue by Day</div>
+      <div class="section-title">${I18n.t('reports.revenueByDayTitle')}</div>
       <div class="card">
         <canvas id="dailyChart" style="width:100%; height:120px; display:block;"></canvas>
       </div>
 
-      <div class="section-title">Best Sellers</div>
+      <div class="section-title">${I18n.t('reports.bestSellersTitle')}</div>
       ${bestSellers.length ? `
         <div class="list">
           ${bestSellers.map((p, i) => `
@@ -132,35 +132,35 @@ const Reports = (() => {
               <div class="list-row__icon">${Icon('award')}</div>
               <div class="list-row__body">
                 <div class="list-row__title">${escapeHTML(p.name)}</div>
-                <div class="list-row__subtitle">${p.qty} sold</div>
+                <div class="list-row__subtitle">${I18n.t('reports.soldSuffix', { qty: p.qty })}</div>
               </div>
               <div class="list-row__trailing"><div class="list-row__amount num">${Fmt.money(p.revenue)}</div></div>
             </div>
           `).join('')}
         </div>
-      ` : `<div class="empty-state"><div class="empty-state__icon">${Icon('award', { size: 32 })}</div><div class="empty-state__title">No sales in this period</div></div>`}
+      ` : `<div class="empty-state"><div class="empty-state__icon">${Icon('award', { size: 32 })}</div><div class="empty-state__title">${I18n.t('reports.noSalesInPeriod')}</div></div>`}
 
       ${categoryRows.length ? `
-        <div class="section-title">By Category</div>
+        <div class="section-title">${I18n.t('reports.byCategoryTitle')}</div>
         <div class="card">
           ${categoryRows.map(([cat, rev]) => barRow(cat, rev, categoryRows[0][1], 'var(--accent)')).join('')}
         </div>
       ` : ''}
 
       ${paymentRows.length ? `
-        <div class="section-title">Payment Methods</div>
+        <div class="section-title">${I18n.t('reports.paymentMethodsTitle')}</div>
         <div class="card">
-          ${paymentRows.map(([method, data]) => barRow(`${method} (${data.count})`, data.revenue, paymentRows[0][1].revenue, 'var(--accent-dim)')).join('')}
+          ${paymentRows.map(([method, data]) => barRow(`${paymentMethodLabel(method)} (${data.count})`, data.revenue, paymentRows[0][1].revenue, 'var(--accent-dim)')).join('')}
         </div>
       ` : ''}
 
-      <div class="section-title">Cost Breakdown</div>
+      <div class="section-title">${I18n.t('reports.costBreakdownTitle')}</div>
       <div class="card">
-        <div class="flex-between"><span class="text-dim text-sm">Gross Revenue</span><span class="num text-sm">${Fmt.money(revenue)}</span></div>
-        <div class="flex-between mt-8"><span class="text-dim text-sm">Cost of Goods</span><span class="num text-sm">− ${Fmt.money(cogs)}</span></div>
-        <div class="flex-between mt-8"><span class="text-dim text-sm">Discounts Given</span><span class="num text-sm">− ${Fmt.money(discounts)}</span></div>
+        <div class="flex-between"><span class="text-dim text-sm">${I18n.t('reports.grossRevenue')}</span><span class="num text-sm">${Fmt.money(revenue)}</span></div>
+        <div class="flex-between mt-8"><span class="text-dim text-sm">${I18n.t('reports.costOfGoods')}</span><span class="num text-sm">− ${Fmt.money(cogs)}</span></div>
+        <div class="flex-between mt-8"><span class="text-dim text-sm">${I18n.t('reports.discountsGiven')}</span><span class="num text-sm">− ${Fmt.money(discounts)}</span></div>
         <div class="flex-between mt-16" style="padding-top:12px; border-top:1px solid var(--border);">
-          <span style="font-weight:700;">Est. Profit</span>
+          <span style="font-weight:700;">${I18n.t('reports.statEstProfit')}</span>
           <span class="num" style="font-weight:700; color:var(--accent);">${Fmt.money(profit)}</span>
         </div>
       </div>

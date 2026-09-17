@@ -22,32 +22,32 @@ const Backup = (() => {
     for (const name of STORE_NAMES) counts[name] = await DB.count(name);
 
     container.innerHTML = `
-      <div class="section-title">What's Included</div>
+      <div class="section-title">${I18n.t('backup.sectionIncluded')}</div>
       <div class="card">
         ${STORE_NAMES.map((name) => `
           <div class="flex-between text-sm" style="margin-bottom:6px;">
-            <span class="text-dim" style="text-transform:capitalize;">${name.replace(/([A-Z])/g, ' $1')}</span>
+            <span class="text-dim">${I18n.t(`backup.storeLabels.${name}`)}</span>
             <span class="num">${counts[name]}</span>
           </div>
         `).join('')}
         <div class="flex-between text-sm" style="margin-top:6px; padding-top:10px; border-top:1px solid var(--border);">
-          <span class="text-dim">Settings</span><span class="text-dim">included</span>
+          <span class="text-dim">${I18n.t('backup.settingsLabel')}</span><span class="text-dim">${I18n.t('backup.included')}</span>
         </div>
       </div>
 
-      <div class="section-title">Backup</div>
-      <button class="btn btn-primary tappable" id="exportBtn">${Icon('upload')} Export Backup (JSON)</button>
-      <button class="btn btn-secondary mt-8 tappable" id="importBtn">${Icon('download')} Import Backup</button>
+      <div class="section-title">${I18n.t('backup.sectionBackup')}</div>
+      <button class="btn btn-primary tappable" id="exportBtn">${Icon('upload')} ${I18n.t('backup.exportBackup')}</button>
+      <button class="btn btn-secondary mt-8 tappable" id="importBtn">${Icon('download')} ${I18n.t('backup.importBackup')}</button>
       <input type="file" accept="application/json" id="importFile" style="display:none">
 
-      <div class="section-title">CSV Export</div>
+      <div class="section-title">${I18n.t('backup.sectionCsv')}</div>
       <div class="flex gap-8">
-        <button class="btn btn-secondary tappable" id="csvProductsBtn" style="flex:1;">Products CSV</button>
-        <button class="btn btn-secondary tappable" id="csvSalesBtn" style="flex:1;">Sales CSV</button>
+        <button class="btn btn-secondary tappable" id="csvProductsBtn" style="flex:1;">${I18n.t('backup.productsCsv')}</button>
+        <button class="btn btn-secondary tappable" id="csvSalesBtn" style="flex:1;">${I18n.t('backup.salesCsv')}</button>
       </div>
 
-      <div class="section-title">Danger Zone</div>
-      <button class="btn btn-danger tappable" id="clearDataBtn">Clear All Data</button>
+      <div class="section-title">${I18n.t('backup.sectionDanger')}</div>
+      <button class="btn btn-danger tappable" id="clearDataBtn">${I18n.t('backup.clearAllData')}</button>
     `;
 
     container.querySelector('#exportBtn').addEventListener('click', exportBackup);
@@ -68,11 +68,11 @@ const Backup = (() => {
     const plugins = cap && cap.Plugins;
 
     if (!cap) {
-      Toast.error('Diagnostic: window.Capacitor is missing entirely');
+      Toast.error(I18n.t('backup.diagCapacitorMissing'));
     } else if (!isNative) {
-      Toast.error('Diagnostic: Capacitor.isNativePlatform() is false');
+      Toast.error(I18n.t('backup.diagNotNative'));
     } else if (!plugins || !plugins.Filesystem) {
-      Toast.error('Diagnostic: Filesystem plugin not registered');
+      Toast.error(I18n.t('backup.diagFsMissing'));
     }
 
     if (isNative && plugins && plugins.Filesystem) {
@@ -89,15 +89,15 @@ const Backup = (() => {
           encoding: 'utf8',
         });
         if (plugins.Share) {
-          await plugins.Share.share({ title: filename, url: written.uri, dialogTitle: `Save ${filename}` });
-          Toast.success(`${filename} ready \u2014 choose where to save it`);
+          await plugins.Share.share({ title: filename, url: written.uri, dialogTitle: I18n.t('backup.saveDialogTitle', { filename }) });
+          Toast.success(I18n.t('backup.fileReadyToast', { filename }));
         } else {
-          Toast.error('Diagnostic: Share plugin missing, can\u2019t hand off the file');
+          Toast.error(I18n.t('backup.diagShareMissing'));
         }
       } catch (e) {
         const msg = (e && e.message) || String(e);
         console.warn('Native file export failed:', e);
-        Toast.error(`Export failed: ${msg}`);
+        Toast.error(I18n.t('backup.exportFailed', { msg }));
       }
       return;
     }
@@ -126,7 +126,7 @@ const Backup = (() => {
     data.settings = await Settings.getAll();
 
     const backup = { app: 'store-app', version: 1, exportedAt: new Date().toISOString(), data };
-    await downloadBlob(JSON.stringify(backup, null, 2), `store-backup-${dateStamp()}.json`, 'application/json', 'Backup exported');
+    await downloadBlob(JSON.stringify(backup, null, 2), `store-backup-${dateStamp()}.json`, 'application/json', I18n.t('backup.backupExported'));
   }
 
   async function importBackup(file, container) {
@@ -134,11 +134,11 @@ const Backup = (() => {
     try {
       parsed = JSON.parse(await file.text());
     } catch (e) {
-      Toast.error('That file isn\u2019t valid JSON');
+      Toast.error(I18n.t('backup.invalidJson'));
       return;
     }
     if (!parsed || !parsed.data || typeof parsed.data !== 'object') {
-      Toast.error('That doesn\u2019t look like a Store App backup');
+      Toast.error(I18n.t('backup.notAValidBackup'));
       return;
     }
 
@@ -148,20 +148,20 @@ const Backup = (() => {
     for (const name of STORE_NAMES) {
       const value = parsed.data[name];
       if (value !== undefined && !Array.isArray(value)) {
-        Toast.error(`Backup file is corrupted: "${name}" should be a list`);
+        Toast.error(I18n.t('backup.corruptedList', { name }));
         return;
       }
     }
     if (parsed.data.settings !== undefined &&
         (typeof parsed.data.settings !== 'object' || parsed.data.settings === null || Array.isArray(parsed.data.settings))) {
-      Toast.error('Backup file is corrupted: settings section is malformed');
+      Toast.error(I18n.t('backup.corruptedSettings'));
       return;
     }
 
-    const summary = STORE_NAMES.map((n) => `${n}: ${(parsed.data[n] || []).length}`).join(', ');
-    if (!(await Confirm.show(`Import this backup? This REPLACES all current data.\n\n${summary}`, { danger: true, confirmText: 'Import' }))) return;
-    const confirmed = await Security.requirePin('Confirm your PIN to restore this backup');
-    if (!confirmed) { Toast.show('Cancelled'); return; }
+    const summary = STORE_NAMES.map((n) => `${I18n.t(`backup.storeLabels.${n}`)}: ${(parsed.data[n] || []).length}`).join(', ');
+    if (!(await Confirm.show(I18n.t('backup.importConfirm', { summary }), { danger: true, confirmText: I18n.t('backup.importConfirmBtn') }))) return;
+    const confirmed = await Security.requirePin(I18n.t('backup.pinConfirmRestore'));
+    if (!confirmed) { Toast.show(I18n.t('backup.cancelled')); return; }
 
     try {
       // One atomic transaction across every store — either the whole
@@ -187,11 +187,11 @@ const Backup = (() => {
       });
     } catch (err) {
       console.error('Import failed:', err);
-      Toast.error('Import failed \u2014 your existing data was not changed');
+      Toast.error(I18n.t('backup.importFailed'));
       return;
     }
 
-    Toast.success('Backup imported');
+    Toast.success(I18n.t('backup.backupImported'));
     await Fmt.init();
     await applyTheme();
     render(container);
@@ -213,7 +213,7 @@ const Backup = (() => {
     // A UTF-8 BOM prefix is required for Excel (especially on Windows) to
     // correctly render non-Latin text — Arabic product names, for example —
     // instead of showing mojibake. Most other spreadsheet apps ignore it.
-    await downloadBlob('\uFEFF' + toCSV(products, headers), `products-${dateStamp()}.csv`, 'text/csv;charset=utf-8', 'Products CSV exported');
+    await downloadBlob('\uFEFF' + toCSV(products, headers), `products-${dateStamp()}.csv`, 'text/csv;charset=utf-8', I18n.t('backup.productsCsvExported'));
   }
 
   async function exportSalesCSV() {
@@ -232,16 +232,16 @@ const Backup = (() => {
       status: s.status,
     }));
     const headers = ['id', 'receiptNumber', 'date', 'itemCount', 'subtotal', 'discount', 'tax', 'total', 'paymentMethod', 'customerName', 'status'];
-    await downloadBlob('\uFEFF' + toCSV(rows, headers), `sales-${dateStamp()}.csv`, 'text/csv;charset=utf-8', 'Sales CSV exported');
+    await downloadBlob('\uFEFF' + toCSV(rows, headers), `sales-${dateStamp()}.csv`, 'text/csv;charset=utf-8', I18n.t('backup.salesCsvExported'));
   }
 
   async function clearAllData(container) {
-    if (!(await Confirm.show('Delete EVERYTHING \u2014 products, sales, customers, suppliers, history? This cannot be undone. Export a backup first if you\u2019re not sure.', { danger: true, confirmText: 'Delete Everything' }))) return;
-    if (!(await Confirm.show('Really clear all data? This is your last check.', { danger: true, confirmText: 'Yes, Clear It' }))) return;
-    const confirmed = await Security.requirePin('Confirm your PIN to clear all data');
-    if (!confirmed) { Toast.show('Cancelled'); return; }
+    if (!(await Confirm.show(I18n.t('backup.clearAllConfirm1'), { danger: true, confirmText: I18n.t('backup.deleteEverythingBtn') }))) return;
+    if (!(await Confirm.show(I18n.t('backup.clearAllConfirm2'), { danger: true, confirmText: I18n.t('backup.yesClearItBtn') }))) return;
+    const confirmed = await Security.requirePin(I18n.t('backup.pinConfirmClear'));
+    if (!confirmed) { Toast.show(I18n.t('backup.cancelled')); return; }
     for (const name of STORE_NAMES) await DB.clear(name);
-    Toast.success('All data cleared');
+    Toast.success(I18n.t('backup.allDataCleared'));
     render(container);
   }
 

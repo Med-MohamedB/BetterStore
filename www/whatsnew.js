@@ -11,6 +11,7 @@ const WhatsNew = (() => {
   // Add a new entry here each release; oldest-first doesn't matter since
   // only the current version's list is ever shown.
   const ITEMS = [
+    { icon: Icon('database'), text: 'Backup & Restore is now fully translated \\u2014 the data summary, export/import, CSV export, and the danger-zone data-clearing flow, in all 3 languages. That\\u2019s Products, POS, Sales, Settings, Customers, Suppliers, and Backup all done \\u2014 Scanner, Reports, and Inventory are next.' },
     { icon: Icon('truck'), text: 'Suppliers is now fully translated \\u2014 the list, add/edit form, and supplier details (including linked products), in all 3 languages. That\\u2019s Products, POS, Sales, Settings, Customers, and Suppliers all done \\u2014 Backup, Scanner, Reports, and Inventory are next.' },
     { icon: Icon('users'), text: 'Customers is now fully translated \\u2014 the list, add/edit form, customer details, and the POS customer picker, in all 3 languages. That\\u2019s Products, POS, Sales, Settings, and Customers all done \\u2014 Suppliers, Inventory, Reports, and Backup are next.' },
     { icon: Icon('settings'), text: 'Settings is now fully translated \\u2014 store info, appearance, Point of Sale, inventory, and the PIN/biometric lock screens, in all 3 languages. That\\u2019s Products, POS, Sales, and Settings all done \\u2014 Customers, Suppliers, Inventory, Reports, and Backup are next.' },

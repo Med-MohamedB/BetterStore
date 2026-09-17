@@ -13,7 +13,7 @@ const Inventory = (() => {
 
   async function render(container) {
     const actions = document.getElementById('topbarActions');
-    actions.innerHTML = `<button class="icon-btn tappable" id="historyBtn" title="Adjustment history">${Icon('history')}</button>`;
+    actions.innerHTML = `<button class="icon-btn tappable" id="historyBtn" title="${I18n.t('inventory.historyTooltip')}">${Icon('history')}</button>`;
     actions.querySelector('#historyBtn').addEventListener('click', openHistory);
 
     await renderList(container);
@@ -46,19 +46,19 @@ const Inventory = (() => {
     container.innerHTML = `
       <div class="stat-grid">
         <div class="stat-card">
-          <div class="stat-card__label">Inventory Value</div>
+          <div class="stat-card__label">${I18n.t('inventory.inventoryValue')}</div>
           <div class="stat-card__value teal num">${Fmt.money(totalValue)}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-card__label">Potential Revenue</div>
+          <div class="stat-card__label">${I18n.t('inventory.potentialRevenue')}</div>
           <div class="stat-card__value accent num">${Fmt.money(potentialRevenue)}</div>
         </div>
       </div>
 
       <div class="chip-row mt-16">
-        <button class="chip tappable${statusFilter === 'all' ? ' active' : ''}" data-filter="all">All · ${counts.all}</button>
-        <button class="chip tappable${statusFilter === 'low' ? ' active' : ''}" data-filter="low">${Icon('alert-triangle', { size: 14 })} Low · ${counts.low}</button>
-        <button class="chip tappable${statusFilter === 'out' ? ' active' : ''}" data-filter="out">${Icon('x-circle', { size: 14 })} Out · ${counts.out}</button>
+        <button class="chip tappable${statusFilter === 'all' ? ' active' : ''}" data-filter="all">${I18n.t('inventory.filterAll', { count: counts.all })}</button>
+        <button class="chip tappable${statusFilter === 'low' ? ' active' : ''}" data-filter="low">${Icon('alert-triangle', { size: 14 })} ${I18n.t('inventory.filterLow', { count: counts.low })}</button>
+        <button class="chip tappable${statusFilter === 'out' ? ' active' : ''}" data-filter="out">${Icon('x-circle', { size: 14 })} ${I18n.t('inventory.filterOut', { count: counts.out })}</button>
       </div>
 
       ${filtered.length ? `
@@ -68,8 +68,8 @@ const Inventory = (() => {
       ` : `
         <div class="empty-state">
           <div class="empty-state__icon">${Icon('bar-chart', { size: 32 })}</div>
-          <div class="empty-state__title">Nothing here</div>
-          <div class="empty-state__hint">${products.length ? 'No products match this filter.' : 'Add products to start tracking inventory.'}</div>
+          <div class="empty-state__title">${I18n.t('inventory.nothingHere')}</div>
+          <div class="empty-state__hint">${products.length ? I18n.t('inventory.noMatchFilter') : I18n.t('inventory.addToStartTracking')}</div>
         </div>
       `}
     `;
@@ -89,17 +89,17 @@ const Inventory = (() => {
   function invRowHTML(p) {
     const status = statusOf(p);
     const badge = status === 'out'
-      ? `<span class="badge badge--danger">Out of stock</span>`
+      ? `<span class="badge badge--danger">${I18n.t('inventory.outOfStock')}</span>`
       : status === 'low'
-        ? `<span class="badge badge--warn">Low stock</span>`
-        : `<span class="badge badge--success">In stock</span>`;
+        ? `<span class="badge badge--warn">${I18n.t('inventory.lowStock')}</span>`
+        : `<span class="badge badge--success">${I18n.t('inventory.inStock')}</span>`;
 
     return `
       <div class="list-row tappable" data-inv-row="${p.id}">
         <div class="list-row__icon">${p.image ? `<img src="${p.image}" alt="">` : Icon('package')}</div>
         <div class="list-row__body">
           <div class="list-row__title">${escapeHTML(p.name)}</div>
-          <div class="list-row__subtitle">Min ${p.minStock ?? 0} · ${Fmt.money(p.sellingPrice)}</div>
+          <div class="list-row__subtitle">${I18n.t('inventory.minSubtitle', { min: p.minStock ?? 0, price: Fmt.money(p.sellingPrice) })}</div>
         </div>
         <div class="list-row__trailing">
           <div class="list-row__amount num">${p.quantity ?? 0} ${escapeHTML(p.unit || 'pcs')}</div>
@@ -129,11 +129,11 @@ const Inventory = (() => {
     ` : `
       <div class="empty-state">
         <div class="empty-state__icon">${Icon('history', { size: 32 })}</div>
-        <div class="empty-state__title">No adjustments yet</div>
-        <div class="empty-state__hint">Stock changes from sales and manual adjustments will show up here.</div>
+        <div class="empty-state__title">${I18n.t('inventory.noAdjustmentsYet')}</div>
+        <div class="empty-state__hint">${I18n.t('inventory.noAdjustmentsHint')}</div>
       </div>
     `;
-    Sheet.open({ title: 'Adjustment History', bodyHTML });
+    Sheet.open({ title: I18n.t('inventory.historyTitle'), bodyHTML });
   }
 
   return { render };

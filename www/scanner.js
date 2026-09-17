@@ -75,7 +75,7 @@ const Scanner = (() => {
     document.getElementById('topbarActions').innerHTML = '';
     container.innerHTML = '';
     openContinuous({
-      title: 'Scan Product',
+      title: I18n.t('screenTitles.scanner'),
       onScan: (code) => lookupAndAddToCart(code),
       onClose: () => Router.goTo(window.POS && POS.hasItems && POS.hasItems() ? 'pos' : 'dashboard'),
     });
@@ -87,10 +87,10 @@ const Scanner = (() => {
     const product = await DB.getByIndex('products', 'barcode', code);
     if (product) {
       if (window.POS && typeof POS.addToCart === 'function') POS.addToCart(product);
-      return { text: `✓ ${product.name}`, variant: 'success' };
+      return { text: I18n.t('scanner.foundToast', { name: product.name }), variant: 'success' };
     }
     return {
-      text: `Not found: ${code} — tap to add product`,
+      text: I18n.t('scanner.notFoundToast', { code }),
       variant: 'warn',
       onTap: () => {
         closeFullscreen();
@@ -111,7 +111,7 @@ const Scanner = (() => {
   /* ---------------------------------------------------------------- */
 
   /** onScan(code) => Promise<{text, variant, onTap?}> | {text, variant, onTap?} */
-  function openContinuous({ onScan, onClose, title = 'Scan Barcode' }) {
+  function openContinuous({ onScan, onClose, title = I18n.t('scanner.scanBarcodeTitle') }) {
     openFullscreen({
       title,
       continuous: true,
@@ -134,7 +134,7 @@ const Scanner = (() => {
   function scanOnce() {
     return new Promise((resolve) => {
       openFullscreen({
-        title: 'Scan Barcode',
+        title: I18n.t('scanner.scanBarcodeTitle'),
         continuous: false,
         onDetected: (code) => {
           playBeep();
@@ -154,7 +154,7 @@ const Scanner = (() => {
   function openFullscreen({ onDetected, onClose, title, continuous }) {
     overlayEl = document.createElement('div');
     overlayEl.className = 'scanner-overlay';
-    currentHintText = continuous ? 'Scan as many items as you like, then tap ✕ when done' : 'Point the camera at a barcode';
+    currentHintText = continuous ? I18n.t('scanner.hintContinuous') : I18n.t('scanner.hintOneShot');
     overlayEl.innerHTML = `
       <div class="scanner-topbar">
         <button class="icon-btn tappable" id="scanCancelBtn">${Icon('x')}</button>
@@ -324,9 +324,9 @@ const Scanner = (() => {
     // button rather than declaring the whole device unsupported.
     console.warn('Torch unsupported: capabilities were', capabilities);
     if (availableCameras.length > 1) {
-      Toast.error('This camera has no flash — try switching cameras');
+      Toast.error(I18n.t('scanner.noFlashTrySwitch'));
     } else {
-      Toast.error('Flashlight isn\u2019t supported on this browser/device');
+      Toast.error(I18n.t('scanner.flashUnsupported'));
     }
     return false;
   }
@@ -439,19 +439,19 @@ const Scanner = (() => {
    * background is solid black. */
   function showCameraError(err, videoEl, onDetected, continuous) {
     const name = err && err.name;
-    let message = 'Couldn\u2019t start the camera. Tap to try again.';
+    let message = I18n.t('scanner.cameraErrorGeneric');
     if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-      message = 'Camera permission is blocked. Enable it in your browser settings, then tap to try again.';
+      message = I18n.t('scanner.cameraErrorPermission');
     } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
-      message = 'No usable camera was found. Tap to try again.';
+      message = I18n.t('scanner.cameraErrorNotFound');
     } else if (name === 'NotReadableError' || name === 'TrackStartError') {
-      message = 'The camera is busy (another app may be using it). Tap to try again.';
+      message = I18n.t('scanner.cameraErrorBusy');
     }
     const hintEl = document.getElementById('scanHint');
     if (!hintEl) return;
     hintEl.innerHTML = `
       <div>${message}</div>
-      <button class="btn btn-primary btn-sm mt-8 tappable" id="scanRetryBtn" type="button">Try Again</button>
+      <button class="btn btn-primary btn-sm mt-8 tappable" id="scanRetryBtn" type="button">${I18n.t('scanner.tryAgain')}</button>
     `;
     const retryBtn = hintEl.querySelector('#scanRetryBtn');
     if (retryBtn) {
@@ -492,20 +492,20 @@ const Scanner = (() => {
     if (availableCameras.length < 2) return;
     const rowsHTML = availableCameras.map((device, i) => {
       const isCurrent = i === currentCameraIndex;
-      const label = device.label || `Camera ${i + 1}`;
+      const label = device.label || I18n.t('scanner.cameraLabelFallback', { n: i + 1 });
       return `
         <div class="list-row tappable" data-camera-index="${i}" style="${isCurrent ? 'background:var(--surface-2);' : ''}">
           <div class="list-row__icon">${Icon('camera')}</div>
           <div class="list-row__body">
             <div class="list-row__title">${escapeHTML(label)}</div>
-            ${isCurrent ? '<div class="list-row__subtitle">Currently in use</div>' : ''}
+            ${isCurrent ? `<div class="list-row__subtitle">${I18n.t('scanner.currentlyInUse')}</div>` : ''}
           </div>
           ${isCurrent ? `<div class="list-row__trailing text-faint">${Icon('check', { size: 16 })}</div>` : ''}
         </div>`;
     }).join('');
 
     const sheetEl = Sheet.open({
-      title: 'Choose Camera',
+      title: I18n.t('scanner.chooseCameraTitle'),
       bodyHTML: `<div class="list">${rowsHTML}</div>`,
     });
     sheetEl.querySelectorAll('[data-camera-index]').forEach((row) => {
@@ -524,7 +524,7 @@ const Scanner = (() => {
     const videoEl = document.getElementById('scanVideo');
     if (!device || !videoEl) return;
 
-    showHint('Switching camera\u2026');
+    showHint(I18n.t('scanner.switchingCamera'));
 
     // Remember enough about the outgoing camera to restore it if the new
     // one fails to open. Then release it BEFORE requesting the new one —
@@ -548,10 +548,10 @@ const Scanner = (() => {
       videoEl.srcObject = newStream;
       await playVideoWithRetry(videoEl);
       localStorage.setItem(CAMERA_PREF_KEY, device.deviceId);
-      Toast.show(device.label ? `Camera: ${device.label}` : `Camera ${index + 1} of ${availableCameras.length}`);
+      Toast.show(device.label ? I18n.t('scanner.cameraToast', { label: device.label }) : I18n.t('scanner.cameraToastFallback', { index: index + 1, total: availableCameras.length }));
     } catch (e) {
       console.warn('Switch camera failed:', e);
-      Toast.error('Couldn\u2019t switch to that camera');
+      Toast.error(I18n.t('scanner.switchFailed'));
       // Try to restore whatever was working before, so the person isn't
       // left staring at a dead camera after a failed switch.
       try {
@@ -589,12 +589,12 @@ const Scanner = (() => {
       try {
         await loadScriptOnce('vendor/zxing.min.js');
       } catch (e) {
-        showHint('Barcode scanning isn\u2019t supported in this browser.');
+        showHint(I18n.t('scanner.unsupportedBrowser'));
         return;
       }
     }
     if (typeof ZXing === 'undefined') {
-      showHint('Barcode scanning isn\u2019t supported in this browser.');
+      showHint(I18n.t('scanner.unsupportedBrowser'));
       return;
     }
     zxingReader = new ZXing.BrowserMultiFormatReader();

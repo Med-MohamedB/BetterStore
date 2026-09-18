@@ -11,6 +11,8 @@ const WhatsNew = (() => {
   // Add a new entry here each release; oldest-first doesn't matter since
   // only the current version's list is ever shown.
   const ITEMS = [
+    { icon: Icon('check-circle'), text: 'A full RTL audit pass for Arabic: the "add your first item" hint on Products/Customers/Suppliers no longer lands off-screen, swipe-to-reveal (Edit/Delete on a row) now opens from the correct side and those buttons are translated (they weren\u2019t before, in any language), and Cancel/Delete on every confirmation popup are translated too (also weren\u2019t before). Prices, dates and receipt numbers are now guaranteed to show as 0-9 digits regardless of phone language \u2014 previously an Arabic phone could silently switch them to Eastern Arabic-Indic numerals. Barcodes, SKUs and receipt numbers are now protected from getting visually reordered next to Arabic text. Also translated four screens that were missed entirely: the More menu (Inventory/Reports/Customers/Suppliers/Backup/Settings/About/Replay Tour rows), the Terms of Use screen\u2019s buttons and labels (the legal text itself stays English \u2014 that\u2019s deliberate), the Donate prompt, and the What\u2019s New popup you\u2019re reading right now.' },
+    { icon: Icon('check-circle'), text: 'Fixed onboarding breaking in Arabic \u2014 the swipe track\u2019s position math didn\u2019t account for RTL flex layout, which could show a blank slide or a stuck/inverted swipe. Also finished translating the About This App sheet (Contact & Shop, Support/Donate, Troubleshooting) \u2014 that was the one screen still missed by the translation sweep.' },
     { icon: Icon('refresh'), text: 'Arabic layout got a real RTL pass: swiping between tabs now advances in the correct direction for Arabic (swipe right to go forward, matching how Android itself handles RTL paging), the little \\u203a arrows that show a row opens something now flip to point the right way, the undo icon on refunded sales mirrors too, and a few corner elements (the onboarding skip button, the add-record + button) now relocate to the correct corner in Arabic instead of staying pinned to English\\u2019s side.' },
     { icon: Icon('receipt'), text: 'You can now set a Receipt Language independent of the app\\u2019s own language (Settings \\u2192 Point of Sale), and every receipt preview has a language switcher right there so you can flip it and see the change before you print or share. Heads up: printed PDFs on-device can\\u2019t render Arabic script yet (a font limitation, not new to this release) \\u2014 the on-screen preview and the text-share option both show Arabic correctly in the meantime.' },
     { icon: Icon('bar-chart'), text: 'Inventory is now fully translated \\u2014 stock-status filters, the low/out-of-stock badges, and the full adjustment history log, in all 3 languages. That\\u2019s every main screen done: Products, POS, Sales, Settings, Customers, Suppliers, Backup, Dashboard, Scanner, Reports, and Inventory. Left on the list: the receipt print/share text, a legal-text pass on Terms, and an RTL layout audit (including flipping the swipe direction for Arabic).' },
@@ -87,7 +89,7 @@ const WhatsNew = (() => {
     card.className = 'onboard-finale whatsnew-card';
     card.innerHTML = `
       <div class="onboard-finale__icon">\u2728</div>
-      <div class="onboard-finale__title">What\u2019s new</div>
+      <div class="onboard-finale__title">${I18n.t('whatsnew.title')}</div>
       <div class="onboard-finale__sub" style="margin-bottom:14px;">v${CURRENT_VERSION}</div>
       <div class="whatsnew-list stagger">
         ${ITEMS.map((it) => `
@@ -97,7 +99,7 @@ const WhatsNew = (() => {
           </div>
         `).join('')}
       </div>
-      <button class="onboard-start-btn tappable" id="whatsNewDoneBtn" style="margin-top:18px;">Got it</button>
+      <button class="onboard-start-btn tappable" id="whatsNewDoneBtn" style="margin-top:18px;">${I18n.t('whatsnew.doneBtn')}</button>
     `;
     overlay.appendChild(card);
     Fx.animate(card, { opacity: [0, 1], scale: [0.85, 1], y: [16, 0] }, { type: 'spring', stiffness: 400, damping: 15 });

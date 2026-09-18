@@ -135,7 +135,7 @@ const Sales = (() => {
       <div class="list-row tappable" data-sale-row="${s.id}" style="${refunded ? 'opacity:0.55;' : ''}">
         <div class="list-row__icon">${refunded ? Icon('undo', { className: 'icon-mirror-rtl' }) : partial ? Icon('undo', { className: 'icon-mirror-rtl' }) : Icon('receipt')}</div>
         <div class="list-row__body">
-          <div class="list-row__title">${s.receiptNumber}</div>
+          <div class="list-row__title ltr-code">${s.receiptNumber}</div>
           <div class="list-row__subtitle">${Fmt.dateTime(s.date)} · ${paymentMethodLabel(s.paymentMethod)}</div>
         </div>
         <div class="list-row__trailing">

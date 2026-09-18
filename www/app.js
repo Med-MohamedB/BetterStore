@@ -339,7 +339,7 @@ const NumberPopup = (() => {
     backdrop.innerHTML = `
       <div class="num-popup-card">
         <div class="num-popup-value num"${style}>${escapeHTML(fullText)}</div>
-        <button class="btn btn-secondary tappable num-popup-close">Close</button>
+        <button class="btn btn-secondary tappable num-popup-close">${I18n.t('common.close')}</button>
       </div>
     `;
     document.body.appendChild(backdrop);
@@ -429,11 +429,24 @@ const DoodleHint = (() => {
     el.dataset.hintId = id;
     el.style.position = 'fixed';
     el.style.visibility = 'hidden'; // measured below before it's actually placed/shown
-    // Right edge sits slightly PAST the target's right edge (not short of
-    // it) so the arrow — which hugs the right side of the note — lands
-    // directly over the button instead of trailing off to its left.
-    const rightPos = Math.max(8, window.innerWidth - r.right - 10);
-    el.style.right = `${rightPos}px`;
+    // Targets this points at (FABs) sit at `inset-inline-end`, so they're
+    // physically on the right in LTR but the LEFT in RTL — anchoring
+    // always from the right edge (as this used to) put the note off-
+    // screen to the left of an RTL target instead of hugging it. Anchor
+    // from whichever physical edge the target is actually near: right
+    // edge sits slightly PAST the target's right edge in LTR (arrow hugs
+    // the note's right side, curving into the button); the mirror image
+    // in RTL anchors the note's LEFT edge slightly past the target's left
+    // edge instead (arrow hugs the note's left side — see the
+    // [dir="rtl"] .doodle-hint__arrow rules in style.css for that half).
+    const isRTL = document.documentElement.getAttribute('dir') === 'rtl';
+    if (isRTL) {
+      const leftPos = Math.max(8, r.left - 10);
+      el.style.left = `${leftPos}px`;
+    } else {
+      const rightPos = Math.max(8, window.innerWidth - r.right - 10);
+      el.style.right = `${rightPos}px`;
+    }
     el.innerHTML = `<div class="doodle-hint__text">${escapeHTML(text)}</div>${ARROW_SVG}`;
     document.body.appendChild(el);
     const noteHeight = el.offsetHeight;
@@ -614,7 +627,9 @@ window.Sheet = Sheet;
 /* rest of the app and blocks the JS thread synchronously.                */
 /* ---------------------------------------------------------------------- */
 const Confirm = (() => {
-  function show(message, { danger = false, confirmText, cancelText = 'Cancel' } = {}) {
+  function show(message, { danger = false, confirmText, cancelText } = {}) {
+    const cancelLabel = cancelText || I18n.t('common.cancel');
+    const confirmLabel = confirmText || (danger ? I18n.t('common.delete') : I18n.t('common.confirm'));
     return new Promise((resolve) => {
       const overlay = document.createElement('div');
       overlay.className = 'confirm-overlay';
@@ -627,8 +642,8 @@ const Confirm = (() => {
         <div class="confirm-card__icon">${Icon(danger ? 'alert-triangle' : 'check-circle', { size: 26 })}</div>
         <div class="confirm-card__message">${escapeHTML(message)}</div>
         <div class="confirm-card__actions">
-          <button class="btn btn-secondary tappable" id="confirmCancelBtn">${escapeHTML(cancelText)}</button>
-          <button class="btn ${danger ? 'btn-danger' : 'btn-primary'} tappable" id="confirmOkBtn">${escapeHTML(confirmText || (danger ? 'Delete' : 'Confirm'))}</button>
+          <button class="btn btn-secondary tappable" id="confirmCancelBtn">${escapeHTML(cancelLabel)}</button>
+          <button class="btn ${danger ? 'btn-danger' : 'btn-primary'} tappable" id="confirmOkBtn">${escapeHTML(confirmLabel)}</button>
         </div>
       `;
       overlay.appendChild(card);
@@ -660,8 +675,8 @@ function swipeRowHTML(innerRowHTML, { editable = true, deletable = true, id } = 
   return `
     <div class="swipe-row" data-swipe-id="${id}">
       <div class="swipe-row__actions">
-        ${editable ? `<button class="swipe-row__action swipe-row__action--edit" data-swipe-edit="${id}"><span>${Icon('edit', { size: 16 })}</span>Edit</button>` : ''}
-        ${deletable ? `<button class="swipe-row__action swipe-row__action--delete" data-swipe-delete="${id}"><span>${Icon('trash', { size: 16 })}</span>Delete</button>` : ''}
+        ${editable ? `<button class="swipe-row__action swipe-row__action--edit" data-swipe-edit="${id}"><span>${Icon('edit', { size: 16 })}</span>${escapeHTML(I18n.t('common.edit'))}</button>` : ''}
+        ${deletable ? `<button class="swipe-row__action swipe-row__action--delete" data-swipe-delete="${id}"><span>${Icon('trash', { size: 16 })}</span>${escapeHTML(I18n.t('common.delete'))}</button>` : ''}
       </div>
       <div class="swipe-row__content">${innerRowHTML}</div>
     </div>`;
@@ -675,6 +690,13 @@ function swipeRowHTML(innerRowHTML, { editable = true, deletable = true, id } = 
 let rowSwipeActive = false;
 
 function enableSwipeRows(container, { onEdit, onDelete } = {}) {
+  // The reveal-actions panel is anchored to a physical edge (see
+  // .swipe-row__actions in style.css, mirrored there for [dir="rtl"]) —
+  // in RTL it sits on the left and a rightward drag reveals it (the
+  // "swipe toward reading-start" convention this app already uses for
+  // the tab-swipe and the bottom nav), the mirror image of the LTR
+  // left-swipe-reveals-right behavior.
+  const isRTL = document.documentElement.getAttribute('dir') === 'rtl';
   container.querySelectorAll('.swipe-row').forEach((row) => {
     const content = row.querySelector('.swipe-row__content');
     const actions = row.querySelector('.swipe-row__actions');
@@ -700,13 +722,14 @@ function enableSwipeRows(container, { onEdit, onDelete } = {}) {
           decided = true;
           isHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
           // Only actually claim the gesture if it's a direction that DOES
-          // something for this row — leftward to reveal, or rightward to
-          // close an already-open one. A rightward drag on a closed row is
-          // a no-op below (dx gets clamped to 0), so don't grab it just to
-          // do nothing with it — leave it alone so it's free to become a
-          // tab-swipe instead (that's the same gesture used to go back a
-          // tab, and it should work even starting on a row).
-          const relevant = deltaX < 0 || (open && deltaX > 0);
+          // something for this row — toward-reveal, or the opposite way
+          // to close an already-open one (mirrored in RTL — see isRTL
+          // above). A drag that closes a closed row is a no-op below (dx
+          // gets clamped to 0), so don't grab it just to do nothing with
+          // it — leave it alone so it's free to become a tab-swipe
+          // instead (that's the same gesture used to go back a tab, and
+          // it should work even starting on a row).
+          const relevant = isRTL ? (deltaX > 0 || (open && deltaX < 0)) : (deltaX < 0 || (open && deltaX > 0));
           dragging = isHorizontal && relevant;
           // Tell the tab-swipe gesture (bound on an ancestor, so it sees
           // this same touchmove after we do) whether this row is claiming
@@ -719,17 +742,24 @@ function enableSwipeRows(container, { onEdit, onDelete } = {}) {
       if (!dragging) return;
 
       e.preventDefault();
-      let base = open ? -actionsWidth : 0;
-      dx = base + deltaX;
-      dx = Math.max(-actionsWidth - 12, Math.min(0, dx));
+      if (isRTL) {
+        let base = open ? actionsWidth : 0;
+        dx = base + deltaX;
+        dx = Math.max(0, Math.min(actionsWidth + 12, dx));
+      } else {
+        let base = open ? -actionsWidth : 0;
+        dx = base + deltaX;
+        dx = Math.max(-actionsWidth - 12, Math.min(0, dx));
+      }
       content.style.transform = `translateX(${dx}px)`;
     }
     function onEnd() {
       content.classList.remove('dragging');
       content.classList.add('settling');
       if (dragging) {
-        open = dx < -actionsWidth / 2;
-        content.style.transform = open ? `translateX(-${actionsWidth}px)` : 'translateX(0)';
+        open = isRTL ? dx > actionsWidth / 2 : dx < -actionsWidth / 2;
+        const openTx = isRTL ? actionsWidth : -actionsWidth;
+        content.style.transform = open ? `translateX(${openTx}px)` : 'translateX(0)';
       }
       dragging = false;
       rowSwipeActive = false;
@@ -1524,7 +1554,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.9.26';
+const CURRENT_VERSION = '1.9.9.28';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -1895,7 +1925,13 @@ const Fmt = {
 
   money(amount) {
     const n = Number(amount) || 0;
-    const formatted = n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    // numberingSystem: 'latn' pins this to plain 0-9 always — the device's
+    // own locale (undefined here, so this already follows it) can default
+    // an 'ar' locale to Eastern Arabic-Indic digits, which this app never
+    // wants: prices/quantities/dates/receipt numbers all stay Western
+    // numerals regardless of app or device language (see the ar locale
+    // notes in the RTL audit).
+    const formatted = n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2, numberingSystem: 'latn' });
     return `${formatted} ${Fmt._currency}`;
   },
 
@@ -1910,7 +1946,7 @@ const Fmt = {
     const trim = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace(/\.0$/, ''));
     if (abs >= 1_000_000) return `${trim(n / 1_000_000)}M`;
     if (abs >= 10_000) return `${trim(n / 1_000)}k`;
-    return n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    return n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2, numberingSystem: 'latn' });
   },
 
   /* Compact money: same shortening as compactNumber, with the currency
@@ -1924,12 +1960,12 @@ const Fmt = {
 
   date(d) {
     const date = d instanceof Date ? d : new Date(d);
-    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', numberingSystem: 'latn' });
   },
 
   time(d) {
     const date = d instanceof Date ? d : new Date(d);
-    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', numberingSystem: 'latn' });
   },
 
   dateTime(d) {
@@ -2079,7 +2115,7 @@ async function renderDashboard(container) {
           <div class="list-row">
             <div class="list-row__icon">${Icon('receipt')}</div>
             <div class="list-row__body">
-              <div class="list-row__title">${s.receiptNumber}</div>
+              <div class="list-row__title ltr-code">${s.receiptNumber}</div>
               <div class="list-row__subtitle">${Fmt.dateTime(s.date)} · ${paymentMethodLabel(s.paymentMethod)}</div>
             </div>
             <div class="list-row__trailing">
@@ -2215,28 +2251,28 @@ window.saleNetTotal = saleNetTotal;
 
 function renderMore(container) {
   const items = [
-    ['inventory', Icon('bar-chart'), 'Inventory', 'Stock levels & adjustments'],
-    ['reports', Icon('trending-up'), 'Reports & Statistics', 'Revenue, best sellers, profit'],
-    ['customers', Icon('users'), 'Customers', 'Customer directory & purchase history'],
-    ['suppliers', Icon('truck'), 'Suppliers', 'Supplier directory'],
-    ['backup', Icon('database'), 'Backup & Restore', 'Export/import your data'],
-    ['settings', Icon('settings'), 'Settings', 'Store, appearance, POS, security'],
+    ['inventory', Icon('bar-chart'), I18n.t('more.inventoryTitle'), I18n.t('more.inventorySub')],
+    ['reports', Icon('trending-up'), I18n.t('more.reportsTitle'), I18n.t('more.reportsSub')],
+    ['customers', Icon('users'), I18n.t('more.customersTitle'), I18n.t('more.customersSub')],
+    ['suppliers', Icon('truck'), I18n.t('more.suppliersTitle'), I18n.t('more.suppliersSub')],
+    ['backup', Icon('database'), I18n.t('more.backupTitle'), I18n.t('more.backupSub')],
+    ['settings', Icon('settings'), I18n.t('more.settingsTitle'), I18n.t('more.settingsSub')],
   ];
   container.innerHTML = `
     <div class="list stagger">
       <div class="list-row tappable" id="aboutAppRow">
         <div class="list-row__icon"><img src="img/profile.jpg" alt="" style="width:32px; height:32px; border-radius:50%; object-fit:cover;" onerror="this.replaceWith('ℹ️'); Toast.error('Diagnostic: img/profile.jpg failed to load');"></div>
         <div class="list-row__body">
-          <div class="list-row__title">About This App</div>
-          <div class="list-row__subtitle">Credits, contact & support</div>
+          <div class="list-row__title">${I18n.t('more.aboutTitle')}</div>
+          <div class="list-row__subtitle">${I18n.t('more.aboutSub')}</div>
         </div>
         <div class="list-row__trailing text-faint disclosure-chevron">›</div>
       </div>
       <div class="list-row tappable" id="replayTourRow">
         <div class="list-row__icon">${Icon('play-circle')}</div>
         <div class="list-row__body">
-          <div class="list-row__title">Replay Interactive Tour</div>
-          <div class="list-row__subtitle">See the welcome walkthrough again</div>
+          <div class="list-row__title">${I18n.t('more.replayTourTitle')}</div>
+          <div class="list-row__subtitle">${I18n.t('more.replayTourSub')}</div>
         </div>
         <div class="list-row__trailing text-faint disclosure-chevron">›</div>
       </div>
@@ -2251,8 +2287,8 @@ function renderMore(container) {
       <div class="list-row tappable" id="viewTermsRow">
         <div class="list-row__icon">${Icon('scroll')}</div>
         <div class="list-row__body">
-          <div class="list-row__title">Terms of Use</div>
-          <div class="list-row__subtitle">What you agreed to when you started using the app</div>
+          <div class="list-row__title">${I18n.t('more.termsTitle')}</div>
+          <div class="list-row__subtitle">${I18n.t('more.termsSub')}</div>
         </div>
         <div class="list-row__trailing text-faint disclosure-chevron">›</div>
       </div>
@@ -2260,14 +2296,14 @@ function renderMore(container) {
         <a class="list-row tappable" href="#${route}">
           <div class="list-row__icon">${icon}</div>
           <div class="list-row__body">
-            <div class="list-row__title">${title}</div>
-            <div class="list-row__subtitle">${subtitle}</div>
+            <div class="list-row__title">${escapeHTML(title)}</div>
+            <div class="list-row__subtitle">${escapeHTML(subtitle)}</div>
           </div>
           <div class="list-row__trailing text-faint disclosure-chevron">›</div>
         </a>
       `).join('')}
     </div>
-    <div class="text-faint text-sm" style="text-align:center; margin-top:20px;" id="moreVersionFooter">Better Store</div>
+    <div class="text-faint text-sm" style="text-align:center; margin-top:20px;" id="moreVersionFooter">${I18n.t('about.appName')}</div>
   `;
   container.querySelector('#aboutAppRow').addEventListener('click', openAboutSheet);
   container.querySelector('#languageRow').addEventListener('click', () => {
@@ -2281,7 +2317,7 @@ function renderMore(container) {
   });
   getAppVersionLabel().then((label) => {
     const el = container.querySelector('#moreVersionFooter');
-    if (el) el.textContent = `Better Store · ${label}`;
+    if (el) el.textContent = `${I18n.t('about.appName')} · ${label}`;
   });
 }
 
@@ -2290,7 +2326,7 @@ function aboutCopyRow(label, value) {
     <div class="list-row tappable" data-copy-value="${escapeHTML(value)}" style="margin-bottom:8px;">
       <div class="list-row__body">
         <div class="list-row__title">${escapeHTML(label)}</div>
-        <div class="list-row__subtitle num num-id">${escapeHTML(value)}</div>
+        <div class="list-row__subtitle">${escapeHTML(value)}</div>
       </div>
       <div class="list-row__trailing text-faint">${Icon('copy', { size: 16 })}</div>
     </div>
@@ -2298,48 +2334,46 @@ function aboutCopyRow(label, value) {
 }
 
 function openAboutSheet() {
+  const t = (k, v) => I18n.t(`about.${k}`, v);
   const bodyHTML = `
     <div style="text-align:center; padding: 8px 0 24px;">
       <img src="img/profile.jpg" alt="" style="width:104px; height:104px; border-radius:50%; object-fit:cover; border:2px solid var(--border);" onerror="this.style.display='none'; Toast.error('Diagnostic: img/profile.jpg failed to load');">
-      <div style="font-weight:700; font-size:18px; margin-top:16px;">Better Store</div>
-      <div class="text-dim text-sm" style="margin-top:8px;">Made by <a href="#" id="aboutOwnerLink" style="color:var(--accent);">@rwgmo</a> on Telegram</div>
+      <div style="font-weight:700; font-size:18px; margin-top:16px;">${t('appName')}</div>
+      <div class="text-dim text-sm" style="margin-top:8px;">${t('madeByPrefix')} <a href="#" id="aboutOwnerLink" style="color:var(--accent);">@rwgmo</a> ${t('madeBySuffix')}</div>
     </div>
 
     <div class="card" style="margin-bottom:24px;">
-      <div class="text-sm" style="line-height:1.6;">
-        © All rights reserved. This app may not be resold or redistributed.
-        Use is permitted only for parties explicitly approved by the owner.
-      </div>
+      <div class="text-sm" style="line-height:1.6;">© ${t('copyright')}</div>
     </div>
 
-    <div class="section-title" style="margin-bottom:12px;">Contact & Shop</div>
+    <div class="section-title" style="margin-bottom:12px;">${t('contactShop')}</div>
     <a class="list-row tappable" id="aboutTelegramLink" href="#" style="margin-bottom:8px;">
       <div class="list-row__icon">${Icon('send')}</div>
-      <div class="list-row__body"><div class="list-row__title">Telegram</div><div class="list-row__subtitle">t.me/rwgmo</div></div>
+      <div class="list-row__body"><div class="list-row__title">${t('telegram')}</div><div class="list-row__subtitle">t.me/rwgmo</div></div>
       <div class="list-row__trailing text-faint disclosure-chevron">›</div>
     </a>
     <a class="list-row tappable" id="aboutShopLink" href="#" style="margin-bottom:24px;">
       <div class="list-row__icon">${Icon('gift')}</div>
-      <div class="list-row__body"><div class="list-row__title">Telegram Shop</div><div class="list-row__subtitle">t.me/RwmShop</div></div>
+      <div class="list-row__body"><div class="list-row__title">${t('telegramShop')}</div><div class="list-row__subtitle">t.me/RwmShop</div></div>
       <div class="list-row__trailing text-faint disclosure-chevron">›</div>
     </a>
 
     <div class="card" style="margin-bottom:24px;">
-      <div class="text-sm" style="line-height:1.6;">Open for app development and custom projects at affordable rates — reach out on Telegram.</div>
+      <div class="text-sm" style="line-height:1.6;">${t('devPitch')}</div>
     </div>
 
-    <div class="section-title" style="margin-bottom:12px;">Support / Donate</div>
+    <div class="section-title" style="margin-bottom:12px;">${t('supportDonate')}</div>
     <div class="list" id="aboutDonateList" style="margin-bottom:8px;">
-      ${aboutCopyRow('CCP Account', '007 99999 0042725714 28')}
-      ${aboutCopyRow('Binance ID', '814491654')}
+      ${aboutCopyRow(t('ccpAccount'), '007 99999 0042725714 28')}
+      ${aboutCopyRow(t('binanceId'), '814491654')}
     </div>
 
-    <div class="section-title" style="margin-bottom:12px;">Troubleshooting</div>
+    <div class="section-title" style="margin-bottom:12px;">${t('troubleshooting')}</div>
     <div class="list-row tappable" id="aboutDiagnosticsRow" style="margin-bottom:8px;">
       <div class="list-row__icon">${Icon('stethoscope')}</div>
       <div class="list-row__body">
-        <div class="list-row__title">Run Diagnostics</div>
-        <div class="list-row__subtitle">Check native features are working</div>
+        <div class="list-row__title">${t('runDiagnostics')}</div>
+        <div class="list-row__subtitle">${t('runDiagnosticsSub')}</div>
       </div>
       <div class="list-row__trailing text-faint disclosure-chevron">›</div>
     </div>
@@ -2347,25 +2381,25 @@ function openAboutSheet() {
       <div class="list-row tappable" id="previewWhatsNewRow">
         <div class="list-row__icon">${Icon('star')}</div>
         <div class="list-row__body">
-          <div class="list-row__title">Preview What's New</div>
-          <div class="list-row__subtitle">See the changelog card on demand</div>
+          <div class="list-row__title">${t('previewWhatsNew')}</div>
+          <div class="list-row__subtitle">${t('previewWhatsNewSub')}</div>
         </div>
         <div class="list-row__trailing text-faint disclosure-chevron">›</div>
       </div>
       <div class="list-row tappable" id="previewDonateRow">
         <div class="list-row__icon">${Icon('gift')}</div>
         <div class="list-row__body">
-          <div class="list-row__title">Preview Donate Prompt</div>
-          <div class="list-row__subtitle">Rare on its own \u2014 15+ sales, random chance, weeks apart</div>
+          <div class="list-row__title">${t('previewDonate')}</div>
+          <div class="list-row__subtitle">${t('previewDonateSub')}</div>
         </div>
         <div class="list-row__trailing text-faint disclosure-chevron">›</div>
       </div>
     </div>
 
-    <div class="text-faint text-sm" style="text-align:center; margin-top:28px;" id="aboutVersionFooter">Better Store</div>
+    <div class="text-faint text-sm" style="text-align:center; margin-top:28px;" id="aboutVersionFooter">${t('appName')}</div>
   `;
 
-  const sheetEl = Sheet.open({ title: 'About This App', bodyHTML });
+  const sheetEl = Sheet.open({ title: t('sheetTitle'), bodyHTML });
   sheetEl.querySelector('#aboutDiagnosticsRow').addEventListener('click', showDiagnostics);
   sheetEl.querySelector('#previewWhatsNewRow').addEventListener('click', () => {
     if (window.WhatsNew) WhatsNew.show();
@@ -2375,7 +2409,7 @@ function openAboutSheet() {
   });
   getAppVersionLabel().then((label) => {
     const el = sheetEl.querySelector('#aboutVersionFooter');
-    if (el) el.textContent = `Better Store · ${label}`;
+    if (el) el.textContent = `${t('appName')} · ${label}`;
   });
 
   const goTelegram = () => openExternal('https://t.me/rwgmo');
@@ -2386,7 +2420,7 @@ function openAboutSheet() {
   sheetEl.querySelectorAll('[data-copy-value]').forEach((row) => {
     row.addEventListener('click', async () => {
       const ok = await copyToClipboard(row.dataset.copyValue);
-      Toast.show(ok ? 'Copied' : 'Couldn\u2019t copy \u2014 long-press to select manually');
+      Toast.show(ok ? t('copied') : t('copyFailed'));
     });
   });
 }

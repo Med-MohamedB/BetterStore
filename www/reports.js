@@ -195,7 +195,7 @@ const Reports = (() => {
     const days = [];
     const cursor = new Date(start);
     while (cursor <= end) {
-      days.push({ label: cursor.toLocaleDateString(undefined, { weekday: 'short' }), date: new Date(cursor), total: 0 });
+      days.push({ label: cursor.toLocaleDateString(undefined, { weekday: 'short', numberingSystem: 'latn' }), date: new Date(cursor), total: 0 });
       cursor.setDate(cursor.getDate() + 1);
       if (days.length > 31) break; // safety cap for very wide custom ranges
     }

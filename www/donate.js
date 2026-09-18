@@ -56,10 +56,10 @@ const Donate = (() => {
     card.className = 'onboard-finale';
     card.innerHTML = `
       <div class="onboard-finale__icon">\ud83d\udc9c</div>
-      <div class="onboard-finale__title">Enjoying Better Store?</div>
-      <div class="onboard-finale__sub">It\u2019s built and maintained by one person. If it\u2019s genuinely been useful for your business, a donation \u2014 big or small \u2014 helps keep it going. Completely optional, no pressure.</div>
-      <button class="onboard-start-btn tappable" id="donateShowMeBtn">See how</button>
-      <button class="onboard-skip-btn tappable" id="donateLaterBtn" style="margin-top:10px; width:100%;">Maybe later</button>
+      <div class="onboard-finale__title">${I18n.t('donate.title')}</div>
+      <div class="onboard-finale__sub">${I18n.t('donate.sub')}</div>
+      <button class="onboard-start-btn tappable" id="donateShowMeBtn">${I18n.t('donate.showMeBtn')}</button>
+      <button class="onboard-skip-btn tappable" id="donateLaterBtn" style="margin-top:10px; width:100%;">${I18n.t('donate.laterBtn')}</button>
     `;
     overlay.appendChild(card);
     Fx.animate(card, { opacity: [0, 1], scale: [0.85, 1], y: [16, 0] }, { type: 'spring', stiffness: 380, damping: 16 });

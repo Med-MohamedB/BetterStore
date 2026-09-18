@@ -400,7 +400,7 @@ const Products = (() => {
         <div class="list-row__icon">${thumb}</div>
         <div class="list-row__body">
           <div class="list-row__title">${escapeHTML(p.name)}</div>
-          <div class="list-row__subtitle">${escapeHTML(p.category || I18n.t('products.uncategorized'))} · ${escapeHTML(p.sku || I18n.t('products.noSku'))}</div>
+          <div class="list-row__subtitle">${escapeHTML(p.category || I18n.t('products.uncategorized'))} · ${p.sku ? `<span class="ltr-code">${escapeHTML(p.sku)}</span>` : escapeHTML(I18n.t('products.noSku'))}</div>
         </div>
         <div class="list-row__trailing">
           <div class="list-row__amount num">${Fmt.money(p.sellingPrice)}</div>
@@ -448,7 +448,7 @@ const Products = (() => {
       <div class="field-row">
         <div class="field">
           <label>${I18n.t('products.form.barcodeLabel')}</label>
-          <input type="text" id="f_barcode" value="${escapeHTML(p.barcode)}" placeholder="${I18n.t('products.form.barcodePlaceholder')}">
+          <input type="text" id="f_barcode" dir="ltr" class="ltr-code" value="${escapeHTML(p.barcode)}" placeholder="${I18n.t('products.form.barcodePlaceholder')}">
         </div>
         <div class="field" style="flex:0 0 auto; align-self:flex-end;">
           <button class="btn btn-secondary btn-sm tappable" id="scanBarcodeFieldBtn" type="button" title="${I18n.t('products.form.scanBarcode')}">${Icon('camera')}</button>
@@ -461,7 +461,7 @@ const Products = (() => {
       <div class="field-row">
         <div class="field">
           <label>${I18n.t('products.form.skuLabel')}</label>
-          <input type="text" id="f_sku" value="${escapeHTML(p.sku)}" placeholder="${I18n.t('products.form.optional')}">
+          <input type="text" id="f_sku" dir="ltr" class="ltr-code" value="${escapeHTML(p.sku)}" placeholder="${I18n.t('products.form.optional')}">
         </div>
         <div class="field">
           <label>${I18n.t('products.form.categoryLabel')}</label>
@@ -657,7 +657,7 @@ const Products = (() => {
       <div class="mt-16 flex-between">
         <div>
           <div style="font-size:18px; font-weight:700;">${escapeHTML(p.name)}</div>
-          <div class="text-dim text-sm mt-8">${escapeHTML(p.category || I18n.t('products.uncategorized'))} · ${escapeHTML(p.sku || I18n.t('products.noSku'))}</div>
+          <div class="text-dim text-sm mt-8">${escapeHTML(p.category || I18n.t('products.uncategorized'))} · ${p.sku ? `<span class="ltr-code">${escapeHTML(p.sku)}</span>` : escapeHTML(I18n.t('products.noSku'))}</div>
         </div>
         <div class="list-row__amount num" style="font-size:19px;">${Fmt.money(p.sellingPrice)}</div>
       </div>
@@ -685,7 +685,7 @@ const Products = (() => {
 
       <div class="section-title">${I18n.t('products.detail.details')}</div>
       <div class="card">
-        <div class="flex-between mt-8" style="margin-top:0;"><span class="text-dim text-sm">${I18n.t('products.detail.barcode')}</span><span class="num num-id text-sm">${escapeHTML(p.barcode || '—')}</span></div>
+        <div class="flex-between mt-8" style="margin-top:0;"><span class="text-dim text-sm">${I18n.t('products.detail.barcode')}</span><span class="num num-id ltr-code text-sm">${escapeHTML(p.barcode || '—')}</span></div>
         <div class="flex-between mt-8"><span class="text-dim text-sm">${I18n.t('products.detail.purchasePrice')}</span><span class="num text-sm">${Fmt.money(p.purchasePrice)}</span></div>
         <div class="flex-between mt-8"><span class="text-dim text-sm">${I18n.t('products.detail.discountPrice')}</span><span class="num text-sm">${p.discountPrice ? Fmt.money(p.discountPrice) : '—'}</span></div>
         <div class="flex-between mt-8"><span class="text-dim text-sm">${I18n.t('products.detail.minStock')}</span><span class="num text-sm">${p.minStock}</span></div>

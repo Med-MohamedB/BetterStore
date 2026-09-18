@@ -124,16 +124,17 @@ Questions about these Terms can be sent via Telegram: @rwgmo
       overlay.className = 'terms-gate';
       overlay.innerHTML = `
         <div class="terms-gate__header">
-          <div class="terms-gate__title">Terms of Use</div>
-          <div class="terms-gate__sub">Please review before continuing</div>
+          <div class="terms-gate__title">${I18n.t('terms.title')}</div>
+          <div class="terms-gate__sub">${I18n.t('terms.sub')}</div>
         </div>
-        <div class="terms-gate__body">${escapeHTML(TERMS_TEXT)}</div>
+        <div class="text-faint text-sm" style="padding:0 20px 8px;">${I18n.t('terms.englishOnlyNote')}</div>
+        <div class="terms-gate__body" dir="ltr">${escapeHTML(TERMS_TEXT)}</div>
         <div class="terms-gate__footer">
           <label class="terms-gate__check">
             <input type="checkbox" id="termsCheckbox">
-            <span>I have read and agree to the Terms of Use</span>
+            <span>${I18n.t('terms.checkboxLabel')}</span>
           </label>
-          <button class="onboard-start-btn tappable" id="termsAcceptBtn" disabled>I Accept & Continue</button>
+          <button class="onboard-start-btn tappable" id="termsAcceptBtn" disabled>${I18n.t('terms.acceptBtn')}</button>
         </div>
       `;
       document.body.appendChild(overlay);
@@ -159,11 +160,12 @@ Questions about these Terms can be sent via Telegram: @rwgmo
     overlay.className = 'terms-gate';
     overlay.innerHTML = `
       <div class="terms-gate__header">
-        <div class="terms-gate__title">Terms of Use</div>
+        <div class="terms-gate__title">${I18n.t('terms.title')}</div>
       </div>
-      <div class="terms-gate__body">${escapeHTML(TERMS_TEXT)}</div>
+      <div class="text-faint text-sm" style="padding:0 20px 8px;">${I18n.t('terms.englishOnlyNote')}</div>
+      <div class="terms-gate__body" dir="ltr">${escapeHTML(TERMS_TEXT)}</div>
       <div class="terms-gate__footer">
-        <button class="onboard-start-btn tappable" id="termsCloseBtn">Close</button>
+        <button class="onboard-start-btn tappable" id="termsCloseBtn">${I18n.t('terms.closeBtn')}</button>
       </div>
     `;
     document.body.appendChild(overlay);

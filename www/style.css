@@ -943,6 +943,8 @@ main#view {
   display: flex;
   align-items: stretch;
 }
+/* Mirror image for RTL — see the isRTL branch in enableSwipeRows (app.js). */
+[dir="rtl"] .swipe-row__actions { right: auto; left: 0; }
 
 .swipe-row__action {
   width: 64px;
@@ -1850,6 +1852,21 @@ body.swipe-active .topbar {
   height: 100%;
   will-change: transform;
 }
+/* The drag/layout math in onboarding.js positions slides with a plain
+   translate3d(-index * 100%, 0, 0) on physical (LTR) pixel coordinates —
+   it doesn't know about `dir`. Flexbox's `row` axis is direction-aware by
+   spec though: under [dir="rtl"] the browser would otherwise lay the
+   slides out starting from the right and flowing left, which silently
+   desyncs from that math (wrong/blank slide showing, swipe feeling
+   inverted or stuck). Locking the track's own `direction` to ltr keeps
+   slide 0..3 physically left-to-right in both languages so the index
+   math is always correct, then `.onboard-slide` restores `rtl` so the
+   Arabic text and the store-name input inside each slide still render
+   and edit correctly. Net effect: the carousel's physical swipe order is
+   the same in every language (a deliberate choice, not an oversight —
+   see the RTL audit notes for the equivalent bottom-nav/tab-swipe calls). */
+[dir="rtl"] .onboard-track { direction: ltr; }
+[dir="rtl"] .onboard-slide { direction: rtl; }
 .onboard-slide {
   flex: 0 0 100%;
   width: 100%;
@@ -1971,6 +1988,30 @@ body.swipe-active .topbar {
 [dir="rtl"] .disclosure-chevron { transform: scaleX(-1); }
 [dir="rtl"] .feature-spotlight__chevron { transform: scaleX(-1); }
 [dir="rtl"] .icon-mirror-rtl { transform: scaleX(-1); }
+/* Digits always read left-to-right (see the numbering-system note on
+   Fmt.money/Fmt.dateTime in i18n.js/app.js) — number inputs should behave
+   the same way: typing, cursor movement and the caret's start position
+   all stay LTR even inside an otherwise-RTL form, exactly like a
+   calculator field. Left un-set here (inherits the ambient direction):
+   plain text inputs, since those hold real Arabic content and should
+   keep right-aligned RTL entry. */
+[dir="rtl"] input[type="number"] { direction: ltr; }
+/* Deliberate LTR exceptions (see the RTL audit notes): barcodes, SKUs and
+   receipt numbers are technical codes, not language content — they read
+   left-to-right always, and isolating them keeps neighboring Arabic text
+   in the same line from reordering them. unicode-bidi:isolate (rather
+   than just direction:ltr) is what actually prevents the surrounding
+   RTL paragraph from pulling this run out of its own left-to-right
+   sequence. */
+.ltr-code { direction: ltr; unicode-bidi: isolate; }
+/* Small absolutely-positioned corner elements whose physical corner is a
+   deliberate trailing-edge/UI-convention choice (a badge on its icon, a
+   dismiss "X" on an overlay) rather than a fixed physical detail like the
+   scanner frame's viewfinder corners or a hero card's decorative punch
+   hole (both left unmirrored on purpose — those are furniture, not
+   direction-aware UI). */
+[dir="rtl"] .nav-badge { right: auto; left: -6px; }
+[dir="rtl"] .image-spotlight__dismiss { right: auto; left: 12px; }
 
 .onboard-finale {
   position: relative;
@@ -2509,3 +2550,11 @@ a:active .icon-svg {
 .doodle-hint--bl .doodle-hint__arrow { transform: scaleX(-1); }
 .doodle-hint--tr { display: flex; flex-direction: column-reverse; }
 .doodle-hint--tr .doodle-hint__arrow { transform: scaleY(-1); margin-left: auto; }
+/* RTL mirror of the two corner variants this app actually uses — see the
+   isRTL branch in DoodleHint.show() (app.js) for why the anchor edge
+   switches too. Un-mirroring (dropping the scaleX(-1)/adding scaleX to
+   the --tr case) plus swapping which side the arrow hugs is enough:
+   the base (untransformed) arrow path already curves the other way. */
+[dir="rtl"] .doodle-hint--br .doodle-hint__arrow { margin-left: 0; margin-right: auto; transform: none; }
+[dir="rtl"] .doodle-hint--bl .doodle-hint__arrow { transform: none; }
+[dir="rtl"] .doodle-hint--tr .doodle-hint__arrow { margin-left: 0; margin-right: auto; transform: scaleY(-1) scaleX(-1); }

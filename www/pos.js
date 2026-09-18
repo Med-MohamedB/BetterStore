@@ -465,7 +465,12 @@ const POS = (() => {
 
   async function openReceipt(sale) {
     const store = await Settings.get('store');
-    const bodyHTML = Receipt.html(sale, store);
+    const pos = await Settings.get('pos');
+    const lang = resolveReceiptLanguage(pos);
+    const bodyHTML = `
+      ${receiptLangChipsHTML(lang)}
+      <div class="receipt-preview-body">${Receipt.html(sale, store, lang)}</div>
+    `;
     const footerHTML = `
       <div class="flex gap-8">
         <button class="btn btn-secondary tappable" id="printReceiptBtn">${Icon('printer')} ${I18n.t('products.print')}</button>
@@ -478,8 +483,9 @@ const POS = (() => {
       if (Router.current === 'pos') renderCart(document.getElementById('view'));
     }});
 
-    sheetEl.querySelector('#printReceiptBtn').addEventListener('click', () => printReceipt(sale, store));
-    sheetEl.querySelector('#shareReceiptBtn').addEventListener('click', () => shareReceipt(sale, store));
+    const preview = wireReceiptPreview(sheetEl, sale, store, lang);
+    sheetEl.querySelector('#printReceiptBtn').addEventListener('click', () => printReceipt(sale, store, preview.getLang()));
+    sheetEl.querySelector('#shareReceiptBtn').addEventListener('click', () => shareReceipt(sale, store, preview.getLang()));
     sheetEl.querySelector('#newSaleBtn').addEventListener('click', () => Sheet.close());
   }
 

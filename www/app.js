@@ -875,27 +875,28 @@ const Receipt = (() => {
   /* layout (Qty / Item / Price) with a scannable barcode at the bottom —  */
   /* see Barcode128 above and Sales' "Scan to Find" (looks a real sale    */
   /* back up by decoding this same receiptNumber).                        */
-  function html(sale, store) {
+  function html(sale, store, lang) {
     const refunded = sale.status === 'refunded';
     const partial = sale.status === 'partially_refunded';
-    const footerText = store.receiptFooter !== '' ? (store.receiptFooter || 'Thank you for your purchase!') : '';
+    const footerText = store.receiptFooter !== '' ? (store.receiptFooter || I18n.t('receipt.defaultFooter', null, lang)) : '';
     const itemCount = sale.items.reduce((s, it) => s + it.qty, 0);
     const barcodeSvg = Barcode128.svg(sale.receiptNumber, { moduleWidth: 1.6, height: 44 });
     const dashedRow = '<div style="border-top:1px dashed var(--border); margin:10px 0;"></div>';
+    const dir = (I18n.LANGUAGES.find((l) => l.code === lang) || { dir: 'ltr' }).dir;
 
     return `
-      <div class="receipt-print">
+      <div class="receipt-print" dir="${dir}">
         <div style="text-align:center;">
           ${store.logo ? `<img src="${store.logo}" style="width:56px;height:56px;object-fit:cover;border-radius:12px;margin-bottom:8px;">` : ''}
-          <div style="font-weight:700; font-size:16px; color:var(--accent);">${escapeHTML(store.name || 'My Store')}</div>
+          <div style="font-weight:700; font-size:16px; color:var(--accent);">${escapeHTML(store.name || I18n.t('dashboard.defaultStoreName', null, lang))}</div>
           ${store.address ? `<div class="text-dim text-sm">${escapeHTML(store.address)}</div>` : ''}
           ${store.phone ? `<div class="text-dim text-sm">${escapeHTML(store.phone)}</div>` : ''}
         </div>
-        ${refunded ? `<div class="mt-8" style="text-align:center;"><span class="badge badge--danger">Refunded</span></div>`
-          : partial ? `<div class="mt-8" style="text-align:center;"><span class="badge badge--danger">Partially Refunded</span></div>` : ''}
+        ${refunded ? `<div class="mt-8" style="text-align:center;"><span class="badge badge--danger">${I18n.t('receipt.refundedBadge', null, lang)}</span></div>`
+          : partial ? `<div class="mt-8" style="text-align:center;"><span class="badge badge--danger">${I18n.t('receipt.partiallyRefundedBadge', null, lang)}</span></div>` : ''}
         ${dashedRow}
         <div class="flex-between text-sm text-dim" style="font-weight:700; text-transform:uppercase; letter-spacing:0.02em;">
-          <span>Qty&nbsp;&nbsp;Item</span><span>Price</span>
+          <span>${I18n.t('receipt.colQtyItem', null, lang)}</span><span>${I18n.t('receipt.colPrice', null, lang)}</span>
         </div>
         ${dashedRow}
         ${sale.items.map((it) => `
@@ -903,23 +904,23 @@ const Receipt = (() => {
             <span>${it.qty}\u00d7&nbsp;&nbsp;${escapeHTML(it.name)}</span>
             <span class="num">${Fmt.money(it.price * it.qty)}</span>
           </div>
-          ${it.discount ? `<div class="flex-between text-sm text-dim" style="margin-bottom:6px; margin-top:-2px;"><span>&nbsp;&nbsp;&nbsp;&nbsp;*** Item Discount</span><span class="num">\u2212 ${Fmt.money(it.discount)}</span></div>` : ''}
+          ${it.discount ? `<div class="flex-between text-sm text-dim" style="margin-bottom:6px; margin-top:-2px;"><span>&nbsp;&nbsp;&nbsp;&nbsp;*** ${I18n.t('receipt.itemDiscountLabel', null, lang)}</span><span class="num">\u2212 ${Fmt.money(it.discount)}</span></div>` : ''}
         `).join('')}
-        <div class="text-center text-dim text-sm mt-8" style="text-align:center;">${itemCount} item${itemCount !== 1 ? 's' : ''} sold</div>
+        <div class="text-center text-dim text-sm mt-8" style="text-align:center;">${I18n.t('receipt.itemsSoldSuffix', { count: itemCount, plural: itemCount !== 1 ? 's' : '' }, lang)}</div>
         ${dashedRow}
-        <div class="flex-between text-sm"><span class="text-dim">Subtotal</span><span class="num">${Fmt.money(sale.subtotal)}</span></div>
-        ${sale.itemDiscounts ? `<div class="flex-between text-sm"><span class="text-dim">Item Discounts</span><span class="num">\u2212 ${Fmt.money(sale.itemDiscounts)}</span></div>` : ''}
-        ${sale.discount ? `<div class="flex-between text-sm"><span class="text-dim">Order Discount</span><span class="num">\u2212 ${Fmt.money(sale.discount)}</span></div>` : ''}
-        ${sale.tax ? `<div class="flex-between text-sm"><span class="text-dim">Tax</span><span class="num">${Fmt.money(sale.tax)}</span></div>` : ''}
+        <div class="flex-between text-sm"><span class="text-dim">${I18n.t('receipt.subtotalLabel', null, lang)}</span><span class="num">${Fmt.money(sale.subtotal)}</span></div>
+        ${sale.itemDiscounts ? `<div class="flex-between text-sm"><span class="text-dim">${I18n.t('receipt.itemDiscountsLabel', null, lang)}</span><span class="num">\u2212 ${Fmt.money(sale.itemDiscounts)}</span></div>` : ''}
+        ${sale.discount ? `<div class="flex-between text-sm"><span class="text-dim">${I18n.t('receipt.orderDiscountLabel', null, lang)}</span><span class="num">\u2212 ${Fmt.money(sale.discount)}</span></div>` : ''}
+        ${sale.tax ? `<div class="flex-between text-sm"><span class="text-dim">${I18n.t('receipt.taxLabel', null, lang)}</span><span class="num">${Fmt.money(sale.tax)}</span></div>` : ''}
         ${dashedRow}
-        <div class="flex-between" style="font-weight:800; color:var(--accent); font-size:17px;"><span>Total</span><span class="num">${Fmt.money(sale.total)}</span></div>
-        <div class="flex-between text-sm mt-8"><span class="text-dim">Payment</span><span style="text-transform:capitalize;">${escapeHTML(sale.paymentMethod)}</span></div>
+        <div class="flex-between" style="font-weight:800; color:var(--accent); font-size:17px;"><span>${I18n.t('receipt.totalLabel', null, lang)}</span><span class="num">${Fmt.money(sale.total)}</span></div>
+        <div class="flex-between text-sm mt-8"><span class="text-dim">${I18n.t('receipt.paymentLabel', null, lang)}</span><span>${escapeHTML(paymentMethodLabel(sale.paymentMethod, lang))}</span></div>
         ${sale.paymentMethod === 'cash' && sale.amountReceived != null ? `
-          <div class="flex-between text-sm"><span class="text-dim">Tendered</span><span class="num">${Fmt.money(sale.amountReceived)}</span></div>
-          <div class="flex-between text-sm"><span class="text-dim">Change</span><span class="num">${Fmt.money(sale.change)}</span></div>
+          <div class="flex-between text-sm"><span class="text-dim">${I18n.t('receipt.tenderedLabel', null, lang)}</span><span class="num">${Fmt.money(sale.amountReceived)}</span></div>
+          <div class="flex-between text-sm"><span class="text-dim">${I18n.t('receipt.changeLabel', null, lang)}</span><span class="num">${Fmt.money(sale.change)}</span></div>
         ` : ''}
         ${dashedRow}
-        <div class="text-center" style="text-align:center; font-weight:700; letter-spacing:0.04em; margin-bottom:10px;">THANK YOU</div>
+        <div class="text-center" style="text-align:center; font-weight:700; letter-spacing:0.04em; margin-bottom:10px;">${I18n.t('receipt.thankYou', null, lang)}</div>
         ${barcodeSvg ? `<div style="color:var(--text); padding:0 8px;">${barcodeSvg}</div>` : ''}
         <div class="text-center text-dim text-sm" style="text-align:center; letter-spacing:0.08em; margin-top:4px;">${sale.receiptNumber}</div>
         ${footerText ? `<div class="text-center text-dim text-sm mt-16" style="text-align:center;">${escapeHTML(footerText)}</div>` : ''}
@@ -933,36 +934,36 @@ const Receipt = (() => {
 
   /* Plain-text version for the Share button — a real formatted receipt,   */
   /* not just an item list, so it reads fine dropped into WhatsApp/SMS.    */
-  function text(sale, store) {
+  function text(sale, store, lang) {
     const lines = [];
-    lines.push(store.name || 'My Store');
+    lines.push(store.name || I18n.t('dashboard.defaultStoreName', null, lang));
     if (store.address) lines.push(store.address);
     if (store.phone) lines.push(store.phone);
     lines.push('');
-    lines.push(`Receipt: ${sale.receiptNumber}`);
-    lines.push(`Date: ${Fmt.dateTime(sale.date)}`);
-    if (sale.status === 'refunded') lines.push('*** REFUNDED ***');
-    else if (sale.status === 'partially_refunded') lines.push('*** PARTIALLY REFUNDED ***');
+    lines.push(I18n.t('receipt.receiptLinePrefix', { number: sale.receiptNumber }, lang));
+    lines.push(I18n.t('receipt.dateLinePrefix', { date: Fmt.dateTime(sale.date) }, lang));
+    if (sale.status === 'refunded') lines.push(`*** ${I18n.t('receipt.refundedBanner', null, lang)} ***`);
+    else if (sale.status === 'partially_refunded') lines.push(`*** ${I18n.t('receipt.partiallyRefundedBanner', null, lang)} ***`);
     lines.push('--------------------------------');
     let itemCount = 0;
     sale.items.forEach((it) => {
       itemCount += it.qty;
       lines.push(`${it.qty}x ${it.name} @ ${Fmt.money(it.price)}  =  ${Fmt.money(it.price * it.qty)}`);
-      if (it.discount) lines.push(`    *** Item Discount: -${Fmt.money(it.discount)}`);
+      if (it.discount) lines.push(`    *** ${I18n.t('receipt.itemDiscountLabel', null, lang)}: -${Fmt.money(it.discount)}`);
     });
-    lines.push(`${itemCount} item${itemCount !== 1 ? 's' : ''} sold`);
+    lines.push(I18n.t('receipt.itemsSoldSuffix', { count: itemCount, plural: itemCount !== 1 ? 's' : '' }, lang));
     lines.push('--------------------------------');
-    lines.push(`Subtotal: ${Fmt.money(sale.subtotal)}`);
-    if (sale.itemDiscounts) lines.push(`Item Discounts: -${Fmt.money(sale.itemDiscounts)}`);
-    if (sale.discount) lines.push(`Order Discount: -${Fmt.money(sale.discount)}`);
-    if (sale.tax) lines.push(`Tax: ${Fmt.money(sale.tax)}`);
-    lines.push(`Total: ${Fmt.money(sale.total)}`);
-    lines.push(`Payment: ${sale.paymentMethod}`);
+    lines.push(`${I18n.t('receipt.subtotalLabel', null, lang)}: ${Fmt.money(sale.subtotal)}`);
+    if (sale.itemDiscounts) lines.push(`${I18n.t('receipt.itemDiscountsLabel', null, lang)}: -${Fmt.money(sale.itemDiscounts)}`);
+    if (sale.discount) lines.push(`${I18n.t('receipt.orderDiscountLabel', null, lang)}: -${Fmt.money(sale.discount)}`);
+    if (sale.tax) lines.push(`${I18n.t('receipt.taxLabel', null, lang)}: ${Fmt.money(sale.tax)}`);
+    lines.push(`${I18n.t('receipt.totalLabel', null, lang)}: ${Fmt.money(sale.total)}`);
+    lines.push(`${I18n.t('receipt.paymentLabel', null, lang)}: ${paymentMethodLabel(sale.paymentMethod, lang)}`);
     if (sale.paymentMethod === 'cash' && sale.amountReceived != null) {
-      lines.push(`Tendered: ${Fmt.money(sale.amountReceived)}`);
-      lines.push(`Change: ${Fmt.money(sale.change)}`);
+      lines.push(`${I18n.t('receipt.tenderedLabel', null, lang)}: ${Fmt.money(sale.amountReceived)}`);
+      lines.push(`${I18n.t('receipt.changeLabel', null, lang)}: ${Fmt.money(sale.change)}`);
     }
-    const footerText = store.receiptFooter !== '' ? (store.receiptFooter || 'Thank you for your purchase!') : '';
+    const footerText = store.receiptFooter !== '' ? (store.receiptFooter || I18n.t('receipt.defaultFooter', null, lang)) : '';
     if (footerText) { lines.push(''); lines.push(footerText); }
     return lines.join('\n');
   }
@@ -976,7 +977,7 @@ window.Receipt = Receipt;
 /* wrapping, and the logo all come out crisp instead of dumped monospace.  */
 /* Page height is computed with a throwaway measuring doc first, so the    */
 /* real PDF is trimmed tight to its content — no blank trailing space.     */
-async function buildReceiptPDF(sale, store) {
+async function buildReceiptPDF(sale, store, lang) {
   // jsPDF is lazy-loaded (see loadScriptOnce above) — not present until
   // the first thing that needs it actually runs.
   if (!window.jspdf) await loadScriptOnce('vendor/jspdf.umd.min.js');
@@ -985,7 +986,7 @@ async function buildReceiptPDF(sale, store) {
   const margin = 5;
   const contentWidth = pageWidth - margin * 2;
   const lineH = 5;
-  const footerText = store.receiptFooter !== '' ? (store.receiptFooter || 'Thank you for your purchase!') : '';
+  const footerText = store.receiptFooter !== '' ? (store.receiptFooter || I18n.t('receipt.defaultFooter', null, lang)) : '';
   const itemCount = sale.items.reduce((s, it) => s + it.qty, 0);
   // Module width is computed from the actual pattern length further down
   // (barcodePattern/barcodeModule) rather than a fixed value — a fixed
@@ -1090,7 +1091,7 @@ async function buildReceiptPDF(sale, store) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13.5);
   doc.setTextColor(...accentRgb);
-  doc.text(store.name || 'My Store', cx, y, { align: 'center' });
+  doc.text(store.name || I18n.t('dashboard.defaultStoreName', null, lang), cx, y, { align: 'center' });
   y += 6.5;
 
   doc.setFont('helvetica', 'normal');
@@ -1104,13 +1105,13 @@ async function buildReceiptPDF(sale, store) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(200, 60, 90);
-    doc.text(sale.status === 'refunded' ? 'REFUNDED' : 'PARTIALLY REFUNDED', cx, y, { align: 'center' });
+    doc.text(sale.status === 'refunded' ? I18n.t('receipt.refundedBanner', null, lang) : I18n.t('receipt.partiallyRefundedBanner', null, lang), cx, y, { align: 'center' });
     doc.setTextColor(25);
     y += lineH + 1;
   }
   divider();
 
-  row('Qty  Item', 'Price', { size: 8, bold: true, dim: true });
+  row(I18n.t('receipt.colQtyItem', null, lang), I18n.t('receipt.colPrice', null, lang), { size: 8, bold: true, dim: true });
   y += lineH;
   divider();
 
@@ -1121,38 +1122,38 @@ async function buildReceiptPDF(sale, store) {
       y += lineH;
     });
     if (it.discount) {
-      row('    *** Item Discount', `\u2212 ${Fmt.money(it.discount)}`, { size: 8, dim: true });
+      row(`    *** ${I18n.t('receipt.itemDiscountLabel', null, lang)}`, `\u2212 ${Fmt.money(it.discount)}`, { size: 8, dim: true });
       y += lineH;
     }
   });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(140);
-  doc.text(`${itemCount} item${itemCount !== 1 ? 's' : ''} sold`, cx, y, { align: 'center' });
+  doc.text(I18n.t('receipt.itemsSoldSuffix', { count: itemCount, plural: itemCount !== 1 ? 's' : '' }, lang), cx, y, { align: 'center' });
   doc.setTextColor(25);
   y += lineH;
   divider();
 
-  row('Subtotal', Fmt.money(sale.subtotal), { dim: true });
+  row(I18n.t('receipt.subtotalLabel', null, lang), Fmt.money(sale.subtotal), { dim: true });
   y += lineH;
-  if (sale.itemDiscounts) { row('Item Discounts', `\u2212 ${Fmt.money(sale.itemDiscounts)}`, { dim: true }); y += lineH; }
-  if (sale.discount) { row('Order Discount', `\u2212 ${Fmt.money(sale.discount)}`, { dim: true }); y += lineH; }
-  if (sale.tax) { row('Tax', Fmt.money(sale.tax), { dim: true }); y += lineH; }
+  if (sale.itemDiscounts) { row(I18n.t('receipt.itemDiscountsLabel', null, lang), `\u2212 ${Fmt.money(sale.itemDiscounts)}`, { dim: true }); y += lineH; }
+  if (sale.discount) { row(I18n.t('receipt.orderDiscountLabel', null, lang), `\u2212 ${Fmt.money(sale.discount)}`, { dim: true }); y += lineH; }
+  if (sale.tax) { row(I18n.t('receipt.taxLabel', null, lang), Fmt.money(sale.tax), { dim: true }); y += lineH; }
   y += 1;
-  row('Total', Fmt.money(sale.total), { size: 11, bold: true, color: accentRgb });
+  row(I18n.t('receipt.totalLabel', null, lang), Fmt.money(sale.total), { size: 11, bold: true, color: accentRgb });
   y += lineH + 1;
-  row('Payment', sale.paymentMethod, { dim: true });
+  row(I18n.t('receipt.paymentLabel', null, lang), paymentMethodLabel(sale.paymentMethod, lang), { dim: true });
   y += lineH;
   if (sale.paymentMethod === 'cash' && sale.amountReceived != null) {
-    row('Tendered', Fmt.money(sale.amountReceived), { dim: true }); y += lineH;
-    row('Change', Fmt.money(sale.change), { dim: true }); y += lineH;
+    row(I18n.t('receipt.tenderedLabel', null, lang), Fmt.money(sale.amountReceived), { dim: true }); y += lineH;
+    row(I18n.t('receipt.changeLabel', null, lang), Fmt.money(sale.change), { dim: true }); y += lineH;
   }
   divider();
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(25);
-  doc.text('THANK YOU', cx, y, { align: 'center' });
+  doc.text(I18n.t('receipt.thankYou', null, lang), cx, y, { align: 'center' });
   y += lineH + 2;
 
   // Real, scannable Code128 barcode of this sale's receipt number — see
@@ -1265,7 +1266,8 @@ const Fx = (() => {
 })();
 window.Fx = Fx;
 
-function showSuccessCheck(message = 'Sale Complete', celebrate = false) {
+function showSuccessCheck(message, celebrate = false) {
+  const label = message ?? I18n.t('pos.saleComplete');
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
     overlay.className = 'success-check-overlay';
@@ -1276,7 +1278,7 @@ function showSuccessCheck(message = 'Sale Complete', celebrate = false) {
           <path class="success-check-mark" fill="none" stroke-width="4" d="M14 27l7 7 17-17"/>
         </svg>
       </div>
-      <div class="success-check-label">${escapeHTML(message)}</div>
+      <div class="success-check-label">${escapeHTML(label)}</div>
     `;
     document.body.appendChild(overlay);
     if (navigator.vibrate) navigator.vibrate(25);
@@ -1300,22 +1302,22 @@ window.showSuccessCheck = showSuccessCheck;
  *     to the Share sheet, where Print still shows up as a real option.
  *  3. Not native (a real browser tab) -> the actual window.print() dialog.
  */
-async function printReceipt(sale, store) {
+async function printReceipt(sale, store, lang) {
   const cap = window.Capacitor;
   const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
 
   if (!isNative) {
     const area = document.getElementById('printArea');
-    if (area) area.innerHTML = Receipt.html(sale, store);
+    if (area) area.innerHTML = Receipt.html(sale, store, lang);
     requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
     return;
   }
 
   let doc;
   try {
-    doc = await buildReceiptPDF(sale, store);
+    doc = await buildReceiptPDF(sale, store, lang);
   } catch (e) {
-    Toast.error(`Receipt PDF failed: ${(e && e.message) || e}`);
+    Toast.error(I18n.t('receipt.pdfFailed', { msg: (e && e.message) || e }));
     return;
   }
   const base64 = doc.output('datauristring').split(',')[1];
@@ -1323,24 +1325,24 @@ async function printReceipt(sale, store) {
 
   if (plugins.NativePrint) {
     try {
-      await plugins.NativePrint.printPdf({ base64, jobName: `Receipt ${sale.receiptNumber}` });
+      await plugins.NativePrint.printPdf({ base64, jobName: I18n.t('receipt.jobTitle', { number: sale.receiptNumber }) });
       return;
     } catch (e) {
       // Fall through to the Share-based fallback below rather than dead-end.
-      Toast.show('Couldn\u2019t open the print dialog directly \u2014 sharing the PDF instead');
+      Toast.show(I18n.t('receipt.printDialogFallback'));
     }
   }
 
   if (!plugins.Filesystem || !plugins.Share) {
-    Toast.error('Diagnostic: Filesystem/Share plugin missing, can\u2019t print');
+    Toast.error(I18n.t('receipt.diagPrintMissing'));
     return;
   }
   try {
     const filename = `receipt-${sale.receiptNumber}-${Date.now()}.pdf`;
     const written = await plugins.Filesystem.writeFile({ path: filename, data: base64, directory: 'CACHE' });
-    await plugins.Share.share({ title: 'Print Receipt', url: written.uri, dialogTitle: 'Print Receipt' });
+    await plugins.Share.share({ title: I18n.t('receipt.printDialogTitle'), url: written.uri, dialogTitle: I18n.t('receipt.printDialogTitle') });
   } catch (e) {
-    Toast.error(`Print failed: ${(e && e.message) || e}`);
+    Toast.error(I18n.t('receipt.printFailed', { msg: (e && e.message) || e }));
   }
 }
 window.printReceipt = printReceipt;
@@ -1349,22 +1351,22 @@ window.printReceipt = printReceipt;
  *  when running in the app (navigator.share doesn't exist in Capacitor's
  *  WebView, only in real Chrome tabs, which is why this was silently
  *  doing nothing before). */
-async function shareReceipt(sale, store) {
-  const body = Receipt.text(sale, store);
-  const title = `Receipt ${sale.receiptNumber}`;
+async function shareReceipt(sale, store, lang) {
+  const body = Receipt.text(sale, store, lang);
+  const title = I18n.t('receipt.jobTitle', { number: sale.receiptNumber });
   const cap = window.Capacitor;
   const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
 
   if (isNative) {
     if (!cap.Plugins || !cap.Plugins.Share) {
-      Toast.error('Diagnostic: Share plugin not registered');
+      Toast.error(I18n.t('receipt.diagShareMissing'));
       return;
     }
     try {
       await cap.Plugins.Share.share({ title, text: body, dialogTitle: title });
     } catch (e) {
       const msg = (e && e.message) || String(e);
-      if (!/cancel/i.test(msg)) Toast.error(`Share failed: ${msg}`);
+      if (!/cancel/i.test(msg)) Toast.error(I18n.t('receipt.shareFailed', { msg }));
     }
     return;
   }
@@ -1373,7 +1375,7 @@ async function shareReceipt(sale, store) {
     catch (e) { return; }
   }
   const copied = await copyToClipboard(body);
-  Toast.show(copied ? 'Sharing isn\u2019t available here \u2014 copied the receipt instead' : 'Sharing isn\u2019t supported on this browser');
+  Toast.show(copied ? I18n.t('receipt.sharingUnavailableCopied') : I18n.t('receipt.sharingUnsupported'));
 }
 window.shareReceipt = shareReceipt;
 
@@ -1522,7 +1524,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.9.24';
+const CURRENT_VERSION = '1.9.9.26';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -1672,8 +1674,17 @@ function initTabSwipeGesture() {
     // finger, not after it. translate3d promotes this to its own GPU layer.
     const idx = tabOrder.indexOf(Router.current);
     if (idx === -1) { tracking = false; return; }
-    const atStart = idx === 0 && dx > 0;
-    const atEnd = idx === tabOrder.length - 1 && dx < 0;
+    // In RTL, tabOrder[idx+1] sits visually to the LEFT of the current tab
+    // (the bottom nav's flex row is mirrored by the browser under
+    // dir="rtl"), so a rightward drag is what should reveal it — the
+    // opposite of LTR. forwardDx normalizes for that: positive always
+    // means "toward idx+1" no matter which raw finger direction produced
+    // it. The actual translate3d below still uses the raw dx, since the
+    // view must always track the physical finger 1:1 regardless of RTL.
+    const isRTL = document.documentElement.getAttribute('dir') === 'rtl';
+    const forwardDx = isRTL ? dx : -dx;
+    const atStart = idx === 0 && forwardDx < 0;
+    const atEnd = idx === tabOrder.length - 1 && forwardDx > 0;
     const followDx = dx * (atStart || atEnd ? 0.25 : 1);
     view.style.transform = `translate3d(${followDx}px, 0, 0)`;
   }, { passive: false });
@@ -1687,11 +1698,13 @@ function initTabSwipeGesture() {
 
     const idx = tabOrder.indexOf(Router.current);
     const passed = Math.abs(dx) > 68;
+    const isRTL = document.documentElement.getAttribute('dir') === 'rtl';
+    const forwardDx = isRTL ? dx : -dx;
     const canAdvance = idx !== -1 && passed &&
-      ((dx < 0 && idx < tabOrder.length - 1) || (dx > 0 && idx > 0));
+      ((forwardDx > 0 && idx < tabOrder.length - 1) || (forwardDx < 0 && idx > 0));
 
     if (canAdvance) {
-      const nextIdx = dx < 0 ? idx + 1 : idx - 1;
+      const nextIdx = forwardDx > 0 ? idx + 1 : idx - 1;
       const direction = dx < 0 ? 'left' : 'right';
       if (navigator.vibrate) navigator.vibrate(12);
 
@@ -2127,12 +2140,57 @@ function quickAction(route, icon, label) {
  *  transfer', 'other') into the current language's display label. The
  *  stored value itself stays English since it's compared against
  *  elsewhere (filters, defaults) — only the rendered text changes. */
-function paymentMethodLabel(method) {
+/** Markup for the small language-switcher chip row shown atop a receipt
+ *  preview sheet (pos.js / sales.js) — lets the person override the
+ *  configured receipt language for this one print/share without
+ *  touching the Settings default. */
+function receiptLangChipsHTML(currentLang) {
+  return `
+    <div class="text-dim text-sm mb-8">${I18n.t('receipt.previewLanguage')}</div>
+    <div class="chip-row receipt-lang-chips mb-16">
+      ${I18n.LANGUAGES.map((l) => `<button type="button" class="chip tappable${l.code === currentLang ? ' active' : ''}" data-lang="${l.code}">${l.flag} ${l.nativeName}</button>`).join('')}
+    </div>
+  `;
+}
+window.receiptLangChipsHTML = receiptLangChipsHTML;
+
+/** Wires the chip row above to live-redraw `.receipt-preview-body` in
+ *  the chosen language. Returns { getLang() } so the caller's
+ *  print/share handlers use whatever language is currently selected. */
+function wireReceiptPreview(sheetEl, sale, store, initialLang) {
+  sheetEl.dataset.receiptLang = initialLang;
+  const bodyEl = sheetEl.querySelector('.receipt-preview-body');
+  const chipsEl = sheetEl.querySelector('.receipt-lang-chips');
+  if (bodyEl && chipsEl) {
+    chipsEl.querySelectorAll('[data-lang]').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const lang = chip.dataset.lang;
+        sheetEl.dataset.receiptLang = lang;
+        chipsEl.querySelectorAll('[data-lang]').forEach((c) => c.classList.toggle('active', c === chip));
+        bodyEl.innerHTML = Receipt.html(sale, store, lang);
+      });
+    });
+  }
+  return { getLang: () => sheetEl.dataset.receiptLang };
+}
+window.wireReceiptPreview = wireReceiptPreview;
+
+/** Resolves the actual language code to render a receipt in, given the
+ *  stored `pos.receiptLanguage` preference ('app' tracks the live UI
+ *  language; a specific code pins the receipt regardless of what
+ *  language the app itself is currently showing). */
+function resolveReceiptLanguage(posSettings) {
+  const pref = posSettings && posSettings.receiptLanguage;
+  return (pref && pref !== 'app') ? pref : I18n.locale;
+}
+window.resolveReceiptLanguage = resolveReceiptLanguage;
+
+function paymentMethodLabel(method, lang) {
   const map = {
-    cash: I18n.t('common.paymentMethods.cash'),
-    card: I18n.t('common.paymentMethods.card'),
-    'bank transfer': I18n.t('common.paymentMethods.bankTransfer'),
-    other: I18n.t('common.paymentMethods.other'),
+    cash: I18n.t('common.paymentMethods.cash', null, lang),
+    card: I18n.t('common.paymentMethods.card', null, lang),
+    'bank transfer': I18n.t('common.paymentMethods.bankTransfer', null, lang),
+    other: I18n.t('common.paymentMethods.other', null, lang),
   };
   return map[method] || method;
 }
@@ -2172,7 +2230,7 @@ function renderMore(container) {
           <div class="list-row__title">About This App</div>
           <div class="list-row__subtitle">Credits, contact & support</div>
         </div>
-        <div class="list-row__trailing text-faint">›</div>
+        <div class="list-row__trailing text-faint disclosure-chevron">›</div>
       </div>
       <div class="list-row tappable" id="replayTourRow">
         <div class="list-row__icon">${Icon('play-circle')}</div>
@@ -2180,7 +2238,7 @@ function renderMore(container) {
           <div class="list-row__title">Replay Interactive Tour</div>
           <div class="list-row__subtitle">See the welcome walkthrough again</div>
         </div>
-        <div class="list-row__trailing text-faint">›</div>
+        <div class="list-row__trailing text-faint disclosure-chevron">›</div>
       </div>
       <div class="list-row tappable" id="languageRow">
         <div class="list-row__icon" style="font-size:20px;">${(I18n.LANGUAGES.find((l) => l.code === I18n.locale) || I18n.LANGUAGES[0]).flag}</div>
@@ -2188,7 +2246,7 @@ function renderMore(container) {
           <div class="list-row__title">${I18n.t('language.rowTitle')}</div>
           <div class="list-row__subtitle">${I18n.t('language.rowSubtitle')}</div>
         </div>
-        <div class="list-row__trailing text-faint">›</div>
+        <div class="list-row__trailing text-faint disclosure-chevron">›</div>
       </div>
       <div class="list-row tappable" id="viewTermsRow">
         <div class="list-row__icon">${Icon('scroll')}</div>
@@ -2196,7 +2254,7 @@ function renderMore(container) {
           <div class="list-row__title">Terms of Use</div>
           <div class="list-row__subtitle">What you agreed to when you started using the app</div>
         </div>
-        <div class="list-row__trailing text-faint">›</div>
+        <div class="list-row__trailing text-faint disclosure-chevron">›</div>
       </div>
       ${items.map(([route, icon, title, subtitle]) => `
         <a class="list-row tappable" href="#${route}">
@@ -2205,7 +2263,7 @@ function renderMore(container) {
             <div class="list-row__title">${title}</div>
             <div class="list-row__subtitle">${subtitle}</div>
           </div>
-          <div class="list-row__trailing text-faint">›</div>
+          <div class="list-row__trailing text-faint disclosure-chevron">›</div>
         </a>
       `).join('')}
     </div>
@@ -2258,12 +2316,12 @@ function openAboutSheet() {
     <a class="list-row tappable" id="aboutTelegramLink" href="#" style="margin-bottom:8px;">
       <div class="list-row__icon">${Icon('send')}</div>
       <div class="list-row__body"><div class="list-row__title">Telegram</div><div class="list-row__subtitle">t.me/rwgmo</div></div>
-      <div class="list-row__trailing text-faint">›</div>
+      <div class="list-row__trailing text-faint disclosure-chevron">›</div>
     </a>
     <a class="list-row tappable" id="aboutShopLink" href="#" style="margin-bottom:24px;">
       <div class="list-row__icon">${Icon('gift')}</div>
       <div class="list-row__body"><div class="list-row__title">Telegram Shop</div><div class="list-row__subtitle">t.me/RwmShop</div></div>
-      <div class="list-row__trailing text-faint">›</div>
+      <div class="list-row__trailing text-faint disclosure-chevron">›</div>
     </a>
 
     <div class="card" style="margin-bottom:24px;">
@@ -2283,7 +2341,7 @@ function openAboutSheet() {
         <div class="list-row__title">Run Diagnostics</div>
         <div class="list-row__subtitle">Check native features are working</div>
       </div>
-      <div class="list-row__trailing text-faint">›</div>
+      <div class="list-row__trailing text-faint disclosure-chevron">›</div>
     </div>
     <div class="list" style="margin-bottom:24px;">
       <div class="list-row tappable" id="previewWhatsNewRow">
@@ -2292,7 +2350,7 @@ function openAboutSheet() {
           <div class="list-row__title">Preview What's New</div>
           <div class="list-row__subtitle">See the changelog card on demand</div>
         </div>
-        <div class="list-row__trailing text-faint">›</div>
+        <div class="list-row__trailing text-faint disclosure-chevron">›</div>
       </div>
       <div class="list-row tappable" id="previewDonateRow">
         <div class="list-row__icon">${Icon('gift')}</div>
@@ -2300,7 +2358,7 @@ function openAboutSheet() {
           <div class="list-row__title">Preview Donate Prompt</div>
           <div class="list-row__subtitle">Rare on its own \u2014 15+ sales, random chance, weeks apart</div>
         </div>
-        <div class="list-row__trailing text-faint">›</div>
+        <div class="list-row__trailing text-faint disclosure-chevron">›</div>
       </div>
     </div>
 

@@ -64,6 +64,13 @@ const SettingsScreen = (() => {
         <input type="checkbox" id="s_confirmSale" ${pos.confirmBeforeSale ? 'checked' : ''} style="width:20px;height:20px;">
       </div>
       <div class="field mt-8"><label>${I18n.t('settings.receiptFooterLabel')}</label><input type="text" id="s_receiptFooter" value="${escapeHTML(pos.receiptFooter)}"></div>
+      <div class="field mt-8">
+        <label>${I18n.t('receipt.languageLabel')}</label>
+        <select id="s_receiptLanguage">
+          <option value="app" ${pos.receiptLanguage === 'app' || !pos.receiptLanguage ? 'selected' : ''}>${I18n.t('receipt.languageAppDefault')}</option>
+          ${I18n.LANGUAGES.map((l) => `<option value="${l.code}" ${pos.receiptLanguage === l.code ? 'selected' : ''}>${l.flag} ${l.nativeName}</option>`).join('')}
+        </select>
+      </div>
 
       <div class="section-title">${I18n.t('settings.sectionInventory')}</div>
       <div class="card flex-between">
@@ -87,7 +94,7 @@ const SettingsScreen = (() => {
       <a class="list-row tappable" href="#backup">
         <div class="list-row__icon">${Icon('database')}</div>
         <div class="list-row__body"><div class="list-row__title">${I18n.t('settings.backupTitle')}</div><div class="list-row__subtitle">${I18n.t('settings.backupSubtitle')}</div></div>
-        <div class="list-row__trailing text-faint">›</div>
+        <div class="list-row__trailing text-faint disclosure-chevron">›</div>
       </a>
 
       <div class="section-title">${I18n.t('settings.sectionAbout')}</div>
@@ -97,7 +104,7 @@ const SettingsScreen = (() => {
           <div class="list-row__title">${I18n.t('settings.aboutTitle')}</div>
           <div class="list-row__subtitle">${I18n.t('settings.aboutSubtitle')}</div>
         </div>
-        <div class="list-row__trailing text-faint">›</div>
+        <div class="list-row__trailing text-faint disclosure-chevron">›</div>
       </div>
     `;
 
@@ -187,6 +194,7 @@ const SettingsScreen = (() => {
     container.querySelector('#s_taxPercent').addEventListener('change', (e) => save({ taxPercent: Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)) }));
     container.querySelector('#s_confirmSale').addEventListener('change', (e) => save({ confirmBeforeSale: e.target.checked }));
     container.querySelector('#s_receiptFooter').addEventListener('change', (e) => save({ receiptFooter: e.target.value.trim() }));
+    container.querySelector('#s_receiptLanguage').addEventListener('change', (e) => save({ receiptLanguage: e.target.value }));
   }
 
   function wireInventoryFields(container) {

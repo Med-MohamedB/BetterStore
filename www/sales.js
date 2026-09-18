@@ -133,7 +133,7 @@ const Sales = (() => {
     const partial = s.status === 'partially_refunded';
     return `
       <div class="list-row tappable" data-sale-row="${s.id}" style="${refunded ? 'opacity:0.55;' : ''}">
-        <div class="list-row__icon">${refunded ? Icon('undo') : partial ? Icon('undo') : Icon('receipt')}</div>
+        <div class="list-row__icon">${refunded ? Icon('undo', { className: 'icon-mirror-rtl' }) : partial ? Icon('undo', { className: 'icon-mirror-rtl' }) : Icon('receipt')}</div>
         <div class="list-row__body">
           <div class="list-row__title">${s.receiptNumber}</div>
           <div class="list-row__subtitle">${Fmt.dateTime(s.date)} · ${paymentMethodLabel(s.paymentMethod)}</div>
@@ -148,10 +148,15 @@ const Sales = (() => {
 
   async function openDetail(sale, listContainer) {
     const store = await Settings.get('store');
+    const pos = await Settings.get('pos');
+    const lang = resolveReceiptLanguage(pos);
     const refunded = sale.status === 'refunded';
     const partial = sale.status === 'partially_refunded';
 
-    const bodyHTML = Receipt.html(sale, store);
+    const bodyHTML = `
+      ${receiptLangChipsHTML(lang)}
+      <div class="receipt-preview-body">${Receipt.html(sale, store, lang)}</div>
+    `;
 
     const footerHTML = `
       <div class="flex gap-8">
@@ -163,8 +168,9 @@ const Sales = (() => {
 
     const sheetEl = Sheet.open({ title: I18n.t('sales.saleDetail'), bodyHTML, footerHTML });
 
-    sheetEl.querySelector('#reprintBtn').addEventListener('click', () => printReceipt(sale, store));
-    sheetEl.querySelector('#shareSaleBtn').addEventListener('click', () => shareReceipt(sale, store));
+    const preview = wireReceiptPreview(sheetEl, sale, store, lang);
+    sheetEl.querySelector('#reprintBtn').addEventListener('click', () => printReceipt(sale, store, preview.getLang()));
+    sheetEl.querySelector('#shareSaleBtn').addEventListener('click', () => shareReceipt(sale, store, preview.getLang()));
 
     const refundBtn = sheetEl.querySelector('#refundBtn');
     if (refundBtn) {

@@ -500,6 +500,41 @@ const TRANSLATIONS = {
       noAdjustmentsYet: 'No adjustments yet',
       noAdjustmentsHint: 'Stock changes from sales and manual adjustments will show up here.',
     },
+    receipt: {
+      refundedBadge: 'Refunded',
+      partiallyRefundedBadge: 'Partially Refunded',
+      refundedBanner: 'REFUNDED',
+      partiallyRefundedBanner: 'PARTIALLY REFUNDED',
+      colQtyItem: 'Qty  Item',
+      colPrice: 'Price',
+      itemDiscountLabel: 'Item Discount',
+      itemsSoldSuffix: '{{count}} item{{plural}} sold',
+      subtotalLabel: 'Subtotal',
+      itemDiscountsLabel: 'Item Discounts',
+      orderDiscountLabel: 'Order Discount',
+      taxLabel: 'Tax',
+      totalLabel: 'Total',
+      paymentLabel: 'Payment',
+      tenderedLabel: 'Tendered',
+      changeLabel: 'Change',
+      thankYou: 'THANK YOU',
+      defaultFooter: 'Thank you for your purchase!',
+      receiptLinePrefix: 'Receipt: {{number}}',
+      jobTitle: 'Receipt {{number}}',
+      dateLinePrefix: 'Date: {{date}}',
+      languageAppDefault: 'Same as app language',
+      languageLabel: 'Receipt Language',
+      previewLanguage: 'Preview language',
+      printDialogTitle: 'Print Receipt',
+      printDialogFallback: 'Couldn\u2019t open the print dialog directly \u2014 sharing the PDF instead',
+      diagPrintMissing: 'Diagnostic: Filesystem/Share plugin missing, can\u2019t print',
+      pdfFailed: 'Receipt PDF failed: {{msg}}',
+      printFailed: 'Print failed: {{msg}}',
+      diagShareMissing: 'Diagnostic: Share plugin not registered',
+      shareFailed: 'Share failed: {{msg}}',
+      sharingUnavailableCopied: 'Sharing isn\u2019t available here \u2014 copied the receipt instead',
+      sharingUnsupported: 'Sharing isn\u2019t supported on this browser',
+    },
   },
 
   ar: {
@@ -981,6 +1016,41 @@ const TRANSLATIONS = {
       historyTitle: 'سجل التعديلات',
       noAdjustmentsYet: 'لا توجد تعديلات بعد',
       noAdjustmentsHint: '.ستظهر هنا تغييرات المخزون الناتجة عن المبيعات والتعديلات اليدوية',
+    },
+    receipt: {
+      refundedBadge: 'مسترجع',
+      partiallyRefundedBadge: 'مسترجع جزئيًا',
+      refundedBanner: 'تم الاسترجاع',
+      partiallyRefundedBanner: 'استرجاع جزئي',
+      colQtyItem: 'الصنف  الكمية',
+      colPrice: 'السعر',
+      itemDiscountLabel: 'خصم الصنف',
+      itemsSoldSuffix: 'تم بيع {{count}} صنف',
+      subtotalLabel: 'المجموع الفرعي',
+      itemDiscountsLabel: 'خصومات الأصناف',
+      orderDiscountLabel: 'خصم الطلب',
+      taxLabel: 'الضريبة',
+      totalLabel: 'الإجمالي',
+      paymentLabel: 'الدفع',
+      tenderedLabel: 'المبلغ المدفوع',
+      changeLabel: 'الباقي',
+      thankYou: 'شكرًا لك',
+      defaultFooter: '.شكرًا لتسوقك معنا',
+      receiptLinePrefix: '{{number}} :الفاتورة',
+      jobTitle: 'فاتورة {{number}}',
+      dateLinePrefix: '{{date}} :التاريخ',
+      languageAppDefault: 'نفس لغة التطبيق',
+      languageLabel: 'لغة الفاتورة',
+      previewLanguage: 'معاينة اللغة',
+      printDialogTitle: 'طباعة الفاتورة',
+      printDialogFallback: 'تعذّر فتح مربع الطباعة مباشرة \u2014 سيتم مشاركة الملف بدلًا من ذلك',
+      diagPrintMissing: 'تشخيص: إضافة Filesystem/Share مفقودة، لا يمكن الطباعة',
+      pdfFailed: '{{msg}} :فشل إنشاء ملف الفاتورة',
+      printFailed: '{{msg}} :فشلت الطباعة',
+      diagShareMissing: 'Share تشخيص: إضافة المشاركة غير مسجَّلة',
+      shareFailed: '{{msg}} :فشلت المشاركة',
+      sharingUnavailableCopied: 'المشاركة غير متاحة هنا \u2014 تم نسخ الفاتورة بدلًا من ذلك',
+      sharingUnsupported: 'المشاركة غير مدعومة على هذا المتصفح',
     },
   },
 
@@ -1464,6 +1534,41 @@ const TRANSLATIONS = {
       noAdjustmentsYet: 'Aucun ajustement pour le moment',
       noAdjustmentsHint: 'Les changements de stock issus des ventes et des ajustements manuels apparaîtront ici.',
     },
+    receipt: {
+      refundedBadge: 'Remboursé',
+      partiallyRefundedBadge: 'Partiellement Remboursé',
+      refundedBanner: 'REMBOURSÉ',
+      partiallyRefundedBanner: 'PARTIELLEMENT REMBOURSÉ',
+      colQtyItem: 'Qté  Article',
+      colPrice: 'Prix',
+      itemDiscountLabel: 'Remise Article',
+      itemsSoldSuffix: '{{count}} article{{plural}} vendu{{plural}}',
+      subtotalLabel: 'Sous-total',
+      itemDiscountsLabel: 'Remises Articles',
+      orderDiscountLabel: 'Remise Commande',
+      taxLabel: 'Taxe',
+      totalLabel: 'Total',
+      paymentLabel: 'Paiement',
+      tenderedLabel: 'Montant Reçu',
+      changeLabel: 'Monnaie',
+      thankYou: 'MERCI',
+      defaultFooter: 'Merci pour votre achat\u00a0!',
+      receiptLinePrefix: 'Reçu\u00a0: {{number}}',
+      jobTitle: 'Reçu {{number}}',
+      dateLinePrefix: 'Date\u00a0: {{date}}',
+      languageAppDefault: 'Identique à la langue de l\u2019application',
+      languageLabel: 'Langue du Reçu',
+      previewLanguage: 'Langue de l\u2019aperçu',
+      printDialogTitle: 'Imprimer le Reçu',
+      printDialogFallback: 'Impossible d\u2019ouvrir directement la boîte de dialogue d\u2019impression \u2014 partage du PDF à la place',
+      diagPrintMissing: 'Diagnostic\u00a0: plugin Filesystem/Share manquant, impression impossible',
+      pdfFailed: 'Échec du PDF du reçu\u00a0: {{msg}}',
+      printFailed: 'Échec de l\u2019impression\u00a0: {{msg}}',
+      diagShareMissing: 'Diagnostic\u00a0: plugin Share non enregistré',
+      shareFailed: 'Échec du partage\u00a0: {{msg}}',
+      sharingUnavailableCopied: 'Le partage n\u2019est pas disponible ici \u2014 le reçu a été copié à la place',
+      sharingUnsupported: 'Le partage n\u2019est pas pris en charge sur ce navigateur',
+    },
   },
 };
 
@@ -1485,14 +1590,14 @@ const I18n = (() => {
    *  or throws — this is what makes incremental, file-by-file
    *  translation safe to ship partially. `vars` does simple {{name}}
    *  interpolation. */
-  function t(key, vars) {
+  function t(key, vars, localeOverride) {
     const lookup = (locale) => {
       const parts = key.split('.');
       let node = TRANSLATIONS[locale];
       for (const p of parts) { node = node && node[p]; }
       return typeof node === 'string' ? node : null;
     };
-    let str = lookup(current) ?? lookup('en') ?? key;
+    let str = lookup(localeOverride || current) ?? lookup('en') ?? key;
     if (vars) for (const k in vars) str = str.replace(new RegExp(`{{${k}}}`, 'g'), vars[k]);
     return str;
   }

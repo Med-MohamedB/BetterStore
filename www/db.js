@@ -231,6 +231,7 @@ const DEFAULT_SETTINGS = {
     taxEnabled: false,
     confirmBeforeSale: true,
     receiptFooter: 'Thank you for your purchase!',
+    receiptLanguage: 'app', // 'app' | 'en' | 'ar' | 'fr' — 'app' tracks the UI language
   },
   inventory: {
     lowStockWarnings: true,

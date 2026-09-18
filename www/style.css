@@ -729,7 +729,7 @@ main#view {
   margin-top: 2px;
 }
 .list-row__trailing {
-  text-align: right;
+  text-align: end;
   flex-shrink: 0;
 }
 .list-row__amount { font-weight: 700; font-size: 14px; }
@@ -1789,7 +1789,7 @@ body.swipe-active .topbar {
 .onboard-skip-corner {
   position: absolute;
   top: calc(16px + var(--safe-top));
-  right: 16px;
+  inset-inline-end: 16px;
   z-index: 3;
   width: 34px;
   height: 34px;
@@ -1811,7 +1811,7 @@ body.swipe-active .topbar {
    ========================================================================== */
 .screen-fab {
   position: fixed;
-  right: 16px;
+  inset-inline-end: 16px;
   bottom: calc(var(--nav-h) + var(--safe-bottom) + 14px);
   z-index: 15;
   width: 46px;
@@ -1968,6 +1968,9 @@ body.swipe-active .topbar {
 .language-option__name { flex: 1; text-align: start; }
 .language-option__chevron { color: var(--text-faint); flex-shrink: 0; }
 [dir="rtl"] .language-option__chevron { transform: scaleX(-1); }
+[dir="rtl"] .disclosure-chevron { transform: scaleX(-1); }
+[dir="rtl"] .feature-spotlight__chevron { transform: scaleX(-1); }
+[dir="rtl"] .icon-mirror-rtl { transform: scaleX(-1); }
 
 .onboard-finale {
   position: relative;
@@ -2008,7 +2011,7 @@ body.swipe-active .topbar {
 
 .whatsnew-card { width: min(360px, calc(100% - 40px)); text-align: center; }
 .whatsnew-list {
-  text-align: left;
+  text-align: start;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -2138,7 +2141,7 @@ body.swipe-active .topbar {
   font-size: 20px;
   font-weight: 700;
   color: var(--text-faint);
-  margin-right: 2px;
+  margin-inline-end: 2px;
 }
 .feature-spotlight__dismiss {
   position: relative; z-index: 1;

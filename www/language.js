@@ -23,6 +23,7 @@ const Language = (() => {
       document.body.appendChild(overlay);
       Fx.animate(overlay, { opacity: [0, 1] }, { duration: 0.25 });
 
+      const detected = I18n.detectDeviceLangCode();
       const artSrc = window.themedIllustration ? themedIllustration('onboard-language', 'onboarding') : 'img/onboarding/onboard-language.webp';
       overlay.innerHTML = `
         <div class="language-screen__inner">
@@ -34,9 +35,10 @@ const Language = (() => {
           </div>
           <div class="language-screen__list">
             ${I18n.LANGUAGES.map((l) => `
-              <button class="language-option tappable" data-lang="${l.code}">
+              <button class="language-option tappable${l.code === detected ? ' language-option--detected' : ''}" data-lang="${l.code}">
                 <span class="language-option__flag">${l.flag}</span>
                 <span class="language-option__name">${l.nativeName}</span>
+                ${l.code === detected ? '<span class="language-option__detected-dot"></span>' : ''}
                 <span class="language-option__chevron">${Icon('chevron-right', { size: 18 })}</span>
               </button>
             `).join('')}

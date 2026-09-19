@@ -1981,6 +1981,15 @@ body.swipe-active .topbar {
 }
 .language-option:active { transform: scale(0.97); }
 .language-option--picked { border-color: var(--accent); background: var(--accent-bg); }
+/* Pre-highlight for the language that matches the phone's own system
+   language (see detectDeviceLangCode() in language.js) — a lighter touch
+   than --picked (border only, no fill) since nothing's actually been
+   chosen yet, just suggested. */
+.language-option--detected { border-color: var(--accent); }
+.language-option__detected-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0;
+}
 .language-option__flag { font-size: 26px; line-height: 1; flex-shrink: 0; }
 .language-option__name { flex: 1; text-align: start; }
 .language-option__chevron { color: var(--text-faint); flex-shrink: 0; }
@@ -2055,17 +2064,49 @@ body.swipe-active .topbar {
   text-align: start;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   max-height: 46vh;
   overflow-y: auto;
+}
+.whatsnew-group__header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 4px;
+}
+.whatsnew-group__header:first-child { margin-top: 0; }
+.whatsnew-group__version {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+.whatsnew-group__rule { flex: 1; height: 1px; background: var(--border); }
+.whatsnew-group__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
 }
 .whatsnew-row {
   display: flex;
   align-items: flex-start;
   gap: 10px;
 }
-.whatsnew-row__icon { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
-.whatsnew-row__text { font-size: 13.5px; line-height: 1.45; color: var(--text); }
+.whatsnew-row__icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.whatsnew-row__icon .icon-svg { width: 15px; height: 15px; }
+.whatsnew-row__text { font-size: 13.5px; line-height: 1.45; color: var(--text); padding-top: 4px; }
 
 /* --- Terms of Use gate --- */
 
@@ -2338,101 +2379,51 @@ a:active .icon-svg {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  backdrop-filter: blur(16px) saturate(1.2);
-  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  background: rgba(0, 0, 0, 0.5);
   animation: numPopupFadeIn var(--dur-fast) var(--ease-out) forwards;
-}
-
-/* Soft ambient glow drifting behind the card, matching the app's accent
-   gradient — purely decorative, sits behind everything else. */
-.update-block__glow {
-  position: absolute;
-  width: 340px; height: 340px;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 35%, transparent), transparent 70%);
-  filter: blur(10px);
-  animation: updateGlowDrift 6s ease-in-out infinite alternate;
-  pointer-events: none;
-}
-@keyframes updateGlowDrift {
-  from { transform: translate(-30px, -20px) scale(1); }
-  to { transform: translate(30px, 20px) scale(1.15); }
 }
 
 .update-block__card {
   position: relative;
   width: 100%;
   max-width: 340px;
-  background:
-    linear-gradient(color-mix(in srgb, var(--surface) 96%, transparent), color-mix(in srgb, var(--surface) 96%, transparent)) padding-box,
-    linear-gradient(135deg, var(--accent), var(--accent-dim), var(--accent)) border-box;
-  border: 1.5px solid transparent;
-  border-radius: 24px;
-  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-lg), 0 0 50px -12px color-mix(in srgb, var(--accent) 55%, transparent);
-  padding: 32px 24px 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, var(--radius));
+  box-shadow: var(--shadow-lg, var(--shadow));
+  padding: 30px 24px 24px;
   text-align: center;
   transform: scale(0.92);
   animation: numPopupPop var(--dur-fast) var(--ease-spring) forwards;
-  overflow: hidden;
-}
-/* Light sweep drifting across the card — same motif used on the custom
-   ad banners elsewhere, for visual consistency across the app. */
-.update-block__card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(115deg, transparent 30%, color-mix(in srgb, var(--accent) 22%, transparent) 45%, transparent 60%);
-  background-size: 250% 250%;
-  animation: spotlightSheen 6s ease-in-out infinite;
-  pointer-events: none;
 }
 
-.update-block__ring {
+.update-block__icon-circle {
   position: relative;
-  width: 68px; height: 68px;
+  width: 56px; height: 56px;
   margin: 0 auto 16px;
-  display: flex; align-items: center; justify-content: center;
-}
-.update-block__ring-spin {
-  position: absolute; inset: 0;
   border-radius: 50%;
-  background: conic-gradient(from 0deg, var(--accent), var(--accent-dim), transparent 60%);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
-          mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
-  animation: updateRingSpin 2.2s linear infinite;
-}
-@keyframes updateRingSpin { to { transform: rotate(360deg); } }
-.update-block__icon {
-  position: relative; z-index: 1;
-  width: 52px; height: 52px; border-radius: 50%;
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  background: var(--accent-bg);
+  color: var(--accent);
   display: flex; align-items: center; justify-content: center;
-  font-size: 24px;
-  animation: updateIconBob 1.8s ease-in-out infinite;
 }
-@keyframes updateIconBob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
-}
+.update-block__icon-circle .icon-svg { width: 26px; height: 26px; }
 
-.update-block__title { font-size: 19px; font-weight: 800; color: var(--text); position: relative; z-index: 1; }
+.update-block__title { font-size: 19px; font-weight: 800; color: var(--text); }
 .update-block__version-chip {
   display: inline-block;
   margin-top: 8px;
   padding: 4px 12px;
   border-radius: 999px;
   font-size: 12px; font-weight: 800;
-  color: var(--accent-ink, #1D1721);
-  background: linear-gradient(135deg, var(--accent-dim), var(--accent));
-  position: relative; z-index: 1;
+  color: var(--accent);
+  background: var(--accent-bg);
 }
-.update-block__sub { font-size: 12px; color: var(--text-faint); margin-top: 12px; line-height: 1.5; position: relative; z-index: 1; }
+.update-block__sub { font-size: 12px; color: var(--text-faint); margin-top: 12px; line-height: 1.5; }
 .update-block__link { color: var(--accent); font-weight: 700; }
 
-.update-block__progress-wrap { margin-top: 20px; position: relative; z-index: 1; }
+.update-block__progress-wrap { margin-top: 20px; }
 .update-block__progress-track {
-  height: 10px;
+  height: 8px;
   border-radius: 999px;
   background: var(--surface-2);
   overflow: hidden;
@@ -2443,14 +2434,13 @@ a:active .icon-svg {
   height: 100%;
   width: 0%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-dim));
-  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 60%, transparent);
+  background: var(--accent);
   transition: width 0.25s ease;
   overflow: hidden;
 }
 .update-block__progress-shimmer {
   position: absolute; inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
   animation: updateShimmer 1.3s linear infinite;
 }
 @keyframes updateShimmer {
@@ -2464,36 +2454,25 @@ a:active .icon-svg {
   0% { transform: translateX(-60%); }
   100% { transform: translateX(160%); }
 }
-.update-block__progress-fill.done {
-  background: var(--accent);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 70%, transparent);
-  animation: updateDonePulse 0.5s var(--ease-spring, ease) both;
-}
 .update-block__progress-fill.done .update-block__progress-shimmer { display: none; }
-@keyframes updateDonePulse {
-  0% { filter: brightness(1); }
-  50% { filter: brightness(1.4); }
-  100% { filter: brightness(1); }
-}
 .update-block__progress-pct { font-size: 11px; color: var(--text-dim); margin-top: 8px; font-weight: 700; }
 
 .update-block__btn {
-  position: relative; z-index: 1;
   width: 100%;
   margin-top: 22px;
   padding: 14px;
   border-radius: var(--radius-sm, 12px);
-  background: linear-gradient(135deg, var(--accent-dim), var(--accent));
-  color: var(--accent-ink, #1D1721);
-  font-weight: 800;
+  border: none;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
   font-size: 15px;
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--accent) 60%, transparent);
 }
 .update-block__btn:active:not(:disabled) { transform: scale(0.98); }
-.update-block__btn:disabled { opacity: 0.7; box-shadow: none; }
-.update-block__btn-icon { font-size: 15px; }
-.update-block__note { font-size: 11.5px; color: var(--text-faint); margin-top: 10px; line-height: 1.5; min-height: 1px; position: relative; z-index: 1; }
+.update-block__btn:disabled { opacity: 0.4; }
+.update-block__btn .icon-svg { width: 18px; height: 18px; }
+.update-block__note { font-size: 11.5px; color: var(--text-faint); margin-top: 10px; line-height: 1.5; min-height: 1px; }
 
 /* ==========================================================================
    Doodle hints — a hand-drawn-style callout (curved arrow + handwritten

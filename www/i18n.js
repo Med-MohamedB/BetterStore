@@ -596,6 +596,20 @@ const TRANSLATIONS = {
       settingsTitle: 'Settings',
       settingsSub: 'Store, appearance, POS, security',
     },
+    selfUpdate: {
+      title: 'Better Store Update',
+      versionChip: 'Version {{version}}',
+      changelogPrefix: 'v{{version}} changelog \u2014',
+      changelogLink: 'click here',
+      updateNowBtn: 'Update Now',
+      downloadingBtn: 'Downloading\u2026',
+      installBtn: 'Install Update',
+      downloadUnavailable: 'Update download isn\u2019t available on this build \u2014 please reinstall the app from an official source.',
+      mbDownloaded: '{{mb}} MB downloaded',
+      downloadFailed: 'Download failed \u2014 check your connection and try again.',
+      allowInstalls: 'Allow installs from this app on the next screen, then come back and tap Install again.',
+      installFailed: 'Couldn\u2019t start the install \u2014 try again.',
+    },
   },
 
   ar: {
@@ -1173,6 +1187,20 @@ const TRANSLATIONS = {
       backupSub: 'تصدير/استيراد بياناتك',
       settingsTitle: 'الإعدادات',
       settingsSub: 'المتجر، المظهر، نقطة البيع، الأمان',
+    },
+    selfUpdate: {
+      title: 'تحديث Better Store',
+      versionChip: 'الإصدار {{version}}',
+      changelogPrefix: 'سجل تغييرات الإصدار {{version}} \u2014',
+      changelogLink: 'اضغط هنا',
+      updateNowBtn: 'التحديث الآن',
+      downloadingBtn: 'جارٍ التنزيل\u2026',
+      installBtn: 'تثبيت التحديث',
+      downloadUnavailable: 'تنزيل التحديث غير متاح في هذا الإصدار \u2014 يرجى إعادة تثبيت التطبيق من مصدر رسمي.',
+      mbDownloaded: 'تم تنزيل {{mb}} ميجابايت',
+      downloadFailed: 'فشل التنزيل \u2014 تحقق من اتصالك وحاول مرة أخرى.',
+      allowInstalls: 'اسمح بالتثبيت من هذا التطبيق في الشاشة التالية، ثم عد واضغط تثبيت مرة أخرى.',
+      installFailed: 'تعذر بدء التثبيت \u2014 حاول مرة أخرى.',
     },
   },
 
@@ -1752,6 +1780,20 @@ const TRANSLATIONS = {
       settingsTitle: 'Paramètres',
       settingsSub: 'Boutique, apparence, point de vente, sécurité',
     },
+    selfUpdate: {
+      title: 'Mise à jour de Better Store',
+      versionChip: 'Version {{version}}',
+      changelogPrefix: 'Journal des modifications v{{version}} \u2014',
+      changelogLink: 'cliquez ici',
+      updateNowBtn: 'Mettre à jour',
+      downloadingBtn: 'Téléchargement\u2026',
+      installBtn: 'Installer la mise à jour',
+      downloadUnavailable: 'Le téléchargement de la mise à jour n\u2019est pas disponible sur cette version \u2014 veuillez réinstaller l\u2019application depuis une source officielle.',
+      mbDownloaded: '{{mb}} Mo téléchargés',
+      downloadFailed: 'Échec du téléchargement \u2014 vérifiez votre connexion et réessayez.',
+      allowInstalls: 'Autorisez les installations depuis cette application sur l\u2019écran suivant, puis revenez et appuyez de nouveau sur Installer.',
+      installFailed: 'Impossible de démarrer l\u2019installation \u2014 réessayez.',
+    },
   },
 };
 
@@ -1766,6 +1808,30 @@ const I18n = (() => {
 
   function dirFor(code) {
     return (LANGUAGES.find((l) => l.code === code) || LANGUAGES[0]).dir;
+  }
+
+  /** Best-effort match between the phone's own system language and one of
+   *  the 3 languages this app supports. Used for two things: as the
+   *  starting locale on a fresh install (see init() below) before
+   *  anyone's explicitly chosen one, and to pre-highlight a suggestion on
+   *  the language picker itself (see language.js) — it never silently
+   *  applies a choice the person didn't actually confirm; a fresh install
+   *  still always shows the picker (see Language.maybeGate()), this just
+   *  decides what's pre-selected on it and what the app looks like for
+   *  the brief moment before that screen finishes rendering. Checks
+   *  navigator.languages (in preference order) before falling back to
+   *  the single navigator.language, and only ever returns a code that's
+   *  actually in LANGUAGES — a system language the app doesn't support
+   *  (e.g. Spanish) correctly yields null rather than guessing. */
+  function detectDeviceLangCode() {
+    const candidates = (typeof navigator !== 'undefined' && navigator.languages && navigator.languages.length)
+      ? navigator.languages
+      : [(typeof navigator !== 'undefined' && navigator.language) || ''];
+    for (const raw of candidates) {
+      const primary = String(raw).toLowerCase().split('-')[0];
+      if (LANGUAGES.some((l) => l.code === primary)) return primary;
+    }
+    return null;
   }
 
   /** Dot-path lookup in the current locale, falling back to English (then
@@ -1822,17 +1888,23 @@ const I18n = (() => {
 
   /** Called once at boot, before first render — reads the saved locale
    *  (or null on a fresh install) and applies dir/lang immediately so
-   *  there's no flash of the wrong direction. Returns the resolved code. */
+   *  there's no flash of the wrong direction. On a fresh install (no
+   *  saved locale yet), falls back to the phone's own system language
+   *  when it's one of the 3 supported ones, English otherwise — so
+   *  anything that reads the locale before the language picker has run
+   *  (the picker itself, or an interruption before it finishes) gets a
+   *  phone-language-aware value instead of a hardcoded 'en'. Returns the
+   *  resolved code. */
   async function init() {
     const appearance = window.Settings ? await Settings.get('appearance') : {};
-    current = appearance.locale || 'en';
+    current = appearance.locale || detectDeviceLangCode() || 'en';
     applyDirLang(current);
     return current;
   }
 
   return {
     get locale() { return current; },
-    LANGUAGES, t, setLocale, init, applyStaticDOM, applyDirLang,
+    LANGUAGES, t, setLocale, init, applyStaticDOM, applyDirLang, detectDeviceLangCode,
   };
 })();
 window.I18n = I18n;

@@ -111,8 +111,20 @@ const SelfUpdate = (() => {
     if (overlayEl) { overlayEl.remove(); overlayEl = null; }
   }
 
-  function setBtnContent(btn, icon, text) {
-    btn.innerHTML = `<span class="update-block__btn-icon">${icon}</span><span class="update-block__btn-text">${escapeHTML(text)}</span>`;
+  function setBtnContent(btn, iconKey, text) {
+    btn.innerHTML = `${Icon(iconKey, { size: 18 })}<span class="update-block__btn-text">${escapeHTML(text)}</span>`;
+  }
+
+  /** Swaps the icon inside the header circle with a small pop, and starts
+   *  or stops the spin animation for it — the "checking → downloading →
+   *  ready" progression the redesign asked for, using the shared
+   *  Icon.pop/spin helpers rather than a bespoke animation. */
+  function setStateIcon(root, iconKey, { spinning = false } = {}) {
+    const circle = root.querySelector('.update-block__icon-circle');
+    circle.innerHTML = Icon(iconKey, { size: 26 });
+    const svg = circle.querySelector('.icon-svg');
+    Icon.spin(svg, spinning);
+    Icon.pop(svg);
   }
 
   function showBlockingScreen(cfg) {
@@ -123,22 +135,18 @@ const SelfUpdate = (() => {
     overlayEl = document.createElement('div');
     overlayEl.className = 'update-block';
     overlayEl.innerHTML = `
-      <div class="update-block__glow"></div>
       <div class="update-block__card">
-        <div class="update-block__ring">
-          <div class="update-block__ring-spin"></div>
-          <div class="update-block__icon">⬆️</div>
-        </div>
-        <div class="update-block__title">Better Store Update</div>
-        <div class="update-block__version-chip">Version ${version}</div>
+        <div class="update-block__icon-circle">${Icon('download', { size: 26 })}</div>
+        <div class="update-block__title">${I18n.t('selfUpdate.title')}</div>
+        <div class="update-block__version-chip">${I18n.t('selfUpdate.versionChip', { version })}</div>
         <div class="update-block__sub">
-          v${version} changelog — <a href="#" class="update-block__link">click here</a>
+          ${I18n.t('selfUpdate.changelogPrefix', { version })} <a href="#" class="update-block__link">${I18n.t('selfUpdate.changelogLink')}</a>
         </div>
         <div class="update-block__progress-wrap" hidden>
           <div class="update-block__progress-track"><div class="update-block__progress-fill"><div class="update-block__progress-shimmer"></div></div></div>
           <div class="update-block__progress-pct">0%</div>
         </div>
-        <button class="update-block__btn"><span class="update-block__btn-icon">⬇️</span><span class="update-block__btn-text">Update Now</span></button>
+        <button class="update-block__btn">${Icon('download', { size: 18 })}<span class="update-block__btn-text">${I18n.t('selfUpdate.updateNowBtn')}</span></button>
         <div class="update-block__note"></div>
       </div>
     `;
@@ -165,18 +173,19 @@ const SelfUpdate = (() => {
     const pendingVersion = localStorage.getItem(PENDING_VERSION_KEY);
     const pendingPath = localStorage.getItem(PENDING_PATH_KEY);
     if (pendingVersion === (cfg.versionLabel || cfg.minVersion) && pendingPath) {
-      return attemptInstall(pendingPath, note, btn);
+      return attemptInstall(pendingPath, note, btn, root);
     }
 
     const ft = plugin('FileTransfer');
     const fs = plugin('Filesystem');
     if (!ft || !fs) {
-      note.textContent = 'Update download isn\u2019t available on this build — please reinstall the app from an official source.';
+      note.textContent = I18n.t('selfUpdate.downloadUnavailable');
       return;
     }
 
     btn.disabled = true;
-    setBtnContent(btn, '⬇️', 'Downloading…');
+    setBtnContent(btn, 'download', I18n.t('selfUpdate.downloadingBtn'));
+    setStateIcon(root, 'download', { spinning: true });
     progressWrap.hidden = false;
     note.textContent = '';
 
@@ -200,7 +209,7 @@ const SelfUpdate = (() => {
           // count instead of leaving it looking frozen at 0%.
           fill.classList.add('indeterminate');
           fill.style.width = '40%';
-          pctEl.textContent = `${(status.bytes / 1048576).toFixed(1)} MB downloaded`;
+          pctEl.textContent = I18n.t('selfUpdate.mbDownloaded', { mb: (status.bytes / 1048576).toFixed(1) });
         }
       });
 
@@ -215,17 +224,19 @@ const SelfUpdate = (() => {
       fill.classList.add('done');
       pctEl.textContent = '100%';
       btn.disabled = false;
-      setBtnContent(btn, Icon('download'), 'Install Update');
-      btn.onclick = () => attemptInstall(fileName, note, btn);
+      setBtnContent(btn, 'check-circle', I18n.t('selfUpdate.installBtn'));
+      setStateIcon(root, 'check-circle', { spinning: false });
+      btn.onclick = () => attemptInstall(fileName, note, btn, root);
     } catch (e) {
       btn.disabled = false;
-      setBtnContent(btn, '⬇️', 'Update Now');
-      note.textContent = 'Download failed — check your connection and try again.';
+      setBtnContent(btn, 'download', I18n.t('selfUpdate.updateNowBtn'));
+      setStateIcon(root, 'download', { spinning: false });
+      note.textContent = I18n.t('selfUpdate.downloadFailed');
       console.warn('Update download failed:', e);
     }
   }
 
-  async function attemptInstall(fileNameOrPath, note, btn) {
+  async function attemptInstall(fileNameOrPath, note, btn, root) {
     const selfUpdate = plugin('SelfUpdate');
     const fs = plugin('Filesystem');
     if (!selfUpdate || !fs) return;
@@ -234,14 +245,15 @@ const SelfUpdate = (() => {
       const { uri } = await fs.getUri({ directory: 'CACHE', path: fileNameOrPath.includes('/') ? fileNameOrPath.split('/').pop() : fileNameOrPath });
       const { allowed } = await selfUpdate.canInstallPackages();
       if (!allowed) {
-        note.textContent = 'Allow installs from this app on the next screen, then come back and tap Install again.';
+        note.textContent = I18n.t('selfUpdate.allowInstalls');
         await selfUpdate.requestInstallPermission();
         return;
       }
       note.textContent = '';
       await selfUpdate.installApk({ path: uri.replace('file://', '') });
     } catch (e) {
-      note.textContent = 'Couldn\u2019t start the install — try again.';
+      note.textContent = I18n.t('selfUpdate.installFailed');
+      if (root) Icon.shake(root.querySelector('.update-block__icon-circle .icon-svg'));
       console.warn('Install failed:', e);
     }
   }

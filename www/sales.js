@@ -279,6 +279,20 @@ const Sales = (() => {
       if (!(await Confirm.show(I18n.t('sales.refundConfirm', { amount: totalAmount }), { danger: true, confirmText: I18n.t('sales.refundConfirmBtn') }))) return;
       btn.disabled = true;
       btn.textContent = I18n.t('sales.refunding');
+
+      // Captured before refundSaleItems mutates the sale's items with
+      // updated refundedQty — this is exactly the "what he refunded"
+      // half of the new refund receipt (see openRefundReceiptSheet
+      // below); the "what he bought" half is just the original `sale`
+      // object itself, untouched.
+      let refundTotal = 0;
+      const refundedItems = selections.map((s) => {
+        const item = refundableItems.find((it) => it.productId === s.productId);
+        const unitNet = (item.price * item.qty - (item.discount || 0)) / item.qty;
+        refundTotal += unitNet * s.qty;
+        return { name: item.name, qty: s.qty, unitNet };
+      });
+
       try {
         await refundSaleItems(sale, selections);
       } catch (err) {
@@ -292,9 +306,49 @@ const Sales = (() => {
       Sheet.close();
       Toast.success(I18n.t('sales.refundAppliedToast'));
       renderList(listContainer);
+      openRefundReceiptSheet(sale, { items: refundedItems, total: refundTotal, date: new Date() });
     });
 
     updateTotals();
+  }
+
+  /** Shown right after a refund goes through — a receipt documenting
+   *  this specific refund (see RefundReceipt in app.js), separate from
+   *  the original sale's own receipt. */
+  async function openRefundReceiptSheet(sale, refundInfo) {
+    const store = await Settings.get('store');
+    const pos = await Settings.get('pos');
+    const lang = resolveReceiptLanguage(pos);
+
+    const bodyHTML = `
+      ${receiptLangChipsHTML(lang)}
+      <div class="receipt-preview-body">${RefundReceipt.html(sale, refundInfo, store, lang)}</div>
+    `;
+    const footerHTML = `
+      <div class="flex gap-8">
+        <button class="btn btn-secondary tappable" id="printRefundBtn">${Icon('printer')} ${I18n.t('refundReceipt.printBtn')}</button>
+        <button class="btn btn-secondary tappable" id="shareRefundBtn">${Icon('share')} ${I18n.t('refundReceipt.shareBtn')}</button>
+      </div>
+      <button class="btn btn-primary mt-8 tappable" id="refundReceiptDoneBtn">${I18n.t('refundReceipt.doneBtn')}</button>
+    `;
+    const sheetEl = Sheet.open({ title: I18n.t('refundReceipt.title'), bodyHTML, footerHTML });
+
+    let currentLang = lang;
+    const bodyEl = sheetEl.querySelector('.receipt-preview-body');
+    const chipsEl = sheetEl.querySelector('.receipt-lang-chips');
+    if (bodyEl && chipsEl) {
+      chipsEl.querySelectorAll('[data-lang]').forEach((chip) => {
+        chip.addEventListener('click', () => {
+          currentLang = chip.dataset.lang;
+          chipsEl.querySelectorAll('[data-lang]').forEach((c) => c.classList.toggle('active', c === chip));
+          bodyEl.innerHTML = RefundReceipt.html(sale, refundInfo, store, currentLang);
+        });
+      });
+    }
+
+    sheetEl.querySelector('#printRefundBtn').addEventListener('click', () => printRefundReceipt(sale, refundInfo, store, currentLang));
+    sheetEl.querySelector('#shareRefundBtn').addEventListener('click', () => shareRefundReceipt(sale, refundInfo, store, currentLang));
+    sheetEl.querySelector('#refundReceiptDoneBtn').addEventListener('click', () => Sheet.close());
   }
 
   /** Refunds a chosen subset of a sale's items (any quantity up to what's

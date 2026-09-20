@@ -46,6 +46,40 @@ const WhatsNew = (() => {
   //     fabricated version number.
   const CHANGELOG = [
     {
+      version: '1.9.9.32',
+      items: [
+        {
+          icon: Icon('check-circle'),
+          text: {
+            en: 'Actually fixed Arabic text in printed/shared receipt PDFs this time \u2014 the previous fix (embedding a font and hand-rolling text shaping/reordering for jsPDF) looked right in testing but came out visibly broken in real printing. Rebuilt it from scratch: Arabic receipts now render onto a canvas using the phone\u2019s own text engine (the same one that\u2019s always correctly handled the on-screen preview and text-share) and get embedded as an image, instead of jsPDF trying to draw Arabic as text itself.',
+            ar: 'أصلحنا فعليًا مشكلة النص العربي في ملفات PDF للإيصالات المطبوعة/المشتركة هذه المرة \u2014 الإصلاح السابق (تضمين خط وتطبيق تشكيل/إعادة ترتيب النص يدويًا لـ jsPDF) بدا صحيحًا أثناء الاختبار لكنه ظهر معطوبًا بوضوح عند الطباعة الفعلية. أعدنا بناءه من الصفر: الإيصالات العربية تُرسم الآن على قماش رسم (canvas) باستخدام محرك النص الخاص بالهاتف نفسه (نفس المحرك الذي كان يعرض دائمًا المعاينة على الشاشة والمشاركة كنص بشكل صحيح) وتُضمَّن كصورة، بدلاً من محاولة jsPDF رسم العربية كنص بنفسه.',
+            fr: 'Cette fois, le texte arabe dans les PDF de reçus imprimés/partagés est réellement corrigé \u2014 la correction précédente (intégrer une police et faire à la main la mise en forme/le réordonnancement du texte pour jsPDF) semblait correcte en test mais s\u2019est révélée visiblement cassée à l\u2019impression réelle. Reconstruite de zéro : les reçus en arabe sont désormais dessinés sur un canvas en utilisant le propre moteur de texte du téléphone (le même qui a toujours correctement géré l\u2019aperçu à l\u2019écran et le partage en texte) puis intégrés comme une image, au lieu que jsPDF essaie de dessiner l\u2019arabe comme du texte lui-même.',
+          },
+        },
+        {
+          icon: Icon('receipt'),
+          text: {
+            en: 'Refunds now show up on the original sale\u2019s own receipt, not just as a badge \u2014 each refunded item gets a line showing how much of it was refunded, plus a Total Refunded / Net Total breakdown, in the on-screen preview, the printed PDF, and the text-share version.',
+            ar: 'الاسترجاعات تظهر الآن في إيصال عملية البيع الأصلية نفسها، وليس فقط كشارة \u2014 كل صنف تم استرجاعه يحصل على سطر يوضح الكمية المسترجعة منه، بالإضافة إلى تفصيل إجمالي المسترجع/صافي الإجمالي، في المعاينة على الشاشة وملف PDF المطبوع ونسخة المشاركة كنص.',
+            fr: 'Les remboursements apparaissent désormais sur le reçu de la vente d\u2019origine elle-même, pas seulement sous forme de badge \u2014 chaque article remboursé reçoit une ligne indiquant la quantité remboursée, ainsi qu\u2019une ventilation Total remboursé / Total net, dans l\u2019aperçu à l\u2019écran, le PDF imprimé et la version partagée en texte.',
+          },
+        },
+      ],
+    },
+    {
+      version: '1.9.9.31',
+      items: [
+        {
+          icon: Icon('scan'),
+          text: {
+            en: 'Added support for physical (USB/Bluetooth) barcode scanners, not just the camera \u2014 scan an item\u2019s barcode from any screen and it\u2019s added straight to the cart (jumping to POS if you\u2019re not already there), or scan a receipt\u2019s barcode and it opens that sale directly. Inside POS\u2019s own product search, scanning an exact barcode match now adds it immediately instead of making you tap the result.',
+            ar: 'أضفنا دعمًا لماسحات الباركود الفعلية (USB/بلوتوث)، وليس الكاميرا فقط \u2014 امسح باركود صنف من أي شاشة ليُضاف مباشرة إلى السلة (مع الانتقال إلى نقطة البيع إن لم تكن فيها بالفعل)، أو امسح باركود إيصال ليفتح تلك العملية مباشرة. وداخل بحث المنتجات في نقطة البيع نفسها، مسح تطابق دقيق للباركود يضيفه الآن فورًا بدلاً من مطالبتك بالنقر على النتيجة.',
+            fr: 'Ajout de la prise en charge des scanners de codes-barres physiques (USB/Bluetooth), pas seulement de la caméra \u2014 scannez le code-barres d\u2019un article depuis n\u2019importe quel écran et il est ajouté directement au panier (en basculant vers la Caisse si vous n\u2019y êtes pas déjà), ou scannez le code-barres d\u2019un reçu pour ouvrir directement cette vente. Dans la recherche de produits de la Caisse elle-même, scanner une correspondance exacte de code-barres l\u2019ajoute désormais immédiatement au lieu de vous demander de taper sur le résultat.',
+          },
+        },
+      ],
+    },
+    {
       version: '1.9.9.30',
       items: [
         {

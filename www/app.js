@@ -895,7 +895,23 @@ const Barcode128 = (() => {
     return cx - x;
   }
 
-  return { encode, svg, drawOnPDF };
+  /** Same barcode, drawn onto a canvas 2D context instead of a jsPDF
+   *  document — used by the Arabic canvas-rendered receipt path (see
+   *  buildReceiptCanvas below). Assumes the context is already scaled so
+   *  1 unit == 1mm, matching drawOnPDF's own mm-based (x, y). */
+  function drawOnCanvas(ctx, text, x, y, { moduleWidth = 0.32, height = 12 } = {}) {
+    const pattern = encode(text);
+    if (!pattern) return 0;
+    let cx = x;
+    ctx.fillStyle = '#000000';
+    for (let i = 0; i < pattern.length; i++) {
+      if (pattern[i] === '1') ctx.fillRect(cx, y, moduleWidth, height);
+      cx += moduleWidth;
+    }
+    return cx - x;
+  }
+
+  return { encode, svg, drawOnPDF, drawOnCanvas };
 })();
 window.Barcode128 = Barcode128;
 
@@ -935,6 +951,7 @@ const Receipt = (() => {
             <span class="num">${Fmt.money(it.price * it.qty)}</span>
           </div>
           ${it.discount ? `<div class="flex-between text-sm text-dim" style="margin-bottom:6px; margin-top:-2px;"><span>&nbsp;&nbsp;&nbsp;&nbsp;*** ${I18n.t('receipt.itemDiscountLabel', null, lang)}</span><span class="num">\u2212 ${Fmt.money(it.discount)}</span></div>` : ''}
+          ${it.refundedQty ? `<div class="flex-between text-sm" style="margin-bottom:6px; margin-top:-2px; color:var(--coral);"><span>&nbsp;&nbsp;&nbsp;&nbsp;\u21a9 ${I18n.t('receipt.itemRefundedLabel', { qty: it.refundedQty }, lang)}</span><span class="num">\u2212 ${Fmt.money(((it.price * it.qty - (it.discount || 0)) / it.qty) * it.refundedQty)}</span></div>` : ''}
         `).join('')}
         <div class="text-center text-dim text-sm mt-8" style="text-align:center;">${I18n.t('receipt.itemsSoldSuffix', { count: itemCount, plural: itemCount !== 1 ? 's' : '' }, lang)}</div>
         ${dashedRow}
@@ -944,6 +961,10 @@ const Receipt = (() => {
         ${sale.tax ? `<div class="flex-between text-sm"><span class="text-dim">${I18n.t('receipt.taxLabel', null, lang)}</span><span class="num">${Fmt.money(sale.tax)}</span></div>` : ''}
         ${dashedRow}
         <div class="flex-between" style="font-weight:800; color:var(--accent); font-size:17px;"><span>${I18n.t('receipt.totalLabel', null, lang)}</span><span class="num">${Fmt.money(sale.total)}</span></div>
+        ${sale.totalRefunded ? `
+          <div class="flex-between text-sm" style="color:var(--coral);"><span>${I18n.t('receipt.totalRefundedLabel', null, lang)}</span><span class="num">\u2212 ${Fmt.money(sale.totalRefunded)}</span></div>
+          <div class="flex-between text-sm" style="font-weight:700;"><span>${I18n.t('receipt.netTotalLabel', null, lang)}</span><span class="num">${Fmt.money(sale.total - sale.totalRefunded)}</span></div>
+        ` : ''}
         <div class="flex-between text-sm mt-8"><span class="text-dim">${I18n.t('receipt.paymentLabel', null, lang)}</span><span>${escapeHTML(paymentMethodLabel(sale.paymentMethod, lang))}</span></div>
         ${sale.paymentMethod === 'cash' && sale.amountReceived != null ? `
           <div class="flex-between text-sm"><span class="text-dim">${I18n.t('receipt.tenderedLabel', null, lang)}</span><span class="num">${Fmt.money(sale.amountReceived)}</span></div>
@@ -980,6 +1001,7 @@ const Receipt = (() => {
       itemCount += it.qty;
       lines.push(`${it.qty}x ${it.name} @ ${Fmt.money(it.price)}  =  ${Fmt.money(it.price * it.qty)}`);
       if (it.discount) lines.push(`    *** ${I18n.t('receipt.itemDiscountLabel', null, lang)}: -${Fmt.money(it.discount)}`);
+      if (it.refundedQty) lines.push(`    \u21a9 ${I18n.t('receipt.itemRefundedLabel', { qty: it.refundedQty }, lang)}: -${Fmt.money(((it.price * it.qty - (it.discount || 0)) / it.qty) * it.refundedQty)}`);
     });
     lines.push(I18n.t('receipt.itemsSoldSuffix', { count: itemCount, plural: itemCount !== 1 ? 's' : '' }, lang));
     lines.push('--------------------------------');
@@ -988,6 +1010,10 @@ const Receipt = (() => {
     if (sale.discount) lines.push(`${I18n.t('receipt.orderDiscountLabel', null, lang)}: -${Fmt.money(sale.discount)}`);
     if (sale.tax) lines.push(`${I18n.t('receipt.taxLabel', null, lang)}: ${Fmt.money(sale.tax)}`);
     lines.push(`${I18n.t('receipt.totalLabel', null, lang)}: ${Fmt.money(sale.total)}`);
+    if (sale.totalRefunded) {
+      lines.push(`${I18n.t('receipt.totalRefundedLabel', null, lang)}: -${Fmt.money(sale.totalRefunded)}`);
+      lines.push(`${I18n.t('receipt.netTotalLabel', null, lang)}: ${Fmt.money(sale.total - sale.totalRefunded)}`);
+    }
     lines.push(`${I18n.t('receipt.paymentLabel', null, lang)}: ${paymentMethodLabel(sale.paymentMethod, lang)}`);
     if (sale.paymentMethod === 'cash' && sale.amountReceived != null) {
       lines.push(`${I18n.t('receipt.tenderedLabel', null, lang)}: ${Fmt.money(sale.amountReceived)}`);
@@ -1086,63 +1112,313 @@ window.RefundReceipt = RefundReceipt;
 /* wrapping, and the logo all come out crisp instead of dumped monospace.  */
 /* Page height is computed with a throwaway measuring doc first, so the    */
 /* real PDF is trimmed tight to its content — no blank trailing space.     */
-/* Arabic text has no shaping or bidi support in jsPDF — see the comment
-   inside for what that actually breaks and how this fixes it. Shared by
-   buildReceiptPDF() and buildRefundReceiptPDF() so the ~450KB of
-   font/shaping/reordering assets (loaded lazily, only for Arabic
-   receipts) and the logic around them live in exactly one place. */
-async function createArabicPdfSupport(lang) {
-  // Every non-Arabic receipt gets these no-op passthroughs and never
-  // touches the lazy-loaded assets below at all.
-  let arabicText = (s) => String(s);
-  let wrapArabic = null; // (measureDoc, txt, contentWidth) => string[] — set below when lang === 'ar'
-  if (lang === 'ar') {
-    if (!window.ArabicShaper) await loadScriptOnce('vendor/arabicShaper.js');
-    if (!window.bidi_js) await loadScriptOnce('vendor/bidi.min.js');
-    if (!window.NOTO_NASKH_ARABIC_REGULAR_B64) await loadScriptOnce('vendor/fonts/notoNaskhArabicRegularBase64.js');
-    if (!window.NOTO_NASKH_ARABIC_BOLD_B64) await loadScriptOnce('vendor/fonts/notoNaskhArabicBoldBase64.js');
-    const bidi = window.bidi_js();
-    const ISO_RE = /[\u2066-\u2069]/g;
-    // Any string with no Arabic letters in it (a money amount, a date, a
-    // receipt number, a phone number) is treated as one opaque
-    // left-to-right unit and wrapped in Unicode isolate marks before
-    // reordering — otherwise the bidi algorithm can still reshuffle it
-    // internally purely for sitting inside an RTL paragraph. E.g.
-    // "+213 555 123 456" (two space-separated digit groups) actually
-    // comes back "456 123 555 213+" without this, and "12/09/2026 14:30"
-    // comes back with the date and time swapped. A string that DOES
-    // contain Arabic (a translated sentence with a number worked into
-    // it, e.g. "12 items sold") is left alone — that\u2019s the case the bidi
-    // algorithm is actually designed for, and isolating the whole thing
-    // would be wrong since the number is meant to flow with the sentence.
-    const hasArabicChars = (s) => /[\u0600-\u06FF\u0750-\u077F]/.test(s);
-    const reorder = (s, isolate) => {
-      const wrapped = isolate ? `\u2066${s}\u2069` : s;
-      const embed = bidi.getEmbeddingLevels(wrapped, 'rtl');
-      return bidi.getReorderedString(wrapped, embed).replace(ISO_RE, '');
-    };
-    arabicText = (str) => {
-      const s = String(str);
-      const shaped = window.ArabicShaper.convertArabic(s);
-      return reorder(shaped, !hasArabicChars(s));
-    };
-    wrapArabic = (measureDoc, txt, contentWidth) => {
-      const s = String(txt);
-      const isolate = !hasArabicChars(s);
-      const shaped = window.ArabicShaper.convertArabic(s);
-      return measureDoc.splitTextToSize(shaped, contentWidth).map((line) => reorder(line, isolate));
-    };
+/* Arabic receipts render to a <canvas> and get embedded as one image,
+   rather than drawn as jsPDF vector text (see buildReceiptCanvas below
+   for why). This is the shared drawing kit both buildReceiptPDF and
+   buildRefundReceiptPDF use for that — mirrors the row()/wrap()/
+   divider() helpers the plain jsPDF path uses, just backed by Canvas 2D
+   instead. English/French receipts never touch this; they still use
+   jsPDF's normal vector text, which draws Latin script correctly with
+   no shaping needed. */
+function createCanvasReceiptKit(pageWidthMm, pageHeightMm) {
+  const PX_PER_MM = 8; // ~200 DPI — sharp enough to actually print or pinch-zoom into
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(pageWidthMm * PX_PER_MM));
+  canvas.height = Math.max(1, Math.round(pageHeightMm * PX_PER_MM));
+  const ctx = canvas.getContext('2d');
+  ctx.scale(PX_PER_MM, PX_PER_MM); // draw in mm from here on, matching the jsPDF path's own numbers
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, pageWidthMm, pageHeightMm);
+  ctx.textBaseline = 'alphabetic';
+
+  const ptToMm = (pt) => pt * 0.3528; // jsPDF font sizes are points; canvas font sizes here are mm (post-scale)
+
+  function setFont(sizePt, bold) {
+    ctx.font = `${bold ? '700' : '400'} ${ptToMm(sizePt).toFixed(2)}px sans-serif`;
+    // No specific Arabic font is named — Android always has a system
+    // Arabic-capable font (Noto Sans/Naskh Arabic ships with the OS),
+    // and the browser's own font-fallback picks it automatically for
+    // any character 'sans-serif' itself doesn't cover, the same way it
+    // already does for the on-screen HTML preview.
   }
-  const registerArabicFont = (docInstance) => {
-    docInstance.addFileToVFS('NotoNaskhArabic-Regular.ttf', window.NOTO_NASKH_ARABIC_REGULAR_B64);
-    docInstance.addFont('NotoNaskhArabic-Regular.ttf', 'NotoNaskhArabic', 'normal');
-    docInstance.addFileToVFS('NotoNaskhArabic-Bold.ttf', window.NOTO_NASKH_ARABIC_BOLD_B64);
-    docInstance.addFont('NotoNaskhArabic-Bold.ttf', 'NotoNaskhArabic', 'bold');
+
+  /** dir: 'rtl' correctly shapes and bidi-orders Arabic text (letters
+   *  joined, words and any embedded numbers in the right visual order)
+   *  using the browser's own text engine — the same one already proven
+   *  correct by the on-screen preview and the text-share option. dir:
+   *  'ltr' is for values that should never internally reorder even
+   *  sitting in an RTL paragraph — a money amount, a date, a receipt or
+   *  phone number, each of which is its own separate cluster of digits;
+   *  fed through 'rtl', TWO such clusters in one string (a date AND a
+   *  time) can visibly swap places relative to each other, which 'ltr'
+   *  prevents. align is the PHYSICAL side ('left'/'right'/'center') the
+   *  text anchors to — this receipt deliberately keeps the same layout
+   *  in every language (label side stays put; only the label's own
+   *  script direction changes), matching the equivalent RTL audit
+   *  decision for the tab-swipe/bottom-nav elsewhere in the app. */
+  function text(str, xMm, yMm, { align = 'left', color = '#232323', dir = 'rtl' } = {}) {
+    ctx.direction = dir;
+    ctx.textAlign = align;
+    ctx.fillStyle = color;
+    ctx.fillText(str, xMm, yMm);
+  }
+
+  function measureWidth(str) { return ctx.measureText(str).width; }
+
+  /** Greedy word-wrap by spaces — script-agnostic (just splits a logical
+   *  string into shorter logical substrings), and each returned line is
+   *  still handed to text() as its own fillText call, so it's shaped and
+   *  bidi-ordered independently and correctly, the same as a real
+   *  wrapped RTL paragraph. */
+  function wrap(str, maxWidthMm) {
+    const words = String(str).split(' ');
+    const lines = [];
+    let cur = '';
+    words.forEach((w) => {
+      const candidate = cur ? `${cur} ${w}` : w;
+      if (cur && measureWidth(candidate) > maxWidthMm) {
+        lines.push(cur);
+        cur = w;
+      } else {
+        cur = candidate;
+      }
+    });
+    if (cur) lines.push(cur);
+    return lines;
+  }
+
+  function dividerLine(xStart, xEnd, yMm) {
+    ctx.save();
+    ctx.strokeStyle = '#bebebe';
+    ctx.lineWidth = 0.15;
+    ctx.setLineDash([0.35, 0.35]);
+    ctx.beginPath();
+    ctx.moveTo(xStart, yMm);
+    ctx.lineTo(xEnd, yMm);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** Torn-edge zigzag echoing tearing the receipt off a thermal roll —
+   *  matches the plain jsPDF path's own version at the bottom of every
+   *  receipt. */
+  function tornEdge(xStart, xEnd, yMm) {
+    ctx.save();
+    ctx.strokeStyle = '#bebebe';
+    ctx.lineWidth = 0.3;
+    const width = xEnd - xStart;
+    const teeth = Math.round(width / 3.2);
+    const toothW = width / teeth;
+    ctx.beginPath();
+    for (let i = 0; i <= teeth; i++) {
+      const px = xStart + i * toothW;
+      const py = yMm + (i % 2 === 0 ? 0 : 1.6);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawImage(dataUrl, xMm, yMm, wMm, hMm) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => { ctx.drawImage(img, xMm, yMm, wMm, hMm); resolve(true); };
+      img.onerror = () => resolve(false); // bad image data — skip it rather than fail the whole receipt
+      img.src = dataUrl;
+    });
+  }
+
+  return { canvas, ctx, setFont, text, measureWidth, wrap, dividerLine, tornEdge, drawImage };
+}
+
+/* Canvas counterpart to buildReceiptPDF's plain-jsPDF layout below —
+   used only for lang === 'ar'. jsPDF has no text shaping or bidi
+   support of its own: even with an Arabic font embedded, letters render
+   in isolated form (not joined the way real Arabic script looks) and
+   mixed content (a translated sentence with a number in it, like "12
+   items sold") comes out in the wrong visual order. Rendering the whole
+   receipt as one image drawn with the browser's own native text engine
+   sidesteps that entirely — same engine already rendering Arabic
+   correctly for the on-screen preview and the text-share option, so
+   there's no separate shaping/reordering logic to get right (or wrong)
+   here. Mirrors buildReceiptPDF's own two-pass approach: a throwaway
+   kit first, purely to measure wrapped line counts and get an exact
+   final height, then a second kit at that exact size to actually draw. */
+async function buildReceiptCanvas(sale, store, lang) {
+  const pageWidth = 80;
+  const margin = 5;
+  const contentWidth = pageWidth - margin * 2;
+  const lineH = 5;
+  const footerText = store.receiptFooter !== '' ? (store.receiptFooter || I18n.t('receipt.defaultFooter', null, lang)) : '';
+  const itemCount = sale.items.reduce((s, it) => s + it.qty, 0);
+  const barcodePattern = Barcode128.encode(sale.receiptNumber);
+  const barcodeModule = barcodePattern ? Math.min(0.42, contentWidth / barcodePattern.length) : 0.32;
+  const barcodeHeight = 11;
+  const hexToRgb = (hex) => {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex).trim());
+    return m ? `rgb(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)})` : '#232323';
   };
-  const setFont = (docInstance, bold) => {
-    docInstance.setFont(lang === 'ar' ? 'NotoNaskhArabic' : 'helvetica', bold ? 'bold' : 'normal');
+  const accentColor = hexToRgb(getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#2F5233');
+
+  // --- Pass 1: measure, on a 1x1 throwaway kit (only its ctx.font and
+  // ctx.measureText matter here, not its actual pixel size). ---
+  const measure = createCanvasReceiptKit(1, 1);
+  const wrap = (txt, size, bold = false) => {
+    measure.setFont(size, bold);
+    return measure.wrap(String(txt), contentWidth);
   };
-  return { arabicText, wrapArabic, registerArabicFont, setFont };
+
+  let h = margin;
+  if (store.logo) h += 22;
+  h += 6.5;
+  const addrLines = store.address ? wrap(store.address, 8.5) : [];
+  const phoneLines = store.phone ? wrap(store.phone, 8.5) : [];
+  h += (addrLines.length + phoneLines.length) * 4;
+  h += 5;
+  if (sale.status === 'refunded' || sale.status === 'partially_refunded') h += lineH + 1;
+  h += 5;
+  h += lineH;
+  h += 5;
+
+  const itemLines = sale.items.map((it) => ({
+    rows: wrap(`${it.qty}\u00d7 ${it.name}`, 9).length,
+    hasDiscount: !!it.discount,
+    hasRefund: !!it.refundedQty,
+  }));
+  itemLines.forEach((it) => { h += it.rows * lineH; if (it.hasDiscount) h += lineH; if (it.hasRefund) h += lineH; });
+  h += lineH;
+
+  h += 5;
+  h += lineH;
+  if (sale.itemDiscounts) h += lineH;
+  if (sale.discount) h += lineH;
+  if (sale.tax) h += lineH;
+  h += lineH + 2;
+  if (sale.totalRefunded) h += lineH * 2;
+  h += lineH;
+  if (sale.paymentMethod === 'cash' && sale.amountReceived != null) h += lineH * 2;
+  h += 5;
+  h += lineH + 2;
+  h += barcodeHeight + 3;
+  h += lineH;
+  if (footerText) { h += 6; h += wrap(footerText, 8).length * 4; }
+  h += 5;
+  h += lineH;
+  h += 6;
+  h += margin;
+
+  // --- Pass 2: draw for real, on a kit sized exactly to fit. ---
+  const pageHeight = Math.max(60, h);
+  const kit = createCanvasReceiptKit(pageWidth, pageHeight);
+  const cx = pageWidth / 2;
+  let y = margin;
+
+  const row = (left, right, opts = {}) => {
+    const { size = 9, bold = false, dim = false, indent = 0, color = null } = opts;
+    kit.setFont(size, bold);
+    const c = color || (dim ? '#8c8c8c' : '#232323');
+    if (left !== undefined) kit.text(left, margin + indent, y, { align: 'left', color: c });
+    if (right !== undefined) kit.text(right, pageWidth - margin, y, { align: 'right', color: c, dir: 'ltr' });
+  };
+  const divider = () => { kit.dividerLine(margin, pageWidth - margin, y); y += 5; };
+
+  if (store.logo) {
+    const ok = await kit.drawImage(store.logo, cx - 9, y, 18, 18);
+    if (ok) y += 22;
+  }
+  kit.setFont(13.5, true);
+  kit.text(store.name || I18n.t('dashboard.defaultStoreName', null, lang), cx, y, { align: 'center', color: accentColor });
+  y += 6.5;
+
+  kit.setFont(8.5, false);
+  // Address may be genuine Arabic text (default 'rtl' shapes/orders it
+  // correctly); phone numbers are pure digit groups, which — same as
+  // Fmt.money/Fmt.dateTime/receiptNumber above — need 'ltr' so multiple
+  // space-separated groups (e.g. "+213 555 123 456") can't visibly swap
+  // places with each other purely for sitting in an RTL paragraph.
+  addrLines.forEach((l) => { kit.text(l, cx, y, { align: 'center', color: '#787878' }); y += 4; });
+  phoneLines.forEach((l) => { kit.text(l, cx, y, { align: 'center', color: '#787878', dir: 'ltr' }); y += 4; });
+  y += 5;
+
+  if (sale.status === 'refunded' || sale.status === 'partially_refunded') {
+    kit.setFont(9, true);
+    kit.text(sale.status === 'refunded' ? I18n.t('receipt.refundedBanner', null, lang) : I18n.t('receipt.partiallyRefundedBanner', null, lang), cx, y, { align: 'center', color: 'rgb(200,60,90)' });
+    y += lineH + 1;
+  }
+  divider();
+
+  row(I18n.t('receipt.colQtyItem', null, lang), I18n.t('receipt.colPrice', null, lang), { size: 8, bold: true, dim: true });
+  y += lineH;
+  divider();
+
+  sale.items.forEach((it) => {
+    wrap(`${it.qty}\u00d7 ${it.name}`, 9).forEach((l, i) => {
+      row(l, i === 0 ? Fmt.money(it.price * it.qty) : undefined, { size: 9 });
+      y += lineH;
+    });
+    if (it.discount) {
+      row(`    *** ${I18n.t('receipt.itemDiscountLabel', null, lang)}`, `\u2212 ${Fmt.money(it.discount)}`, { size: 8, dim: true });
+      y += lineH;
+    }
+    if (it.refundedQty) {
+      row(`    \u21a9 ${I18n.t('receipt.itemRefundedLabel', { qty: it.refundedQty }, lang)}`, `\u2212 ${Fmt.money(((it.price * it.qty - (it.discount || 0)) / it.qty) * it.refundedQty)}`, { size: 8, color: 'rgb(200,60,90)' });
+      y += lineH;
+    }
+  });
+  kit.setFont(8, false);
+  kit.text(I18n.t('receipt.itemsSoldSuffix', { count: itemCount, plural: itemCount !== 1 ? 's' : '' }, lang), cx, y, { align: 'center', color: '#8c8c8c' });
+  y += lineH;
+  divider();
+
+  row(I18n.t('receipt.subtotalLabel', null, lang), Fmt.money(sale.subtotal), { dim: true });
+  y += lineH;
+  if (sale.itemDiscounts) { row(I18n.t('receipt.itemDiscountsLabel', null, lang), `\u2212 ${Fmt.money(sale.itemDiscounts)}`, { dim: true }); y += lineH; }
+  if (sale.discount) { row(I18n.t('receipt.orderDiscountLabel', null, lang), `\u2212 ${Fmt.money(sale.discount)}`, { dim: true }); y += lineH; }
+  if (sale.tax) { row(I18n.t('receipt.taxLabel', null, lang), Fmt.money(sale.tax), { dim: true }); y += lineH; }
+  y += 1;
+  row(I18n.t('receipt.totalLabel', null, lang), Fmt.money(sale.total), { size: 11, bold: true, color: accentColor });
+  y += lineH + 1;
+  if (sale.totalRefunded) {
+    row(I18n.t('receipt.totalRefundedLabel', null, lang), `\u2212 ${Fmt.money(sale.totalRefunded)}`, { color: 'rgb(200,60,90)' });
+    y += lineH;
+    row(I18n.t('receipt.netTotalLabel', null, lang), Fmt.money(sale.total - sale.totalRefunded), { bold: true });
+    y += lineH;
+  }
+  row(I18n.t('receipt.paymentLabel', null, lang), paymentMethodLabel(sale.paymentMethod, lang), { dim: true });
+  y += lineH;
+  if (sale.paymentMethod === 'cash' && sale.amountReceived != null) {
+    row(I18n.t('receipt.tenderedLabel', null, lang), Fmt.money(sale.amountReceived), { dim: true }); y += lineH;
+    row(I18n.t('receipt.changeLabel', null, lang), Fmt.money(sale.change), { dim: true }); y += lineH;
+  }
+  divider();
+
+  kit.setFont(10, true);
+  kit.text(I18n.t('receipt.thankYou', null, lang), cx, y, { align: 'center' });
+  y += lineH + 2;
+
+  if (barcodePattern) {
+    const barcodeWidth = barcodePattern.length * barcodeModule;
+    Barcode128.drawOnCanvas(kit.ctx, sale.receiptNumber, cx - barcodeWidth / 2, y, { moduleWidth: barcodeModule, height: barcodeHeight });
+    y += barcodeHeight + 3;
+  }
+  kit.setFont(8, false);
+  kit.text(sale.receiptNumber, cx, y, { align: 'center', color: '#8c8c8c', dir: 'ltr' });
+  y += lineH;
+
+  if (footerText) {
+    y += 1;
+    kit.setFont(8, false);
+    wrap(footerText, 8).forEach((l) => { kit.text(l, cx, y, { align: 'center', color: '#8c8c8c' }); y += 4; });
+  }
+  y += 1;
+  divider();
+  kit.setFont(7, false);
+  kit.text(sale.receiptNumber, margin, y, { align: 'left', color: '#8c8c8c', dir: 'ltr' });
+  kit.text(Fmt.dateTime(sale.date), pageWidth - margin, y, { align: 'right', color: '#8c8c8c', dir: 'ltr' });
+  y += lineH + 4;
+  kit.tornEdge(margin, pageWidth - margin, y);
+
+  return { canvas: kit.canvas, widthMm: pageWidth, heightMm: pageHeight };
 }
 
 /* Builds a clean, professional 80mm-roll-style receipt PDF straight from  */
@@ -1155,7 +1431,15 @@ async function buildReceiptPDF(sale, store, lang) {
   // the first thing that needs it actually runs.
   if (!window.jspdf) await loadScriptOnce('vendor/jspdf.umd.min.js');
   const { jsPDF } = window.jspdf;
-  const { arabicText, wrapArabic, registerArabicFont, setFont } = await createArabicPdfSupport(lang);
+
+  // Arabic goes through the canvas path above instead of jsPDF's own
+  // vector text — see buildReceiptCanvas for why.
+  if (lang === 'ar') {
+    const { canvas, widthMm, heightMm } = await buildReceiptCanvas(sale, store, lang);
+    const doc = new jsPDF({ unit: 'mm', format: [widthMm, heightMm] });
+    doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, widthMm, heightMm);
+    return doc;
+  }
 
   const pageWidth = 80;
   const margin = 5;
@@ -1186,15 +1470,14 @@ async function buildReceiptPDF(sale, store, lang) {
     return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [35, 35, 35];
   };
   const accentRgb = hexToRgb(getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#2F5233');
+  const coralRgb = hexToRgb(getComputedStyle(document.documentElement).getPropertyValue('--coral') || '#D9506B');
 
   // --- Pass 1: measure. A throwaway doc just for splitTextToSize, whose
   // wrapping depends only on font metrics, not on final page height. ---
   const measure = new jsPDF({ unit: 'mm', format: [pageWidth, 200] });
-  if (lang === 'ar') registerArabicFont(measure);
   const wrap = (txt, size, font = 'normal') => {
-    setFont(measure, font === 'bold');
+    measure.setFont('helvetica', font);
     measure.setFontSize(size);
-    if (wrapArabic) return wrapArabic(measure, txt, contentWidth);
     return measure.splitTextToSize(String(txt), contentWidth);
   };
 
@@ -1212,9 +1495,9 @@ async function buildReceiptPDF(sale, store, lang) {
 
   const itemLines = sale.items.map((it) => {
     const left = wrap(`${it.qty}\u00d7 ${it.name}`, 9);
-    return { rows: left.length, hasDiscount: !!it.discount };
+    return { rows: left.length, hasDiscount: !!it.discount, hasRefund: !!it.refundedQty };
   });
-  itemLines.forEach((it) => { h += it.rows * lineH; if (it.hasDiscount) h += lineH; });
+  itemLines.forEach((it) => { h += it.rows * lineH; if (it.hasDiscount) h += lineH; if (it.hasRefund) h += lineH; });
   h += lineH; // "N items sold" line
 
   h += 5; // divider
@@ -1223,6 +1506,7 @@ async function buildReceiptPDF(sale, store, lang) {
   if (sale.discount) h += lineH;
   if (sale.tax) h += lineH;
   h += lineH + 2; // total
+  if (sale.totalRefunded) h += lineH * 2; // total refunded + net total
   h += lineH; // payment
   if (sale.paymentMethod === 'cash' && sale.amountReceived != null) h += lineH * 2;
   h += 5; // divider
@@ -1237,18 +1521,17 @@ async function buildReceiptPDF(sale, store, lang) {
 
   // --- Pass 2: draw for real, on a doc sized exactly to fit. ---
   const doc = new jsPDF({ unit: 'mm', format: [pageWidth, Math.max(60, h)] });
-  if (lang === 'ar') registerArabicFont(doc);
   const cx = pageWidth / 2;
   let y = margin;
 
   const row = (left, right, opts = {}) => {
     const { size = 9, bold = false, dim = false, indent = 0, color = null } = opts;
-    setFont(doc, bold);
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
     doc.setFontSize(size);
     if (color) doc.setTextColor(...color);
     else doc.setTextColor(dim ? 140 : 25);
-    if (left !== undefined) doc.text(arabicText(left), margin + indent, y);
-    if (right !== undefined) doc.text(arabicText(right), pageWidth - margin, y, { align: 'right' });
+    if (left !== undefined) doc.text(String(left), margin + indent, y);
+    if (right !== undefined) doc.text(String(right), pageWidth - margin, y, { align: 'right' });
     doc.setTextColor(25);
   };
   const divider = () => {
@@ -1266,13 +1549,13 @@ async function buildReceiptPDF(sale, store, lang) {
       y += size + 4;
     } catch (e) { /* bad image data — skip the logo rather than fail the whole receipt */ }
   }
-  setFont(doc, true);
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(13.5);
   doc.setTextColor(...accentRgb);
-  doc.text(arabicText(store.name || I18n.t('dashboard.defaultStoreName', null, lang)), cx, y, { align: 'center' });
+  doc.text(store.name || I18n.t('dashboard.defaultStoreName', null, lang), cx, y, { align: 'center' });
   y += 6.5;
 
-  setFont(doc, false);
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(120);
   [...addrLines, ...phoneLines].forEach((l) => { doc.text(l, cx, y, { align: 'center' }); y += 4; });
@@ -1280,10 +1563,10 @@ async function buildReceiptPDF(sale, store, lang) {
   y += 5;
 
   if (sale.status === 'refunded' || sale.status === 'partially_refunded') {
-    setFont(doc, true);
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(200, 60, 90);
-    doc.text(arabicText(sale.status === 'refunded' ? I18n.t('receipt.refundedBanner', null, lang) : I18n.t('receipt.partiallyRefundedBanner', null, lang)), cx, y, { align: 'center' });
+    doc.text(sale.status === 'refunded' ? I18n.t('receipt.refundedBanner', null, lang) : I18n.t('receipt.partiallyRefundedBanner', null, lang), cx, y, { align: 'center' });
     doc.setTextColor(25);
     y += lineH + 1;
   }
@@ -1303,11 +1586,15 @@ async function buildReceiptPDF(sale, store, lang) {
       row(`    *** ${I18n.t('receipt.itemDiscountLabel', null, lang)}`, `\u2212 ${Fmt.money(it.discount)}`, { size: 8, dim: true });
       y += lineH;
     }
+    if (it.refundedQty) {
+      row(`    \u21a9 ${I18n.t('receipt.itemRefundedLabel', { qty: it.refundedQty }, lang)}`, `\u2212 ${Fmt.money(((it.price * it.qty - (it.discount || 0)) / it.qty) * it.refundedQty)}`, { size: 8, color: coralRgb });
+      y += lineH;
+    }
   });
-  setFont(doc, false);
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(140);
-  doc.text(arabicText(I18n.t('receipt.itemsSoldSuffix', { count: itemCount, plural: itemCount !== 1 ? 's' : '' }, lang)), cx, y, { align: 'center' });
+  doc.text(I18n.t('receipt.itemsSoldSuffix', { count: itemCount, plural: itemCount !== 1 ? 's' : '' }, lang), cx, y, { align: 'center' });
   doc.setTextColor(25);
   y += lineH;
   divider();
@@ -1320,6 +1607,12 @@ async function buildReceiptPDF(sale, store, lang) {
   y += 1;
   row(I18n.t('receipt.totalLabel', null, lang), Fmt.money(sale.total), { size: 11, bold: true, color: accentRgb });
   y += lineH + 1;
+  if (sale.totalRefunded) {
+    row(I18n.t('receipt.totalRefundedLabel', null, lang), `\u2212 ${Fmt.money(sale.totalRefunded)}`, { color: coralRgb });
+    y += lineH;
+    row(I18n.t('receipt.netTotalLabel', null, lang), Fmt.money(sale.total - sale.totalRefunded), { bold: true });
+    y += lineH;
+  }
   row(I18n.t('receipt.paymentLabel', null, lang), paymentMethodLabel(sale.paymentMethod, lang), { dim: true });
   y += lineH;
   if (sale.paymentMethod === 'cash' && sale.amountReceived != null) {
@@ -1328,10 +1621,10 @@ async function buildReceiptPDF(sale, store, lang) {
   }
   divider();
 
-  setFont(doc, true);
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(25);
-  doc.text(arabicText(I18n.t('receipt.thankYou', null, lang)), cx, y, { align: 'center' });
+  doc.text(I18n.t('receipt.thankYou', null, lang), cx, y, { align: 'center' });
   y += lineH + 2;
 
   // Real, scannable Code128 barcode of this sale's receipt number — see
@@ -1341,27 +1634,27 @@ async function buildReceiptPDF(sale, store, lang) {
     Barcode128.drawOnPDF(doc, sale.receiptNumber, cx - barcodeWidth / 2, y, { moduleWidth: barcodeModule, height: barcodeHeight });
     y += barcodeHeight + 3;
   }
-  setFont(doc, false);
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(140);
-  doc.text(arabicText(sale.receiptNumber), cx, y, { align: 'center' });
+  doc.text(sale.receiptNumber, cx, y, { align: 'center' });
   doc.setTextColor(25);
   y += lineH;
 
   if (footerText) {
     y += 1;
-    setFont(doc, false);
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(140);
     wrap(footerText, 8).forEach((l) => { doc.text(l, cx, y, { align: 'center' }); y += 4; });
   }
   y += 1;
   divider();
-  setFont(doc, false);
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(140);
-  doc.text(arabicText(sale.receiptNumber), margin, y);
-  doc.text(arabicText(Fmt.dateTime(sale.date)), pageWidth - margin, y, { align: 'right' });
+  doc.text(sale.receiptNumber, margin, y);
+  doc.text(Fmt.dateTime(sale.date), pageWidth - margin, y, { align: 'right' });
   doc.setTextColor(25);
   y += lineH;
 
@@ -1383,13 +1676,133 @@ async function buildReceiptPDF(sale, store, lang) {
 }
 window.buildReceiptPDF = buildReceiptPDF;
 
+/* Canvas counterpart to buildRefundReceiptPDF below, for lang === 'ar'
+   — see buildReceiptCanvas's comment for why. */
+async function buildRefundReceiptCanvas(sale, refundInfo, store, lang) {
+  const pageWidth = 80;
+  const margin = 5;
+  const contentWidth = pageWidth - margin * 2;
+  const lineH = 5;
+  const barcodePattern = Barcode128.encode(sale.receiptNumber);
+  const barcodeModule = barcodePattern ? Math.min(0.42, contentWidth / barcodePattern.length) : 0.32;
+  const barcodeHeight = 11;
+  const hexToRgb = (hex) => {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex).trim());
+    return m ? `rgb(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)})` : '#232323';
+  };
+  const coralColor = hexToRgb(getComputedStyle(document.documentElement).getPropertyValue('--coral') || '#D9506B');
+
+  const measure = createCanvasReceiptKit(1, 1);
+  const wrap = (txt, size) => {
+    measure.setFont(size, false);
+    return measure.wrap(String(txt), contentWidth);
+  };
+
+  let h = margin;
+  if (store.logo) h += 22;
+  h += 6.5 + 5;
+  h += lineH + 3;
+  h += wrap(`${I18n.t('refundReceipt.originalReceiptPrefix', null, lang)}: ${sale.receiptNumber} \u00b7 ${Fmt.dateTime(sale.date)}`, 8).length * 4 + 5;
+  h += 5;
+  h += lineH;
+  sale.items.forEach((it) => { h += wrap(`${it.qty}\u00d7 ${it.name}`, 9).length * lineH; });
+  h += lineH + 1;
+  h += 5;
+  h += lineH;
+  refundInfo.items.forEach((it) => { h += wrap(`${it.qty}\u00d7 ${it.name}`, 9).length * lineH; });
+  h += lineH + 3;
+  h += 5;
+  h += barcodeHeight + 3;
+  h += lineH;
+  h += 5;
+  h += lineH;
+  h += 6;
+  h += margin;
+
+  const pageHeight = Math.max(60, h);
+  const kit = createCanvasReceiptKit(pageWidth, pageHeight);
+  const cx = pageWidth / 2;
+  let y = margin;
+
+  const row = (left, right, opts = {}) => {
+    const { size = 9, bold = false, color = null } = opts;
+    kit.setFont(size, bold);
+    if (left !== undefined) kit.text(left, margin, y, { align: 'left', color: color || '#232323' });
+    if (right !== undefined) kit.text(right, pageWidth - margin, y, { align: 'right', color: color || '#232323', dir: 'ltr' });
+  };
+  const divider = () => { kit.dividerLine(margin, pageWidth - margin, y); y += 5; };
+
+  if (store.logo) {
+    const ok = await kit.drawImage(store.logo, cx - 9, y, 18, 18);
+    if (ok) y += 22;
+  }
+  kit.setFont(13.5, true);
+  kit.text(store.name || I18n.t('dashboard.defaultStoreName', null, lang), cx, y, { align: 'center', color: coralColor });
+  y += 6.5;
+  kit.setFont(10, true);
+  kit.text(I18n.t('refundReceipt.title', null, lang), cx, y, { align: 'center', color: coralColor });
+  y += lineH + 3;
+
+  kit.setFont(8, false);
+  wrap(`${I18n.t('refundReceipt.originalReceiptPrefix', null, lang)}: ${sale.receiptNumber} \u00b7 ${Fmt.dateTime(sale.date)}`, 8).forEach((l) => { kit.text(l, cx, y, { align: 'center', color: '#8c8c8c' }); y += 4; });
+  y += 1;
+  divider();
+
+  kit.setFont(8, true);
+  kit.text(I18n.t('refundReceipt.purchasedSectionTitle', null, lang), margin, y, { align: 'left' });
+  y += lineH;
+  sale.items.forEach((it) => {
+    wrap(`${it.qty}\u00d7 ${it.name}`, 9).forEach((l, i) => {
+      row(l, i === 0 ? Fmt.money(it.price * it.qty) : undefined, { size: 9 });
+      y += lineH;
+    });
+  });
+  row(I18n.t('refundReceipt.originalTotalLabel', null, lang), Fmt.money(sale.total), { bold: true });
+  y += lineH + 1;
+  divider();
+
+  kit.setFont(8, true);
+  kit.text(I18n.t('refundReceipt.refundedSectionTitle', null, lang), margin, y, { align: 'left', color: coralColor });
+  y += lineH;
+  refundInfo.items.forEach((it) => {
+    wrap(`${it.qty}\u00d7 ${it.name}`, 9).forEach((l, i) => {
+      row(l, i === 0 ? `\u2212 ${Fmt.money(it.unitNet * it.qty)}` : undefined, { size: 9, color: i === 0 ? coralColor : null });
+      y += lineH;
+    });
+  });
+  row(I18n.t('refundReceipt.refundTotalLabel', null, lang), `\u2212 ${Fmt.money(refundInfo.total)}`, { size: 11, bold: true, color: coralColor });
+  y += lineH + 2;
+  divider();
+
+  if (barcodePattern) {
+    const barcodeWidth = barcodePattern.length * barcodeModule;
+    Barcode128.drawOnCanvas(kit.ctx, sale.receiptNumber, cx - barcodeWidth / 2, y, { moduleWidth: barcodeModule, height: barcodeHeight });
+    y += barcodeHeight + 3;
+  }
+  kit.setFont(8, false);
+  kit.text(sale.receiptNumber, cx, y, { align: 'center', color: '#8c8c8c', dir: 'ltr' });
+  y += lineH + 1;
+  divider();
+
+  row(I18n.t('refundReceipt.refundDateLabel', null, lang), Fmt.dateTime(refundInfo.date), { size: 7 });
+  y += lineH + 4;
+  kit.tornEdge(margin, pageWidth - margin, y);
+
+  return { canvas: kit.canvas, widthMm: pageWidth, heightMm: pageHeight };
+}
+
 /* PDF counterpart to RefundReceipt.html() — same 80mm-roll layout logic
-   and the same Arabic text support (see createArabicPdfSupport above) as
-   buildReceiptPDF, for a refund event instead of the original sale. */
+   as buildReceiptPDF, for a refund event instead of the original sale. */
 async function buildRefundReceiptPDF(sale, refundInfo, store, lang) {
   if (!window.jspdf) await loadScriptOnce('vendor/jspdf.umd.min.js');
   const { jsPDF } = window.jspdf;
-  const { arabicText, registerArabicFont, setFont } = await createArabicPdfSupport(lang);
+
+  if (lang === 'ar') {
+    const { canvas, widthMm, heightMm } = await buildRefundReceiptCanvas(sale, refundInfo, store, lang);
+    const doc = new jsPDF({ unit: 'mm', format: [widthMm, heightMm] });
+    doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, widthMm, heightMm);
+    return doc;
+  }
 
   const pageWidth = 80;
   const margin = 5;
@@ -1406,11 +1819,10 @@ async function buildRefundReceiptPDF(sale, refundInfo, store, lang) {
 
   // --- Pass 1: measure. ---
   const measure = new jsPDF({ unit: 'mm', format: [pageWidth, 200] });
-  if (lang === 'ar') registerArabicFont(measure);
   const wrap = (txt, size) => {
-    setFont(measure, false);
+    measure.setFont('helvetica', 'normal');
     measure.setFontSize(size);
-    return measure.splitTextToSize(arabicText(String(txt)), contentWidth);
+    return measure.splitTextToSize(String(txt), contentWidth);
   };
 
   let h = margin;
@@ -1436,18 +1848,17 @@ async function buildRefundReceiptPDF(sale, refundInfo, store, lang) {
 
   // --- Pass 2: draw for real. ---
   const doc = new jsPDF({ unit: 'mm', format: [pageWidth, Math.max(60, h)] });
-  if (lang === 'ar') registerArabicFont(doc);
   const cx = pageWidth / 2;
   let y = margin;
 
   const row = (left, right, opts = {}) => {
     const { size = 9, bold = false, color = null } = opts;
-    setFont(doc, bold);
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
     doc.setFontSize(size);
     if (color) doc.setTextColor(...color);
     else doc.setTextColor(25);
-    if (left !== undefined) doc.text(arabicText(left), margin, y);
-    if (right !== undefined) doc.text(arabicText(right), pageWidth - margin, y, { align: 'right' });
+    if (left !== undefined) doc.text(String(left), margin, y);
+    if (right !== undefined) doc.text(String(right), pageWidth - margin, y, { align: 'right' });
     doc.setTextColor(25);
   };
   const divider = () => {
@@ -1466,17 +1877,17 @@ async function buildRefundReceiptPDF(sale, refundInfo, store, lang) {
       y += size + 4;
     } catch (e) { /* bad image data — skip the logo rather than fail the whole receipt */ }
   }
-  setFont(doc, true);
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(13.5);
   doc.setTextColor(...coralRgb);
-  doc.text(arabicText(store.name || I18n.t('dashboard.defaultStoreName', null, lang)), cx, y, { align: 'center' });
+  doc.text(store.name || I18n.t('dashboard.defaultStoreName', null, lang), cx, y, { align: 'center' });
   y += 6.5;
   doc.setFontSize(10);
-  doc.text(arabicText(I18n.t('refundReceipt.title', null, lang)), cx, y, { align: 'center' });
+  doc.text(I18n.t('refundReceipt.title', null, lang), cx, y, { align: 'center' });
   doc.setTextColor(25);
   y += lineH + 3;
 
-  setFont(doc, false);
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(140);
   wrap(`${I18n.t('refundReceipt.originalReceiptPrefix', null, lang)}: ${sale.receiptNumber} \u00b7 ${Fmt.dateTime(sale.date)}`, 8).forEach((l) => { doc.text(l, cx, y, { align: 'center' }); y += 4; });
@@ -1484,9 +1895,9 @@ async function buildRefundReceiptPDF(sale, refundInfo, store, lang) {
   y += 1;
   divider();
 
-  setFont(doc, true);
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text(arabicText(I18n.t('refundReceipt.purchasedSectionTitle', null, lang)), margin, y);
+  doc.text(I18n.t('refundReceipt.purchasedSectionTitle', null, lang), margin, y);
   y += lineH;
   sale.items.forEach((it) => {
     wrap(`${it.qty}\u00d7 ${it.name}`, 9).forEach((l, i) => {
@@ -1498,10 +1909,10 @@ async function buildRefundReceiptPDF(sale, refundInfo, store, lang) {
   y += lineH + 1;
   divider();
 
-  setFont(doc, true);
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(...coralRgb);
-  doc.text(arabicText(I18n.t('refundReceipt.refundedSectionTitle', null, lang)), margin, y);
+  doc.text(I18n.t('refundReceipt.refundedSectionTitle', null, lang), margin, y);
   doc.setTextColor(25);
   y += lineH;
   refundInfo.items.forEach((it) => {
@@ -1519,10 +1930,10 @@ async function buildRefundReceiptPDF(sale, refundInfo, store, lang) {
     Barcode128.drawOnPDF(doc, sale.receiptNumber, cx - barcodeWidth / 2, y, { moduleWidth: barcodeModule, height: barcodeHeight });
     y += barcodeHeight + 3;
   }
-  setFont(doc, false);
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(140);
-  doc.text(arabicText(sale.receiptNumber), cx, y, { align: 'center' });
+  doc.text(sale.receiptNumber, cx, y, { align: 'center' });
   doc.setTextColor(25);
   y += lineH + 1;
   divider();
@@ -1944,7 +2355,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.9.30';
+const CURRENT_VERSION = '1.9.9.32';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -2896,6 +3307,11 @@ window.showDiagnostics = showDiagnostics;
   if (window.Language) await Language.maybeGate();
 
   if (window.Terms) await Terms.requireAcceptance();
+
+  // Global hardware (USB/Bluetooth HID) barcode scanner support — works
+  // from any screen, not just POS; see hardwareScan.js for how it tells
+  // a scan apart from normal typing and decides what to do with it.
+  if (window.HardwareScan) HardwareScan.init();
 
   // Reflect the store's own logo in the browser tab / "add to home screen"
   // icon prompt where the platform allows updating it after page load.

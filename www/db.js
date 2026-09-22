@@ -13,11 +13,13 @@
  *   customers    - keyPath: id (autoIncrement), indexes: name, phone
  *   suppliers    - keyPath: id (autoIncrement), indexes: name
  *   inventoryLog - keyPath: id (autoIncrement), indexes: productId, date
+ *   customerPayments - keyPath: id (autoIncrement), indexes: customerId, date, receiptNumber
+ *   purchaseOrders - keyPath: id (autoIncrement), indexes: supplierId, status, date
  *   settings     - keyPath: key (single row per setting, e.g. "store", "appearance", "pos")
  */
 
 const DB_NAME = 'StoreAppDB';
-const DB_VERSION = 1;
+const DB_VERSION = 3;
 
 /** @type {IDBDatabase|null} */
 let _db = null;
@@ -76,6 +78,32 @@ function openDB() {
         const store = db.createObjectStore('inventoryLog', { keyPath: 'id', autoIncrement: true });
         store.createIndex('productId', 'productId', { unique: false });
         store.createIndex('date', 'date', { unique: false });
+      }
+
+      // customerPayments — a payment a customer makes toward their credit
+      // balance (see 'On Credit' checkout in pos.js). Not tied to any one
+      // sale: a customer's outstanding balance is derived by summing their
+      // unpaid credit sales (sale.creditAmount, a snapshot taken at sale
+      // time) minus every payment recorded here, the same "derive, don't
+      // duplicate" approach customers.js already uses for lifetime totals.
+      if (!db.objectStoreNames.contains('customerPayments')) {
+        const store = db.createObjectStore('customerPayments', { keyPath: 'id', autoIncrement: true });
+        store.createIndex('customerId', 'customerId', { unique: false });
+        store.createIndex('date', 'date', { unique: false });
+        store.createIndex('receiptNumber', 'receiptNumber', { unique: true });
+      }
+
+      // purchaseOrders — an order placed with a supplier (line items with
+      // qty + unit cost). status is 'open' until Receive is tapped, which
+      // bumps each product's stock and purchasePrice and logs to
+      // inventoryLog in one go — the same "receive now" action also covers
+      // the simple case of just logging a restock that already happened.
+      if (!db.objectStoreNames.contains('purchaseOrders')) {
+        const store = db.createObjectStore('purchaseOrders', { keyPath: 'id', autoIncrement: true });
+        store.createIndex('supplierId', 'supplierId', { unique: false });
+        store.createIndex('status', 'status', { unique: false });
+        store.createIndex('date', 'date', { unique: false });
+        store.createIndex('poNumber', 'poNumber', { unique: true });
       }
 
       // settings (single-row-per-key store)
@@ -298,6 +326,29 @@ const Ids = {
     const rand = Math.floor(1000 + Math.random() * 9000);
     const ts = Date.now().toString().slice(-6);
     return `INT-${ts}-${rand}`;
+  },
+
+  /** Generates a payment receipt number like "PAY-20260822-0001x9F2" — same
+   *  shape as receiptNumber() but its own prefix, so the two can never
+   *  collide and a scanned barcode's prefix alone says which kind it is. */
+  paymentNumber() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return `PAY-${y}${m}${d}-${rand}`;
+  },
+
+  /** Generates a purchase order number like "PO-20260822-9K3M" — same shape
+   *  as paymentNumber(), its own prefix. */
+  poNumber() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return `PO-${y}${m}${d}-${rand}`;
   },
 };
 

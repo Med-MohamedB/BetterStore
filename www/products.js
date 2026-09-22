@@ -765,7 +765,49 @@ const Products = (() => {
     });
   }
 
-  return { render, openForm, openDetail };
+  /** A search-and-pick sheet for another screen to attach a product to
+   *  itself — used by purchaseorders.js to add a line item. Unlike
+   *  Customers/Suppliers.openPicker there's no inline "add new" here: a
+   *  product needs prices and a category to be useful, so an unmatched
+   *  search just points the person at the Products screen instead. */
+  function openPicker(onPick) {
+    const bodyHTML = `
+      <div class="search-bar">
+        <span class="search-bar__icon">${Icon('search')}</span>
+        <input type="text" id="prodPickerSearch" placeholder="${I18n.t('products.picker.searchPlaceholder')}">
+      </div>
+      <div id="prodPickerResults" class="list"></div>
+    `;
+    const sheetEl = Sheet.open({ title: I18n.t('products.picker.title'), bodyHTML });
+    const resultsEl = sheetEl.querySelector('#prodPickerResults');
+    const searchEl = sheetEl.querySelector('#prodPickerSearch');
+
+    async function runSearch(q) {
+      const all = await DB.getAll('products');
+      const filtered = !q ? all : all.filter((p) => [p.name, p.barcode, p.sku].filter(Boolean).some((f) => String(f).toLowerCase().includes(q.toLowerCase())));
+      resultsEl.innerHTML = filtered.length
+        ? filtered.slice(0, 50).map((p) => `
+          <div class="list-row tappable" data-pick-product="${p.id}">
+            <div class="list-row__icon">${p.image ? `<img src="${p.image}">` : Icon('package')}</div>
+            <div class="list-row__body"><div class="list-row__title">${escapeHTML(p.name)}</div><div class="list-row__subtitle">${I18n.t('products.picker.stockSubtitle', { qty: p.quantity, cost: Fmt.money(p.purchasePrice || 0) })}</div></div>
+          </div>
+        `).join('')
+        : `<div class="text-dim text-sm mt-16" style="text-align:center;">${I18n.t(q ? 'products.picker.noMatch' : 'products.picker.noProducts')}</div>`;
+      resultsEl.querySelectorAll('[data-pick-product]').forEach((row) => {
+        row.addEventListener('click', async () => {
+          const p = await DB.get('products', Number(row.dataset.pickProduct));
+          Sheet.close();
+          onPick(p);
+        });
+      });
+    }
+
+    searchEl.addEventListener('input', (e) => runSearch(e.target.value));
+    runSearch('');
+    setTimeout(() => searchEl.focus(), 300);
+  }
+
+  return { render, openForm, openDetail, openPicker };
 })();
 
 Router.register('products', Products.render);

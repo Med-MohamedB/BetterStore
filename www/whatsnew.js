@@ -46,6 +46,32 @@ const WhatsNew = (() => {
   //     fabricated version number.
   const CHANGELOG = [
     {
+      version: '1.9.12.0',
+      items: [
+        {
+          icon: Icon('package'),
+          text: {
+            en: 'Added Purchase Orders \\u2014 a new screen (More > Purchase Orders, or \\u201cNew Purchase Order\\u201d from a supplier\\u2019s profile) to build a restock order line by line with quantities and unit costs. Save it as Open to just record what was ordered, or Save & Mark Received to update stock, refresh each product\\u2019s purchase price, and log it to the inventory history immediately \\u2014 whichever fits how you actually restock.',
+            ar: 'أضفنا طلبات الشراء \\u2014 شاشة جديدة (المزيد > طلبات الشراء، أو \\u201cطلب شراء جديد\\u201d من ملف المورّد) لإنشاء طلب إعادة تخزين عنصرًا بعنصر مع الكميات وتكلفة الوحدة. احفظه كـ\\u201cمفتوح\\u201d لمجرد تسجيل ما تم طلبه، أو \\u201cحفظ وتحديد كمستلَم\\u201d لتحديث المخزون وتحديث سعر شراء كل منتج وتسجيله في سجل المخزون فورًا \\u2014 أيهما يناسب طريقتك الفعلية في إعادة التخزين.',
+            fr: 'Ajout des Bons de Commande \\u2014 un nouvel écran (Plus > Bons de Commande, ou \\u00ab\\u00a0Nouveau Bon de Commande\\u00a0\\u00bb depuis le profil d\\u2019un fournisseur) pour composer une commande de réapprovisionnement article par article, avec quantités et coûts unitaires. Enregistrez-la comme Ouverte pour simplement noter ce qui a été commandé, ou Enregistrer et Marquer Reçu pour mettre à jour le stock, actualiser le coût d\\u2019achat de chaque produit et l\\u2019inscrire immédiatement dans l\\u2019historique du stock \\u2014 selon la façon dont vous réapprovisionnez réellement.',
+          },
+        },
+      ],
+    },
+    {
+      version: '1.9.11.0',
+      items: [
+        {
+          icon: Icon('wallet'),
+          text: {
+            en: 'Added customer credit and debts \\u2014 sell \\u201cOn Credit\\u201d to any attached customer from checkout (with an optional down payment), and their running balance now shows on their profile. Tap Record Payment to pay it down by any amount, which prints/shares its own Payment Receipt, modeled on the refund receipt, with the balance before and after.',
+            ar: 'أضفنا البيع بالدين وديون العملاء \\u2014 يمكنك الآن البيع \\u201cبالدين\\u201d لأي عميل مرتبط من شاشة الدفع (مع إمكانية دفعة أولى اختيارية)، ويظهر رصيده المستحق في ملفه. اضغط على \\u201cتسجيل دفعة\\u201d لسداد أي مبلغ، مع طباعة/مشاركة إيصال دفعة خاص، على غرار إيصال الاسترجاع، يوضح الرصيد قبل وبعد.',
+            fr: 'Ajout du crédit client et des dettes \\u2014 vendez \\u00ab\\u00a0à crédit\\u00a0\\u00bb à tout client associé depuis la caisse (avec un acompte optionnel), et son solde en cours s\\u2019affiche désormais sur son profil. Appuyez sur \\u00ab\\u00a0Enregistrer un paiement\\u00a0\\u00bb pour rembourser n\\u2019importe quel montant, ce qui imprime/partage un reçu de paiement dédié, calqué sur le reçu de remboursement, avec le solde avant et après.',
+          },
+        },
+      ],
+    },
+    {
       version: '1.9.10.0',
       items: [
         {

@@ -145,12 +145,17 @@ const Suppliers = (() => {
       ` : ''}
     `;
     const footerHTML = `
-      <div class="flex gap-8">
+      <button class="btn btn-primary tappable" id="newPOBtn">${Icon('package')} ${I18n.t('suppliers.detail.newPurchaseOrder')}</button>
+      <div class="flex gap-8 mt-8">
         <button class="btn btn-secondary tappable" id="editSupplierBtn">${I18n.t('suppliers.detail.edit')}</button>
         <button class="btn btn-danger tappable" id="deleteSupplierBtn" style="max-width:60px;">${Icon('trash')}</button>
       </div>`;
     const sheetEl = Sheet.open({ title: I18n.t('suppliers.detail.title'), bodyHTML, footerHTML });
 
+    sheetEl.querySelector('#newPOBtn').addEventListener('click', () => {
+      Sheet.close();
+      setTimeout(() => PurchaseOrders.openForm({ id: s.id, name: s.name }), 260);
+    });
     sheetEl.querySelector('#editSupplierBtn').addEventListener('click', () => {
       Sheet.close();
       setTimeout(() => openForm(s), 260);
@@ -165,7 +170,54 @@ const Suppliers = (() => {
     });
   }
 
-  return { render };
+  /** Same search-or-add pattern as Customers.openPicker — used by
+   *  purchaseorders.js to attach a supplier to a new order. */
+  function openPicker(onPick) {
+    const bodyHTML = `
+      <div class="search-bar">
+        <span class="search-bar__icon">${Icon('search')}</span>
+        <input type="text" id="suppPickerSearch" placeholder="${I18n.t('suppliers.picker.searchPlaceholder')}">
+      </div>
+      <div id="suppPickerResults" class="list"></div>
+    `;
+    const sheetEl = Sheet.open({ title: I18n.t('suppliers.picker.title'), bodyHTML });
+    const resultsEl = sheetEl.querySelector('#suppPickerResults');
+    const searchEl = sheetEl.querySelector('#suppPickerSearch');
+
+    async function runSearch(q) {
+      const all = await DB.getAll('suppliers');
+      const filtered = !q ? all : all.filter((s) => [s.name, s.phone].filter(Boolean).some((f) => f.toLowerCase().includes(q.toLowerCase())));
+      resultsEl.innerHTML = `
+        ${q ? `<div class="list-row tappable" data-new-supplier="1"><div class="list-row__icon">${Icon('plus')}</div><div class="list-row__body"><div class="list-row__title">${I18n.t('suppliers.picker.addNew', { query: escapeHTML(q) })}</div></div></div>` : ''}
+        ${filtered.map((s) => `
+          <div class="list-row tappable" data-pick-supplier="${s.id}">
+            <div class="list-row__icon">${Icon('truck')}</div>
+            <div class="list-row__body"><div class="list-row__title">${escapeHTML(s.name)}</div><div class="list-row__subtitle">${escapeHTML(s.phone || '')}</div></div>
+          </div>
+        `).join('')}
+      `;
+      const newBtn = resultsEl.querySelector('[data-new-supplier]');
+      if (newBtn) newBtn.addEventListener('click', async () => {
+        const id = await DB.add('suppliers', { name: q, phone: '', email: '', address: '', notes: '' });
+        DoodleHint.complete('addFirstSupplier');
+        Sheet.close();
+        onPick({ id, name: q });
+      });
+      resultsEl.querySelectorAll('[data-pick-supplier]').forEach((row) => {
+        row.addEventListener('click', async () => {
+          const s = await DB.get('suppliers', Number(row.dataset.pickSupplier));
+          Sheet.close();
+          onPick(s);
+        });
+      });
+    }
+
+    searchEl.addEventListener('input', (e) => runSearch(e.target.value));
+    runSearch('');
+    setTimeout(() => searchEl.focus(), 300);
+  }
+
+  return { render, openPicker };
 })();
 
 Router.register('suppliers', Suppliers.render);

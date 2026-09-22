@@ -13,7 +13,7 @@
  */
 
 const Backup = (() => {
-  const STORE_NAMES = ['products', 'categories', 'sales', 'customers', 'suppliers', 'inventoryLog'];
+  const STORE_NAMES = ['products', 'categories', 'sales', 'customers', 'suppliers', 'inventoryLog', 'customerPayments', 'purchaseOrders'];
 
   async function render(container) {
     document.getElementById('topbarActions').innerHTML = '';

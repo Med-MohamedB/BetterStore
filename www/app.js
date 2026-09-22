@@ -50,7 +50,7 @@ const Router = (() => {
   // than isolated screens.
   const ROUTE_ORDER = [
     'dashboard', 'products', 'pos', 'sales', 'more',
-    'inventory', 'reports', 'customers', 'suppliers', 'backup', 'settings',
+    'inventory', 'reports', 'customers', 'suppliers', 'purchase-orders', 'backup', 'settings',
   ];
 
   function register(name, renderFn, opts = {}) {
@@ -970,6 +970,10 @@ const Receipt = (() => {
           <div class="flex-between text-sm"><span class="text-dim">${I18n.t('receipt.tenderedLabel', null, lang)}</span><span class="num">${Fmt.money(sale.amountReceived)}</span></div>
           <div class="flex-between text-sm"><span class="text-dim">${I18n.t('receipt.changeLabel', null, lang)}</span><span class="num">${Fmt.money(sale.change)}</span></div>
         ` : ''}
+        ${sale.paymentMethod === 'credit' ? `
+          ${sale.amountReceived ? `<div class="flex-between text-sm"><span class="text-dim">${I18n.t('receipt.paidNowLabel', null, lang)}</span><span class="num">${Fmt.money(sale.amountReceived)}</span></div>` : ''}
+          <div class="flex-between text-sm" style="color:var(--coral);"><span>${I18n.t('receipt.onCreditLabel', null, lang)}</span><span class="num">${Fmt.money(sale.creditAmount || 0)}</span></div>
+        ` : ''}
         ${dashedRow}
         <div class="text-center" style="text-align:center; font-weight:700; letter-spacing:0.04em; margin-bottom:10px;">${I18n.t('receipt.thankYou', null, lang)}</div>
         ${barcodeSvg ? `<div style="color:var(--text); padding:0 8px;">${barcodeSvg}</div>` : ''}
@@ -1018,6 +1022,10 @@ const Receipt = (() => {
     if (sale.paymentMethod === 'cash' && sale.amountReceived != null) {
       lines.push(`${I18n.t('receipt.tenderedLabel', null, lang)}: ${Fmt.money(sale.amountReceived)}`);
       lines.push(`${I18n.t('receipt.changeLabel', null, lang)}: ${Fmt.money(sale.change)}`);
+    }
+    if (sale.paymentMethod === 'credit') {
+      if (sale.amountReceived) lines.push(`${I18n.t('receipt.paidNowLabel', null, lang)}: ${Fmt.money(sale.amountReceived)}`);
+      lines.push(`${I18n.t('receipt.onCreditLabel', null, lang)}: ${Fmt.money(sale.creditAmount || 0)}`);
     }
     const footerText = store.receiptFooter !== '' ? (store.receiptFooter || I18n.t('receipt.defaultFooter', null, lang)) : '';
     if (footerText) { lines.push(''); lines.push(footerText); }
@@ -1106,6 +1114,59 @@ const RefundReceipt = (() => {
   return { html, text };
 })();
 window.RefundReceipt = RefundReceipt;
+
+/* A third self-contained receipt, this one for a customer paying down
+   their 'On Credit' balance (see Customers.openRecordPayment in
+   customers.js) — same shape as RefundReceipt above, just for money
+   coming in against a running balance instead of a refund going out.
+   payment: { customerId, customerName, amount, balanceBefore, date,
+   receiptNumber }. */
+const PaymentReceipt = (() => {
+  function html(payment, store, lang) {
+    const balanceAfter = Math.max(0, payment.balanceBefore - payment.amount);
+    const barcodeSvg = Barcode128.svg(payment.receiptNumber, { moduleWidth: 1.6, height: 44 });
+    const dashedRow = '<div style="border-top:1px dashed var(--border); margin:10px 0;"></div>';
+    const dir = (I18n.LANGUAGES.find((l) => l.code === lang) || { dir: 'ltr' }).dir;
+
+    return `
+      <div class="receipt-print" dir="${dir}">
+        <div style="text-align:center;">
+          ${store.logo ? `<img src="${store.logo}" style="width:56px;height:56px;object-fit:cover;border-radius:12px;margin-bottom:8px;">` : ''}
+          <div style="font-weight:700; font-size:16px; color:var(--accent);">${escapeHTML(store.name || I18n.t('dashboard.defaultStoreName', null, lang))}</div>
+        </div>
+        <div class="mt-8" style="text-align:center;"><span class="badge badge--success">${I18n.t('paymentReceipt.title', null, lang)}</span></div>
+        <div class="text-center text-dim text-sm mt-8 ltr-code" style="text-align:center;">${payment.receiptNumber} \u00b7 ${Fmt.dateTime(payment.date)}</div>
+        ${dashedRow}
+        <div class="flex-between text-sm"><span class="text-dim">${I18n.t('paymentReceipt.customerLabel', null, lang)}</span><span>${escapeHTML(payment.customerName || '')}</span></div>
+        <div class="flex-between text-sm mt-8"><span class="text-dim">${I18n.t('paymentReceipt.balanceBeforeLabel', null, lang)}</span><span class="num">${Fmt.money(payment.balanceBefore)}</span></div>
+        ${dashedRow}
+        <div class="flex-between" style="font-weight:800; color:var(--accent); font-size:17px;"><span>${I18n.t('paymentReceipt.amountPaidLabel', null, lang)}</span><span class="num">${Fmt.money(payment.amount)}</span></div>
+        <div class="flex-between text-sm mt-8" style="font-weight:700;"><span>${I18n.t('paymentReceipt.balanceAfterLabel', null, lang)}</span><span class="num" style="${balanceAfter ? 'color:var(--coral);' : 'color:var(--accent);'}">${Fmt.money(balanceAfter)}</span></div>
+        ${dashedRow}
+        ${barcodeSvg ? `<div style="color:var(--text); padding:0 8px;">${barcodeSvg}</div>` : ''}
+        <div class="text-center text-dim text-sm ltr-code" style="text-align:center; letter-spacing:0.08em; margin-top:4px;">${payment.receiptNumber}</div>
+      </div>
+    `;
+  }
+
+  function text(payment, store, lang) {
+    const balanceAfter = Math.max(0, payment.balanceBefore - payment.amount);
+    const lines = [];
+    lines.push(store.name || I18n.t('dashboard.defaultStoreName', null, lang));
+    lines.push('');
+    lines.push(`*** ${I18n.t('paymentReceipt.title', null, lang)} ***`);
+    lines.push(`${payment.receiptNumber} \u00b7 ${Fmt.dateTime(payment.date)}`);
+    lines.push('--------------------------------');
+    lines.push(`${I18n.t('paymentReceipt.customerLabel', null, lang)}: ${payment.customerName || ''}`);
+    lines.push(`${I18n.t('paymentReceipt.balanceBeforeLabel', null, lang)}: ${Fmt.money(payment.balanceBefore)}`);
+    lines.push(`${I18n.t('paymentReceipt.amountPaidLabel', null, lang)}: ${Fmt.money(payment.amount)}`);
+    lines.push(`${I18n.t('paymentReceipt.balanceAfterLabel', null, lang)}: ${Fmt.money(balanceAfter)}`);
+    return lines.join('\n');
+  }
+
+  return { html, text };
+})();
+window.PaymentReceipt = PaymentReceipt;
 
 /* Builds a clean, professional 80mm-roll-style receipt PDF straight from  */
 /* sale + store data (not scraped from the on-screen HTML), so spacing,    */
@@ -1317,6 +1378,7 @@ async function buildReceiptCanvas(sale, store, lang, opts = {}) {
   if (sale.totalRefunded) h += lineH * 2;
   h += lineH;
   if (sale.paymentMethod === 'cash' && sale.amountReceived != null) h += lineH * 2;
+  if (sale.paymentMethod === 'credit') h += lineH * (sale.amountReceived ? 2 : 1);
   h += 5;
   h += lineH + 2;
   h += barcodeHeight + 3;
@@ -1409,6 +1471,10 @@ async function buildReceiptCanvas(sale, store, lang, opts = {}) {
   if (sale.paymentMethod === 'cash' && sale.amountReceived != null) {
     row(I18n.t('receipt.tenderedLabel', null, lang), Fmt.money(sale.amountReceived), { dim: true }); y += lineH;
     row(I18n.t('receipt.changeLabel', null, lang), Fmt.money(sale.change), { dim: true }); y += lineH;
+  }
+  if (sale.paymentMethod === 'credit') {
+    if (sale.amountReceived) { row(I18n.t('receipt.paidNowLabel', null, lang), Fmt.money(sale.amountReceived), { dim: true }); y += lineH; }
+    row(I18n.t('receipt.onCreditLabel', null, lang), Fmt.money(sale.creditAmount || 0), { color: 'rgb(200,60,90)' }); y += lineH;
   }
   divider();
 
@@ -1531,6 +1597,7 @@ async function buildReceiptPDF(sale, store, lang) {
   if (sale.totalRefunded) h += lineH * 2; // total refunded + net total
   h += lineH; // payment
   if (sale.paymentMethod === 'cash' && sale.amountReceived != null) h += lineH * 2;
+  if (sale.paymentMethod === 'credit') h += lineH * (sale.amountReceived ? 2 : 1);
   h += 5; // divider
   h += lineH + 2; // "THANK YOU"
   h += barcodeHeight + 3; // barcode graphic
@@ -1640,6 +1707,10 @@ async function buildReceiptPDF(sale, store, lang) {
   if (sale.paymentMethod === 'cash' && sale.amountReceived != null) {
     row(I18n.t('receipt.tenderedLabel', null, lang), Fmt.money(sale.amountReceived), { dim: true }); y += lineH;
     row(I18n.t('receipt.changeLabel', null, lang), Fmt.money(sale.change), { dim: true }); y += lineH;
+  }
+  if (sale.paymentMethod === 'credit') {
+    if (sale.amountReceived) { row(I18n.t('receipt.paidNowLabel', null, lang), Fmt.money(sale.amountReceived), { dim: true }); y += lineH; }
+    row(I18n.t('receipt.onCreditLabel', null, lang), Fmt.money(sale.creditAmount || 0), { color: [200, 60, 90] }); y += lineH;
   }
   divider();
 
@@ -2081,6 +2152,223 @@ function showSuccessCheck(message, celebrate = false) {
 }
 window.showSuccessCheck = showSuccessCheck;
 
+/* Canvas counterpart to buildPaymentReceiptPDF below, for lang === 'ar'
+   — see buildReceiptCanvas's comment for why. Much shorter than a sale
+   or refund receipt (no item list), so its own compact layout rather
+   than reusing buildRefundReceiptCanvas's item-list-shaped one. */
+async function buildPaymentReceiptCanvas(payment, store, lang, opts = {}) {
+  const pageWidth = opts.pageWidthMm || 80;
+  const margin = opts.marginMm != null ? opts.marginMm : 5;
+  const lineH = 5;
+  const balanceAfter = Math.max(0, payment.balanceBefore - payment.amount);
+  const barcodePattern = Barcode128.encode(payment.receiptNumber);
+  const barcodeModule = barcodePattern
+    ? (opts.dotAlign ? Math.max(1, Math.floor(((pageWidth - margin * 2) * 8) / barcodePattern.length)) / 8 : Math.min(0.42, (pageWidth - margin * 2) / barcodePattern.length))
+    : 0.32;
+  const barcodeHeight = 11;
+  const hexToRgb = (hex) => {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex).trim());
+    return m ? `rgb(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)})` : '#232323';
+  };
+  const accentColor = opts.mono ? '#000000' : hexToRgb(getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#2F5233');
+  const coralColor = opts.mono ? '#000000' : hexToRgb(getComputedStyle(document.documentElement).getPropertyValue('--coral') || '#D9506B');
+  const showLogo = !!store.logo && !opts.noLogo;
+
+  let h = margin;
+  if (showLogo) h += 22;
+  h += 6.5 + lineH + 3; // store name + "PAYMENT RECEIPT" badge line
+  h += 4 + 5; // receipt number/date + spacing
+  h += 5; // divider
+  h += lineH * 2; // customer + balance-before rows
+  h += 5; // divider
+  h += lineH + 1 + lineH; // amount paid (tall) + balance-after
+  h += 5; // divider
+  h += barcodeHeight + 3;
+  h += lineH;
+  h += margin;
+
+  const pageHeight = Math.max(50, h);
+  const kit = createCanvasReceiptKit(pageWidth, pageHeight);
+  const cx = pageWidth / 2;
+  let y = margin;
+
+  const row = (left, right, o = {}) => {
+    const { size = 9, bold = false, color = null } = o;
+    kit.setFont(size, bold);
+    if (left !== undefined) kit.text(left, margin, y, { align: 'left', color: color || '#232323' });
+    if (right !== undefined) kit.text(right, pageWidth - margin, y, { align: 'right', color: color || '#232323', dir: 'ltr' });
+  };
+  const divider = () => { kit.dividerLine(margin, pageWidth - margin, y); y += 5; };
+
+  if (showLogo) {
+    const ok = await kit.drawImage(store.logo, cx - 9, y, 18, 18);
+    if (ok) y += 22;
+  }
+  kit.setFont(13.5, true);
+  kit.text(store.name || I18n.t('dashboard.defaultStoreName', null, lang), cx, y, { align: 'center', color: accentColor });
+  y += 6.5;
+  kit.setFont(10, true);
+  kit.text(I18n.t('paymentReceipt.title', null, lang), cx, y, { align: 'center', color: accentColor });
+  y += lineH + 3;
+
+  kit.setFont(8, false);
+  kit.text(`${payment.receiptNumber} \u00b7 ${Fmt.dateTime(payment.date)}`, cx, y, { align: 'center', color: '#8c8c8c', dir: 'ltr' });
+  y += 4 + 1;
+  divider();
+
+  row(I18n.t('paymentReceipt.customerLabel', null, lang), payment.customerName || '', { size: 9 });
+  y += lineH;
+  row(I18n.t('paymentReceipt.balanceBeforeLabel', null, lang), Fmt.money(payment.balanceBefore), { size: 9 });
+  y += lineH;
+  divider();
+
+  row(I18n.t('paymentReceipt.amountPaidLabel', null, lang), Fmt.money(payment.amount), { size: 11, bold: true, color: accentColor });
+  y += lineH + 1;
+  row(I18n.t('paymentReceipt.balanceAfterLabel', null, lang), Fmt.money(balanceAfter), { bold: true, color: balanceAfter ? coralColor : accentColor });
+  y += lineH;
+  divider();
+
+  if (barcodePattern) {
+    const barcodeWidth = barcodePattern.length * barcodeModule;
+    let barcodeX = cx - barcodeWidth / 2;
+    if (opts.dotAlign) barcodeX = Math.round(barcodeX * 8) / 8;
+    Barcode128.drawOnCanvas(kit.ctx, payment.receiptNumber, barcodeX, y, { moduleWidth: barcodeModule, height: barcodeHeight });
+    y += barcodeHeight + 3;
+  }
+  kit.setFont(8, false);
+  kit.text(payment.receiptNumber, cx, y, { align: 'center', color: '#8c8c8c', dir: 'ltr' });
+  y += lineH;
+  if (!opts.noTornEdge) kit.tornEdge(margin, pageWidth - margin, y + 4);
+
+  return { canvas: kit.canvas, widthMm: pageWidth, heightMm: pageHeight };
+}
+
+/* PDF counterpart to PaymentReceipt.html() — same compact layout as
+   buildPaymentReceiptCanvas, drawn with plain jsPDF vector text for any
+   language other than Arabic. */
+async function buildPaymentReceiptPDF(payment, store, lang) {
+  if (!window.jspdf) await loadScriptOnce('vendor/jspdf.umd.min.js');
+  const { jsPDF } = window.jspdf;
+
+  if (lang === 'ar') {
+    const { canvas, widthMm, heightMm } = await buildPaymentReceiptCanvas(payment, store, lang);
+    const doc = new jsPDF({ unit: 'mm', format: [widthMm, heightMm] });
+    doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, widthMm, heightMm);
+    return doc;
+  }
+
+  const pageWidth = 80;
+  const margin = 5;
+  const lineH = 5;
+  const balanceAfter = Math.max(0, payment.balanceBefore - payment.amount);
+  const barcodePattern = Barcode128.encode(payment.receiptNumber);
+  const barcodeModule = barcodePattern ? Math.min(0.42, (pageWidth - margin * 2) / barcodePattern.length) : 0.32;
+  const barcodeHeight = 11;
+  const hexToRgb = (hex) => {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex).trim());
+    return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [35, 35, 35];
+  };
+  const accentRgb = hexToRgb(getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#2F5233');
+  const coralRgb = hexToRgb(getComputedStyle(document.documentElement).getPropertyValue('--coral') || '#D9506B');
+
+  let h = margin;
+  if (store.logo) h += 22;
+  h += 6.5 + lineH + 3;
+  h += 4 + 5;
+  h += 5;
+  h += lineH * 2;
+  h += 5;
+  h += lineH + 1 + lineH;
+  h += 5;
+  h += barcodeHeight + 3;
+  h += lineH;
+  h += 6;
+  h += margin;
+
+  const doc = new jsPDF({ unit: 'mm', format: [pageWidth, Math.max(50, h)] });
+  const cx = pageWidth / 2;
+  let y = margin;
+
+  const row = (left, right, o = {}) => {
+    const { size = 9, bold = false, color = null } = o;
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setFontSize(size);
+    if (color) doc.setTextColor(...color); else doc.setTextColor(25);
+    if (left !== undefined) doc.text(String(left), margin, y);
+    if (right !== undefined) doc.text(String(right), pageWidth - margin, y, { align: 'right' });
+    doc.setTextColor(25);
+  };
+  const divider = () => {
+    doc.setDrawColor(190);
+    doc.setLineDashPattern([1, 1], 0);
+    doc.line(margin, y, pageWidth - margin, y);
+    doc.setLineDashPattern([], 0);
+    y += 5;
+  };
+
+  if (store.logo) {
+    try {
+      const size = 18;
+      const fmt = /^data:image\/png/i.test(store.logo) ? 'PNG' : /^data:image\/webp/i.test(store.logo) ? 'WEBP' : 'JPEG';
+      doc.addImage(store.logo, fmt, cx - size / 2, y, size, size, undefined, 'FAST');
+      y += size + 4;
+    } catch (e) { /* bad image data — skip the logo rather than fail the whole receipt */ }
+  }
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13.5);
+  doc.setTextColor(...accentRgb);
+  doc.text(store.name || I18n.t('dashboard.defaultStoreName', null, lang), cx, y, { align: 'center' });
+  y += 6.5;
+  doc.setFontSize(10);
+  doc.text(I18n.t('paymentReceipt.title', null, lang), cx, y, { align: 'center' });
+  doc.setTextColor(25);
+  y += lineH + 3;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(140);
+  doc.text(`${payment.receiptNumber} \u00b7 ${Fmt.dateTime(payment.date)}`, cx, y, { align: 'center' });
+  doc.setTextColor(25);
+  y += 5;
+  divider();
+
+  row(I18n.t('paymentReceipt.customerLabel', null, lang), payment.customerName || '', { size: 9 });
+  y += lineH;
+  row(I18n.t('paymentReceipt.balanceBeforeLabel', null, lang), Fmt.money(payment.balanceBefore), { size: 9 });
+  y += lineH;
+  divider();
+
+  row(I18n.t('paymentReceipt.amountPaidLabel', null, lang), Fmt.money(payment.amount), { size: 11, bold: true, color: accentRgb });
+  y += lineH + 1;
+  row(I18n.t('paymentReceipt.balanceAfterLabel', null, lang), Fmt.money(balanceAfter), { bold: true, color: balanceAfter ? coralRgb : accentRgb });
+  y += lineH;
+  divider();
+
+  if (barcodePattern) {
+    const barcodeWidth = barcodePattern.length * barcodeModule;
+    Barcode128.drawOnPDF(doc, payment.receiptNumber, cx - barcodeWidth / 2, y, { moduleWidth: barcodeModule, height: barcodeHeight });
+    y += barcodeHeight + 3;
+  }
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(140);
+  doc.text(payment.receiptNumber, cx, y, { align: 'center' });
+  doc.setTextColor(25);
+  y += lineH;
+
+  y += 4;
+  doc.setDrawColor(190);
+  doc.setLineWidth(0.3);
+  const contentWidth = pageWidth - margin * 2;
+  const teeth = Math.round(contentWidth / 3.2);
+  const toothW = contentWidth / teeth;
+  const zig = [];
+  for (let i = 0; i <= teeth; i++) zig.push([margin + i * toothW, y + (i % 2 === 0 ? 0 : 1.6)]);
+  for (let i = 0; i < zig.length - 1; i++) doc.line(zig[i][0], zig[i][1], zig[i + 1][0], zig[i + 1][1]);
+
+  return doc;
+}
+
 /** Print a receipt. Three tiers, best available wins:
  *  1. Native platform + a registered NativePrint plugin -> hands the PDF
  *     straight to Android's system Print framework (PrintManager), which
@@ -2254,6 +2542,84 @@ async function shareRefundReceipt(sale, refundInfo, store, lang) {
 }
 window.shareRefundReceipt = shareRefundReceipt;
 
+/** Print/share counterparts to the above, for a PaymentReceipt (a
+ *  customer paying down their 'On Credit' balance) instead of a sale or
+ *  refund — same NativePrint -> Share-with-PDF -> window.print() chain. */
+async function printPaymentReceipt(payment, store, lang) {
+  const cap = window.Capacitor;
+  const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
+
+  if (!isNative) {
+    const area = document.getElementById('printArea');
+    if (area) area.innerHTML = PaymentReceipt.html(payment, store, lang);
+    requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+    return;
+  }
+
+  if (window.ThermalPrinter && await ThermalPrinter.printPayment(payment, store, lang)) return;
+
+  let doc;
+  try {
+    doc = await buildPaymentReceiptPDF(payment, store, lang);
+  } catch (e) {
+    Toast.error(I18n.t('receipt.pdfFailed', { msg: (e && e.message) || e }));
+    return;
+  }
+  const base64 = doc.output('datauristring').split(',')[1];
+  const plugins = cap.Plugins || {};
+  const jobTitle = I18n.t('paymentReceipt.jobTitle', { number: payment.receiptNumber });
+
+  if (plugins.NativePrint) {
+    try {
+      await plugins.NativePrint.printPdf({ base64, jobName: jobTitle });
+      return;
+    } catch (e) {
+      Toast.show(I18n.t('receipt.printDialogFallback'));
+    }
+  }
+
+  if (!plugins.Filesystem || !plugins.Share) {
+    Toast.error(I18n.t('receipt.diagPrintMissing'));
+    return;
+  }
+  try {
+    const filename = `payment-${payment.receiptNumber}-${Date.now()}.pdf`;
+    const written = await plugins.Filesystem.writeFile({ path: filename, data: base64, directory: 'CACHE' });
+    await plugins.Share.share({ title: I18n.t('receipt.printDialogTitle'), url: written.uri, dialogTitle: I18n.t('receipt.printDialogTitle') });
+  } catch (e) {
+    Toast.error(I18n.t('receipt.printFailed', { msg: (e && e.message) || e }));
+  }
+}
+window.printPaymentReceipt = printPaymentReceipt;
+
+async function sharePaymentReceipt(payment, store, lang) {
+  const body = PaymentReceipt.text(payment, store, lang);
+  const title = I18n.t('paymentReceipt.jobTitle', { number: payment.receiptNumber });
+  const cap = window.Capacitor;
+  const isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
+
+  if (isNative) {
+    if (!cap.Plugins || !cap.Plugins.Share) {
+      Toast.error(I18n.t('receipt.diagShareMissing'));
+      return;
+    }
+    try {
+      await cap.Plugins.Share.share({ title, text: body, dialogTitle: title });
+    } catch (e) {
+      const msg = (e && e.message) || String(e);
+      if (!/cancel/i.test(msg)) Toast.error(I18n.t('receipt.shareFailed', { msg }));
+    }
+    return;
+  }
+  if (navigator.share) {
+    try { await navigator.share({ title, text: body }); return; }
+    catch (e) { return; }
+  }
+  const copied = await copyToClipboard(body);
+  Toast.show(copied ? I18n.t('receipt.sharingUnavailableCopied') : I18n.t('receipt.sharingUnsupported'));
+}
+window.sharePaymentReceipt = sharePaymentReceipt;
+
 /* ---------------------------------------------------------------------- */
 /* Generic HTML print / plain-text share — used for non-receipt content   */
 /* like barcode labels, where there's no structured sale/store data to    */
@@ -2399,7 +2765,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.10.0';
+const CURRENT_VERSION = '1.9.12.0';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -3100,6 +3466,7 @@ function renderMore(container) {
     ['reports', Icon('trending-up'), I18n.t('more.reportsTitle'), I18n.t('more.reportsSub')],
     ['customers', Icon('users'), I18n.t('more.customersTitle'), I18n.t('more.customersSub')],
     ['suppliers', Icon('truck'), I18n.t('more.suppliersTitle'), I18n.t('more.suppliersSub')],
+    ['purchase-orders', Icon('package'), I18n.t('more.purchaseOrdersTitle'), I18n.t('more.purchaseOrdersSub')],
     ['backup', Icon('database'), I18n.t('more.backupTitle'), I18n.t('more.backupSub')],
     ['settings', Icon('settings'), I18n.t('more.settingsTitle'), I18n.t('more.settingsSub')],
   ];

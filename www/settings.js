@@ -71,6 +71,7 @@ const SettingsScreen = (() => {
           ${I18n.LANGUAGES.map((l) => `<option value="${l.code}" ${pos.receiptLanguage === l.code ? 'selected' : ''}>${l.flag} ${l.nativeName}</option>`).join('')}
         </select>
       </div>
+      <div class="mt-8" id="printerRowWrap">${ThermalPrinter.settingsRowHTML(await Settings.get('printer'))}</div>
 
       <div class="section-title">${I18n.t('settings.sectionInventory')}</div>
       <div class="card flex-between">
@@ -195,6 +196,14 @@ const SettingsScreen = (() => {
     container.querySelector('#s_confirmSale').addEventListener('change', (e) => save({ confirmBeforeSale: e.target.checked }));
     container.querySelector('#s_receiptFooter').addEventListener('change', (e) => save({ receiptFooter: e.target.value.trim() }));
     container.querySelector('#s_receiptLanguage').addEventListener('change', (e) => save({ receiptLanguage: e.target.value }));
+    const wrap = container.querySelector('#printerRowWrap');
+    wrap.addEventListener('click', (e) => {
+      if (e.target.closest('#printerRow')) {
+        ThermalPrinter.openSetup({
+          onChange: async (cfg) => { wrap.innerHTML = ThermalPrinter.settingsRowHTML(cfg); },
+        });
+      }
+    });
   }
 
   function wireInventoryFields(container) {

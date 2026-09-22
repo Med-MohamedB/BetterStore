@@ -1045,6 +1045,7 @@ main#view {
   gap: 10px;
 }
 .confirm-card__actions .btn { height: 46px; font-size: 14.5px; }
+.confirm-card__actions--stack { flex-direction: column; }
 
 .sheet {
   position: fixed;

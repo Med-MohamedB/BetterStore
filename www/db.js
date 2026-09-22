@@ -233,6 +233,12 @@ const DEFAULT_SETTINGS = {
     receiptFooter: 'Thank you for your purchase!',
     receiptLanguage: 'app', // 'app' | 'en' | 'ar' | 'fr' — 'app' tracks the UI language
   },
+  printer: {
+    address: null, // Bluetooth MAC of the chosen thermal receipt printer; null = none set up
+    name: null,
+    paperMm: 58, // 58 | 80 — roll width; decides the printable dot width (384 / 576)
+    mode: 'auto', // 'auto' (text when the printer can be trusted with it, image otherwise) | 'image'
+  },
   inventory: {
     lowStockWarnings: true,
     defaultMinStock: 5,

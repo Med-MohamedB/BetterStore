@@ -1244,32 +1244,52 @@ function createCanvasReceiptKit(pageWidthMm, pageHeightMm) {
    here. Mirrors buildReceiptPDF's own two-pass approach: a throwaway
    kit first, purely to measure wrapped line counts and get an exact
    final height, then a second kit at that exact size to actually draw. */
-async function buildReceiptCanvas(sale, store, lang) {
-  const pageWidth = 80;
-  const margin = 5;
+async function buildReceiptCanvas(sale, store, lang, opts = {}) {
+  // opts is only ever set by the thermal-printer path (see printer.js): a
+  // page exactly as wide as the printer's dot width (8 dots per mm, same
+  // 8 px/mm this kit draws at, so 1 canvas pixel == 1 printed dot), tight
+  // margins, no decorative torn edge, and barcode modules snapped to whole
+  // dots so the bars stay razor-sharp instead of being anti-aliased.
+  const pageWidth = opts.pageWidthMm || 80;
+  const margin = opts.marginMm != null ? opts.marginMm : 5;
   const contentWidth = pageWidth - margin * 2;
   const lineH = 5;
   const footerText = store.receiptFooter !== '' ? (store.receiptFooter || I18n.t('receipt.defaultFooter', null, lang)) : '';
   const itemCount = sale.items.reduce((s, it) => s + it.qty, 0);
   const barcodePattern = Barcode128.encode(sale.receiptNumber);
-  const barcodeModule = barcodePattern ? Math.min(0.42, contentWidth / barcodePattern.length) : 0.32;
+  const barcodeModule = barcodePattern
+    ? (opts.dotAlign
+      ? Math.max(1, Math.floor((contentWidth * 8) / barcodePattern.length)) / 8
+      : Math.min(0.42, contentWidth / barcodePattern.length))
+    : 0.32;
   const barcodeHeight = 11;
   const hexToRgb = (hex) => {
     const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex).trim());
     return m ? `rgb(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)})` : '#232323';
   };
-  const accentColor = hexToRgb(getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#2F5233');
+  const accentColor = opts.mono ? '#000000' : hexToRgb(getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#2F5233');
+  // Thermal path: a photo logo would just turn into a black blob at 1 bit per
+  // dot, so it's skipped there (the store name still heads the receipt).
+  const showLogo = !!store.logo && !opts.noLogo;
 
   // --- Pass 1: measure, on a 1x1 throwaway kit (only its ctx.font and
   // ctx.measureText matter here, not its actual pixel size). ---
   const measure = createCanvasReceiptKit(1, 1);
-  const wrap = (txt, size, bold = false) => {
+  const wrap = (txt, size, bold = false, maxW = contentWidth) => {
     measure.setFont(size, bold);
-    return measure.wrap(String(txt), contentWidth);
+    return measure.wrap(String(txt), maxW);
+  };
+  // Thermal path only (opts.reserveMoney): on a 48mm-wide roll a long item name
+  // would otherwise run underneath its own price, so item names wrap in the
+  // width left over after the price.
+  const nameW = (priceStr) => {
+    if (!opts.reserveMoney) return contentWidth;
+    measure.setFont(9, false);
+    return Math.max(contentWidth * 0.4, contentWidth - measure.measureWidth(String(priceStr)) - 2);
   };
 
   let h = margin;
-  if (store.logo) h += 22;
+  if (showLogo) h += 22;
   h += 6.5;
   const addrLines = store.address ? wrap(store.address, 8.5) : [];
   const phoneLines = store.phone ? wrap(store.phone, 8.5) : [];
@@ -1281,7 +1301,7 @@ async function buildReceiptCanvas(sale, store, lang) {
   h += 5;
 
   const itemLines = sale.items.map((it) => ({
-    rows: wrap(`${it.qty}\u00d7 ${it.name}`, 9).length,
+    rows: wrap(`${it.qty}\u00d7 ${it.name}`, 9, false, nameW(Fmt.money(it.price * it.qty))).length,
     hasDiscount: !!it.discount,
     hasRefund: !!it.refundedQty,
   }));
@@ -1322,7 +1342,7 @@ async function buildReceiptCanvas(sale, store, lang) {
   };
   const divider = () => { kit.dividerLine(margin, pageWidth - margin, y); y += 5; };
 
-  if (store.logo) {
+  if (showLogo) {
     const ok = await kit.drawImage(store.logo, cx - 9, y, 18, 18);
     if (ok) y += 22;
   }
@@ -1352,7 +1372,7 @@ async function buildReceiptCanvas(sale, store, lang) {
   divider();
 
   sale.items.forEach((it) => {
-    wrap(`${it.qty}\u00d7 ${it.name}`, 9).forEach((l, i) => {
+    wrap(`${it.qty}\u00d7 ${it.name}`, 9, false, nameW(Fmt.money(it.price * it.qty))).forEach((l, i) => {
       row(l, i === 0 ? Fmt.money(it.price * it.qty) : undefined, { size: 9 });
       y += lineH;
     });
@@ -1398,7 +1418,9 @@ async function buildReceiptCanvas(sale, store, lang) {
 
   if (barcodePattern) {
     const barcodeWidth = barcodePattern.length * barcodeModule;
-    Barcode128.drawOnCanvas(kit.ctx, sale.receiptNumber, cx - barcodeWidth / 2, y, { moduleWidth: barcodeModule, height: barcodeHeight });
+    let barcodeX = cx - barcodeWidth / 2;
+    if (opts.dotAlign) barcodeX = Math.round(barcodeX * 8) / 8; // land on a whole dot
+    Barcode128.drawOnCanvas(kit.ctx, sale.receiptNumber, barcodeX, y, { moduleWidth: barcodeModule, height: barcodeHeight });
     y += barcodeHeight + 3;
   }
   kit.setFont(8, false);
@@ -1416,7 +1438,7 @@ async function buildReceiptCanvas(sale, store, lang) {
   kit.text(sale.receiptNumber, margin, y, { align: 'left', color: '#8c8c8c', dir: 'ltr' });
   kit.text(Fmt.dateTime(sale.date), pageWidth - margin, y, { align: 'right', color: '#8c8c8c', dir: 'ltr' });
   y += lineH + 4;
-  kit.tornEdge(margin, pageWidth - margin, y);
+  if (!opts.noTornEdge) kit.tornEdge(margin, pageWidth - margin, y);
 
   return { canvas: kit.canvas, widthMm: pageWidth, heightMm: pageHeight };
 }
@@ -1678,38 +1700,49 @@ window.buildReceiptPDF = buildReceiptPDF;
 
 /* Canvas counterpart to buildRefundReceiptPDF below, for lang === 'ar'
    — see buildReceiptCanvas's comment for why. */
-async function buildRefundReceiptCanvas(sale, refundInfo, store, lang) {
-  const pageWidth = 80;
-  const margin = 5;
+async function buildRefundReceiptCanvas(sale, refundInfo, store, lang, opts = {}) {
+  // opts: same thermal-printer overrides as buildReceiptCanvas above.
+  const pageWidth = opts.pageWidthMm || 80;
+  const margin = opts.marginMm != null ? opts.marginMm : 5;
   const contentWidth = pageWidth - margin * 2;
   const lineH = 5;
   const barcodePattern = Barcode128.encode(sale.receiptNumber);
-  const barcodeModule = barcodePattern ? Math.min(0.42, contentWidth / barcodePattern.length) : 0.32;
+  const barcodeModule = barcodePattern
+    ? (opts.dotAlign
+      ? Math.max(1, Math.floor((contentWidth * 8) / barcodePattern.length)) / 8
+      : Math.min(0.42, contentWidth / barcodePattern.length))
+    : 0.32;
   const barcodeHeight = 11;
   const hexToRgb = (hex) => {
     const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex).trim());
     return m ? `rgb(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)})` : '#232323';
   };
-  const coralColor = hexToRgb(getComputedStyle(document.documentElement).getPropertyValue('--coral') || '#D9506B');
+  const coralColor = opts.mono ? '#000000' : hexToRgb(getComputedStyle(document.documentElement).getPropertyValue('--coral') || '#D9506B');
+  const showLogo = !!store.logo && !opts.noLogo;
 
   const measure = createCanvasReceiptKit(1, 1);
-  const wrap = (txt, size) => {
+  const wrap = (txt, size, maxW = contentWidth) => {
     measure.setFont(size, false);
-    return measure.wrap(String(txt), contentWidth);
+    return measure.wrap(String(txt), maxW);
+  };
+  const nameW = (priceStr) => {
+    if (!opts.reserveMoney) return contentWidth;
+    measure.setFont(9, false);
+    return Math.max(contentWidth * 0.4, contentWidth - measure.measureWidth(String(priceStr)) - 2);
   };
 
   let h = margin;
-  if (store.logo) h += 22;
+  if (showLogo) h += 22;
   h += 6.5 + 5;
   h += lineH + 3;
   h += wrap(`${I18n.t('refundReceipt.originalReceiptPrefix', null, lang)}: ${sale.receiptNumber} \u00b7 ${Fmt.dateTime(sale.date)}`, 8).length * 4 + 5;
   h += 5;
   h += lineH;
-  sale.items.forEach((it) => { h += wrap(`${it.qty}\u00d7 ${it.name}`, 9).length * lineH; });
+  sale.items.forEach((it) => { h += wrap(`${it.qty}\u00d7 ${it.name}`, 9, nameW(Fmt.money(it.price * it.qty))).length * lineH; });
   h += lineH + 1;
   h += 5;
   h += lineH;
-  refundInfo.items.forEach((it) => { h += wrap(`${it.qty}\u00d7 ${it.name}`, 9).length * lineH; });
+  refundInfo.items.forEach((it) => { h += wrap(`${it.qty}\u00d7 ${it.name}`, 9, nameW(`\u2212 ${Fmt.money(it.unitNet * it.qty)}`)).length * lineH; });
   h += lineH + 3;
   h += 5;
   h += barcodeHeight + 3;
@@ -1732,7 +1765,7 @@ async function buildRefundReceiptCanvas(sale, refundInfo, store, lang) {
   };
   const divider = () => { kit.dividerLine(margin, pageWidth - margin, y); y += 5; };
 
-  if (store.logo) {
+  if (showLogo) {
     const ok = await kit.drawImage(store.logo, cx - 9, y, 18, 18);
     if (ok) y += 22;
   }
@@ -1752,7 +1785,7 @@ async function buildRefundReceiptCanvas(sale, refundInfo, store, lang) {
   kit.text(I18n.t('refundReceipt.purchasedSectionTitle', null, lang), margin, y, { align: 'left' });
   y += lineH;
   sale.items.forEach((it) => {
-    wrap(`${it.qty}\u00d7 ${it.name}`, 9).forEach((l, i) => {
+    wrap(`${it.qty}\u00d7 ${it.name}`, 9, nameW(Fmt.money(it.price * it.qty))).forEach((l, i) => {
       row(l, i === 0 ? Fmt.money(it.price * it.qty) : undefined, { size: 9 });
       y += lineH;
     });
@@ -1765,7 +1798,7 @@ async function buildRefundReceiptCanvas(sale, refundInfo, store, lang) {
   kit.text(I18n.t('refundReceipt.refundedSectionTitle', null, lang), margin, y, { align: 'left', color: coralColor });
   y += lineH;
   refundInfo.items.forEach((it) => {
-    wrap(`${it.qty}\u00d7 ${it.name}`, 9).forEach((l, i) => {
+    wrap(`${it.qty}\u00d7 ${it.name}`, 9, nameW(`\u2212 ${Fmt.money(it.unitNet * it.qty)}`)).forEach((l, i) => {
       row(l, i === 0 ? `\u2212 ${Fmt.money(it.unitNet * it.qty)}` : undefined, { size: 9, color: i === 0 ? coralColor : null });
       y += lineH;
     });
@@ -1776,7 +1809,9 @@ async function buildRefundReceiptCanvas(sale, refundInfo, store, lang) {
 
   if (barcodePattern) {
     const barcodeWidth = barcodePattern.length * barcodeModule;
-    Barcode128.drawOnCanvas(kit.ctx, sale.receiptNumber, cx - barcodeWidth / 2, y, { moduleWidth: barcodeModule, height: barcodeHeight });
+    let barcodeX = cx - barcodeWidth / 2;
+    if (opts.dotAlign) barcodeX = Math.round(barcodeX * 8) / 8;
+    Barcode128.drawOnCanvas(kit.ctx, sale.receiptNumber, barcodeX, y, { moduleWidth: barcodeModule, height: barcodeHeight });
     y += barcodeHeight + 3;
   }
   kit.setFont(8, false);
@@ -1786,7 +1821,7 @@ async function buildRefundReceiptCanvas(sale, refundInfo, store, lang) {
 
   row(I18n.t('refundReceipt.refundDateLabel', null, lang), Fmt.dateTime(refundInfo.date), { size: 7 });
   y += lineH + 4;
-  kit.tornEdge(margin, pageWidth - margin, y);
+  if (!opts.noTornEdge) kit.tornEdge(margin, pageWidth - margin, y);
 
   return { canvas: kit.canvas, widthMm: pageWidth, heightMm: pageHeight };
 }
@@ -2068,6 +2103,13 @@ async function printReceipt(sale, store, lang) {
     return;
   }
 
+  // A paired Bluetooth thermal printer (Settings > Point of Sale > Receipt
+  // Printer) wins over everything below. printSale() resolves true when it
+  // handled the job (printed, or the person chose to stop); false means no
+  // printer is set up — or they picked "use system print" after a failure —
+  // so the original PDF/print-dialog path below runs completely unchanged.
+  if (window.ThermalPrinter && await ThermalPrinter.printSale(sale, store, lang)) return;
+
   let doc;
   try {
     doc = await buildReceiptPDF(sale, store, lang);
@@ -2147,6 +2189,8 @@ async function printRefundReceipt(sale, refundInfo, store, lang) {
     requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
     return;
   }
+
+  if (window.ThermalPrinter && await ThermalPrinter.printRefund(sale, refundInfo, store, lang)) return;
 
   let doc;
   try {
@@ -2355,7 +2399,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.9.32';
+const CURRENT_VERSION = '1.9.10.0';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -3242,6 +3286,7 @@ async function showDiagnostics() {
     lines.push(`Plugins.Share: ${plugins.Share ? 'yes' : 'MISSING'}`);
     lines.push(`Plugins.Filesystem: ${plugins.Filesystem ? 'yes' : 'MISSING'}`);
     lines.push(`Plugins.NativePrint: ${plugins.NativePrint ? 'yes' : 'MISSING'}`);
+    lines.push(`Plugins.ThermalPrinter: ${plugins.ThermalPrinter ? 'yes' : 'MISSING'}`);
     lines.push(`Plugins.BiometricAuth: ${plugins.BiometricAuth ? 'yes' : 'MISSING'}`);
     lines.push(`Plugins.App: ${plugins.App ? 'yes' : 'MISSING'}`);
     lines.push(`Plugins.Browser: ${plugins.Browser ? 'yes' : 'MISSING'}`);

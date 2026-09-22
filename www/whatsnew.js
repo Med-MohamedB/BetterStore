@@ -46,6 +46,19 @@ const WhatsNew = (() => {
   //     fabricated version number.
   const CHANGELOG = [
     {
+      version: '1.9.10.0',
+      items: [
+        {
+          icon: Icon('printer'),
+          text: {
+            en: 'Added support for Bluetooth thermal receipt printers \\u2014 connect one from Settings > Point of Sale > Receipt Printer, and sale/refund receipts print straight to it instead of opening the system print dialog. Prints as crisp native text when the receipt is plain text, and automatically switches to a pixel-perfect image (matching the on-screen preview exactly) for Arabic or accented text, with a manual \\u201cAlways as image\\u201d option and a printer test page.',
+            ar: 'أضفنا دعمًا لطابعات الإيصالات الحرارية عبر البلوتوث \\u2014 وصّل واحدة من الإعدادات > نقطة البيع > طابعة الإيصالات، وستُطبع إيصالات البيع والاسترجاع مباشرة عليها بدلاً من فتح نافذة طباعة النظام. تُطبع كنص أصلي واضح عندما يكون الإيصال نصًا عاديًا، وتنتقل تلقائيًا إلى صورة دقيقة (تطابق المعاينة على الشاشة تمامًا) مع النص العربي أو المُشكَّل، مع خيار يدوي \\u201cدائمًا كصورة\\u201d وصفحة اختبار للطابعة.',
+            fr: 'Ajout de la prise en charge des imprimantes thermiques de reçus Bluetooth \\u2014 connectez-en une depuis Paramètres > Point de Vente > Imprimante de reçus, et les reçus de vente/remboursement s\\u2019impriment directement dessus au lieu d\\u2019ouvrir la boîte de dialogue d\\u2019impression du système. Imprime en texte natif net lorsque le reçu est du texte brut, et bascule automatiquement vers une image au pixel près (correspondant exactement à l\\u2019aperçu à l\\u2019écran) pour l\\u2019arabe ou le texte accentué, avec une option manuelle \\u00ab\\u00a0Toujours en image\\u00a0\\u00bb et une page de test d\\u2019imprimante.',
+          },
+        },
+      ],
+    },
+    {
       version: '1.9.9.32',
       items: [
         {

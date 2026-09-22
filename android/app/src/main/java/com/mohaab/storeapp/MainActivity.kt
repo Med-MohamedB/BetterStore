@@ -23,6 +23,7 @@ class MainActivity : BridgeActivity() {
         registerPlugin(BiometricAuthPlugin::class.java)
         registerPlugin(NativePrintPlugin::class.java)
         registerPlugin(SelfUpdatePlugin::class.java)
+        registerPlugin(ThermalPrinterPlugin::class.java)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -151,9 +151,20 @@ const Scanner = (() => {
   /* Shared full-screen camera UI                                       */
   /* ---------------------------------------------------------------- */
 
+  // Set when openFullscreen() finds a Sheet already open (e.g. "scan" was
+  // tapped from inside the Add Product form) — the scanner needs to sit
+  // ABOVE that sheet instead of hidden behind it, and closeFullscreen()
+  // needs to know to bring the sheet back afterward. Not the reverse case
+  // (a sheet like the camera picker opening on top of an already-running
+  // scanner) — that already works via the default z-index ordering.
+  let overlayOverSheet = false;
+
   function openFullscreen({ onDetected, onClose, title, continuous }) {
+    overlayOverSheet = !!(window.Sheet && Sheet.el);
+    if (overlayOverSheet) Sheet.recede();
+
     overlayEl = document.createElement('div');
-    overlayEl.className = 'scanner-overlay';
+    overlayEl.className = overlayOverSheet ? 'scanner-overlay above-sheet' : 'scanner-overlay';
     currentHintText = continuous ? I18n.t('scanner.hintContinuous') : I18n.t('scanner.hintOneShot');
     overlayEl.innerHTML = `
       <div class="scanner-topbar">
@@ -223,6 +234,8 @@ const Scanner = (() => {
 
   function closeFullscreen() {
     stopCamera();
+    if (overlayOverSheet && window.Sheet) Sheet.restore();
+    overlayOverSheet = false;
     if (overlayEl) {
       overlayEl.classList.remove('open');
       const el = overlayEl;

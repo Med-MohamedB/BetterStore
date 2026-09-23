@@ -19,7 +19,7 @@ const Customers = (() => {
   }
 
   async function renderList(container) {
-    const [customers, sales] = await Promise.all([DB.getAll('customers'), DB.getAll('sales')]);
+    const [customers, sales, payments] = await Promise.all([DB.getAll('customers'), DB.getAll('sales'), DB.getAll('customerPayments')]);
 
     const filtered = customers.filter((c) => {
       if (!searchQuery) return true;
@@ -35,7 +35,7 @@ const Customers = (() => {
 
       ${filtered.length ? `
         <div class="list stagger" id="customerList">
-          ${filtered.map((c) => customerRowHTML(c, sales)).join('')}
+          ${filtered.map((c) => customerRowHTML(c, sales, payments)).join('')}
         </div>
       ` : `
         <div class="empty-state${customers.length ? '' : ' empty-state--illustrated'}">
@@ -61,7 +61,7 @@ const Customers = (() => {
     container.querySelectorAll('[data-customer-row]').forEach((row) => {
       row.addEventListener('click', async () => {
         const c = await DB.get('customers', Number(row.dataset.customerRow));
-        if (c) openDetail(c, sales, container);
+        if (c) openDetail(c, sales, payments, container);
       });
     });
   }
@@ -74,16 +74,38 @@ const Customers = (() => {
     return { total, count, last };
   }
 
-  function customerRowHTML(c, sales) {
+  /** How much of a credit sale is still unpaid, after its own refunds (a
+   *  refund on a credit sale reduces what's owed on it, same logic a
+   *  refund on a cash sale would apply to its own total). */
+  function creditOutstanding(sale) {
+    if (sale.paymentMethod !== 'credit') return 0;
+    return Math.max(0, (sale.creditAmount || 0) - (sale.totalRefunded || 0));
+  }
+
+  /** A customer's current balance owed: every credit sale's still-unpaid
+   *  amount, minus every payment they've made — derived fresh each time
+   *  rather than stored, so it can never drift out of sync (same approach
+   *  as statsFor's lifetime totals above). */
+  function balanceFor(customerId, sales, payments) {
+    const owed = sales.filter((s) => s.customerId === customerId).reduce((sum, s) => sum + creditOutstanding(s), 0);
+    const paid = payments.filter((p) => p.customerId === customerId).reduce((sum, p) => sum + p.amount, 0);
+    return Math.max(0, owed - paid);
+  }
+
+  function customerRowHTML(c, sales, payments) {
     const { total, count } = statsFor(c.id, sales);
+    const balance = balanceFor(c.id, sales, payments);
     return `
       <div class="list-row tappable" data-customer-row="${c.id}">
-        <div class="list-row__icon">${Icon('user')}</div>
+        <div class="list-row__icon${balance ? ' warn' : ''}">${Icon(balance ? 'wallet' : 'user')}</div>
         <div class="list-row__body">
           <div class="list-row__title">${escapeHTML(c.name)}</div>
           <div class="list-row__subtitle">${escapeHTML(c.phone || I18n.t('customers.noPhone'))} · ${I18n.t('customers.orderCount', { count, plural: count !== 1 ? 's' : '' })}</div>
         </div>
-        <div class="list-row__trailing"><div class="list-row__amount num">${Fmt.money(total)}</div></div>
+        <div class="list-row__trailing">
+          <div class="list-row__amount num">${Fmt.money(total)}</div>
+          ${balance ? `<div class="text-sm num" style="color:var(--coral); margin-top:2px;">${I18n.t('customers.owes', { amount: Fmt.money(balance) })}</div>` : ''}
+        </div>
       </div>`;
   }
 
@@ -118,8 +140,9 @@ const Customers = (() => {
     });
   }
 
-  async function openDetail(c, sales, listContainer) {
+  async function openDetail(c, sales, payments, listContainer) {
     const { total, count, last } = statsFor(c.id, sales);
+    const balance = balanceFor(c.id, sales, payments);
     const bodyHTML = `
       <div style="text-align:center;">
         <div style="width:56px;height:56px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 10px;">${Icon('user', { size: 26 })}</div>
@@ -131,16 +154,30 @@ const Customers = (() => {
         <div class="stat-card"><div class="stat-card__label">${I18n.t('customers.detail.totalPurchases')}</div><div class="stat-card__value accent num">${Fmt.money(total)}</div></div>
         <div class="stat-card"><div class="stat-card__label">${I18n.t('customers.detail.orders')}</div><div class="stat-card__value num">${count}</div></div>
       </div>
+      ${balance ? `
+        <div class="card mt-16" style="border-color:var(--coral);">
+          <div class="flex-between">
+            <span class="text-sm" style="font-weight:700; color:var(--coral);">${I18n.t('customers.detail.balanceOwed')}</span>
+            <span class="num" style="font-weight:700; font-size:16px; color:var(--coral);">${Fmt.money(balance)}</span>
+          </div>
+        </div>
+      ` : ''}
       ${last ? `<div class="text-dim text-sm mt-16">${I18n.t('customers.detail.lastPurchase', { date: Fmt.dateTime(last) })}</div>` : ''}
       ${c.notes ? `<div class="card mt-16"><div class="text-sm">${escapeHTML(c.notes)}</div></div>` : ''}
     `;
     const footerHTML = `
-      <div class="flex gap-8">
+      ${balance ? `<button class="btn btn-primary tappable" id="recordPaymentBtn">${Icon('banknote')} ${I18n.t('customers.detail.recordPayment')}</button>` : ''}
+      <div class="flex gap-8 ${balance ? 'mt-8' : ''}">
         <button class="btn btn-secondary tappable" id="editCustomerBtn">${I18n.t('customers.detail.edit')}</button>
         <button class="btn btn-danger tappable" id="deleteCustomerBtn" style="max-width:60px;">${Icon('trash')}</button>
       </div>`;
     const sheetEl = Sheet.open({ title: I18n.t('customers.detail.title'), bodyHTML, footerHTML });
 
+    const recordBtn = sheetEl.querySelector('#recordPaymentBtn');
+    if (recordBtn) recordBtn.addEventListener('click', () => {
+      Sheet.close();
+      setTimeout(() => openRecordPayment(c, balance, listContainer), 260);
+    });
     sheetEl.querySelector('#editCustomerBtn').addEventListener('click', () => {
       Sheet.close();
       setTimeout(() => openForm(c), 260);
@@ -155,6 +192,103 @@ const Customers = (() => {
     });
   }
 
+  /* ---------------------------------------------------------------- */
+  /* Record Payment — pays down a customer's credit balance             */
+  /* ---------------------------------------------------------------- */
+
+  function openRecordPayment(c, balance, listContainer) {
+    const bodyHTML = `
+      <div class="flex-between">
+        <span class="text-dim text-sm">${I18n.t('customers.paymentSheet.currentBalance')}</span>
+        <span class="num" style="font-weight:700; font-size:18px; color:var(--coral);">${Fmt.money(balance)}</span>
+      </div>
+      <div class="field mt-16">
+        <label>${I18n.t('customers.paymentSheet.amountLabel')}</label>
+        <input type="number" inputmode="decimal" id="paymentAmount" value="${balance}" min="0.01" max="${balance}" step="0.01">
+      </div>
+      <div class="text-dim text-sm" id="paymentRemainingHint"></div>
+    `;
+    const footerHTML = `<button class="btn btn-primary tappable" id="confirmPaymentBtn">${I18n.t('customers.paymentSheet.confirmBtn')}</button>`;
+    const sheetEl = Sheet.open({ title: I18n.t('customers.paymentSheet.title'), bodyHTML, footerHTML });
+
+    const input = sheetEl.querySelector('#paymentAmount');
+    const hint = sheetEl.querySelector('#paymentRemainingHint');
+    const updateHint = () => {
+      const amt = Math.min(balance, Math.max(0, parseFloat(input.value) || 0));
+      const remaining = balance - amt;
+      hint.textContent = remaining > 0
+        ? I18n.t('customers.paymentSheet.remainingAfter', { amount: Fmt.money(remaining) })
+        : I18n.t('customers.paymentSheet.paidInFull');
+    };
+    input.addEventListener('input', updateHint);
+    updateHint();
+    setTimeout(() => input.focus(), 300);
+
+    sheetEl.querySelector('#confirmPaymentBtn').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return; // guards against a rapid double-tap recording the payment twice
+      const amount = Math.round((parseFloat(input.value) || 0) * 100) / 100;
+      if (amount <= 0) { Toast.error(I18n.t('customers.paymentSheet.amountRequired')); return; }
+      if (amount > balance + 0.001) { Toast.error(I18n.t('customers.paymentSheet.amountExceedsBalance')); return; }
+
+      btn.disabled = true;
+      const payment = {
+        customerId: c.id,
+        customerName: c.name,
+        amount,
+        balanceBefore: balance,
+        date: new Date(),
+        receiptNumber: Ids.paymentNumber(),
+      };
+      payment.id = await DB.add('customerPayments', payment);
+
+      await showSuccessCheck(I18n.t('customers.paymentSheet.recorded'), true);
+      Sheet.close();
+      if (Router.current === 'customers') renderList(listContainer);
+      setTimeout(() => openPaymentReceipt(payment, c), 100);
+    });
+  }
+
+  /** Shows the just-recorded payment as its own printable/shareable
+   *  receipt — same language-switcher + print/share/done pattern as
+   *  Sales' openRefundReceiptSheet, for PaymentReceipt instead of
+   *  RefundReceipt. */
+  async function openPaymentReceipt(payment, c) {
+    const store = await Settings.get('store');
+    const pos = await Settings.get('pos');
+    const lang = resolveReceiptLanguage(pos);
+
+    const bodyHTML = `
+      ${receiptLangChipsHTML(lang)}
+      <div class="receipt-preview-body">${PaymentReceipt.html(payment, store, lang)}</div>
+    `;
+    const footerHTML = `
+      <div class="flex gap-8">
+        <button class="btn btn-secondary tappable" id="printPaymentBtn">${Icon('printer')} ${I18n.t('paymentReceipt.printBtn')}</button>
+        <button class="btn btn-secondary tappable" id="sharePaymentBtn">${Icon('share')} ${I18n.t('paymentReceipt.shareBtn')}</button>
+      </div>
+      <button class="btn btn-primary mt-8 tappable" id="paymentReceiptDoneBtn">${I18n.t('paymentReceipt.doneBtn')}</button>
+    `;
+    const sheetEl = Sheet.open({ title: I18n.t('paymentReceipt.title'), bodyHTML, footerHTML });
+
+    let currentLang = lang;
+    const bodyEl = sheetEl.querySelector('.receipt-preview-body');
+    const chipsEl = sheetEl.querySelector('.receipt-lang-chips');
+    if (bodyEl && chipsEl) {
+      chipsEl.querySelectorAll('[data-lang]').forEach((chip) => {
+        chip.addEventListener('click', () => {
+          currentLang = chip.dataset.lang;
+          chipsEl.querySelectorAll('[data-lang]').forEach((cEl) => cEl.classList.toggle('active', cEl === chip));
+          bodyEl.innerHTML = PaymentReceipt.html(payment, store, currentLang);
+        });
+      });
+    }
+
+    sheetEl.querySelector('#printPaymentBtn').addEventListener('click', () => printPaymentReceipt(payment, store, currentLang));
+    sheetEl.querySelector('#sharePaymentBtn').addEventListener('click', () => sharePaymentReceipt(payment, store, currentLang));
+    sheetEl.querySelector('#paymentReceiptDoneBtn').addEventListener('click', () => Sheet.close());
+  }
+
   /** Reusable picker for pos.js: lets the cashier attach a customer to the current sale. */
   function openPicker(onPick) {
     const bodyHTML = `
@@ -164,7 +298,9 @@ const Customers = (() => {
       </div>
       <div id="custPickerResults" class="list"></div>
     `;
-    const sheetEl = Sheet.open({ title: I18n.t('customers.picker.title'), bodyHTML });
+    // stacked: true — this is commonly opened from inside another sheet
+    // (e.g. the POS payment sheet); layer on top instead of destroying it.
+    const sheetEl = Sheet.open({ title: I18n.t('customers.picker.title'), bodyHTML, stacked: true });
     const resultsEl = sheetEl.querySelector('#custPickerResults');
     const searchEl = sheetEl.querySelector('#custPickerSearch');
 

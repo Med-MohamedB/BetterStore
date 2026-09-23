@@ -105,10 +105,12 @@ const PurchaseOrders = (() => {
 
   /** presetSupplier: { id, name } to skip the picker when opened from a
    *  supplier's own detail sheet (Suppliers.openDetail's "New Purchase
-   *  Order" button). */
-  function openForm(presetSupplier = null) {
+   *  Order" button). presetItems: line items to start the order with
+   *  (Products.openDetail's "Restock" button pre-adds that one product,
+   *  qty 1 at its current purchase price — both stay fully editable). */
+  function openForm(presetSupplier = null, presetItems = []) {
     let supplier = presetSupplier;
-    const items = []; // { productId, productName, unit, qty, unitCost }
+    const items = presetItems.map((it) => ({ ...it })); // { productId, productName, unit, qty, unitCost }
 
     const bodyHTML = `
       <div class="list-row tappable" id="poSupplierRow" style="border:1px solid var(--border);">

@@ -46,14 +46,27 @@ const WhatsNew = (() => {
   //     fabricated version number.
   const CHANGELOG = [
     {
+      version: '1.9.12.1',
+      items: [
+        {
+          icon: Icon('check-circle'),
+          text: {
+            en: 'Fixed a few things: picking a product or supplier from inside another screen (like a new Purchase Order) no longer closes that screen behind it; scanning a barcode from the Add Product form now shows the camera properly instead of hiding behind the form; and the changelog text itself was showing raw \u2014 style codes instead of the punctuation they stood for. Also added a Restock button to each product\u2019s detail screen that starts a Purchase Order for just that item.',
+            ar: 'أصلحنا بضعة أمور: اختيار منتج أو مورّد من داخل شاشة أخرى (مثل طلب شراء جديد) لم يعد يُغلق تلك الشاشة خلفه؛ ومسح الباركود من نموذج إضافة منتج يعرض الكاميرا بشكل صحيح الآن بدلاً من الاختباء خلف النموذج؛ ونص سجل التحديثات نفسه كان يعرض رموزًا مثل \u2014 بدلاً من علامات الترقيم التي تمثلها. كما أضفنا زر \u201cإعادة تخزين\u201d في شاشة تفاصيل كل منتج يبدأ طلب شراء لهذا المنتج فقط.',
+            fr: 'Correction de plusieurs problèmes\u00a0: choisir un produit ou un fournisseur depuis l\u2019intérieur d\u2019un autre écran (comme un nouveau Bon de Commande) ne ferme plus cet écran en dessous\u00a0; scanner un code-barres depuis le formulaire Ajouter un Produit affiche désormais correctement la caméra au lieu de se cacher derrière le formulaire\u00a0; et le texte du journal des mises à jour affichait lui-même des codes bruts comme \u2014 au lieu de la ponctuation qu\u2019ils représentaient. Ajout également d\u2019un bouton Réapprovisionner sur la fiche de chaque produit, qui lance un Bon de Commande pour cet article seul.',
+          },
+        },
+      ],
+    },
+    {
       version: '1.9.12.0',
       items: [
         {
           icon: Icon('package'),
           text: {
-            en: 'Added Purchase Orders \\u2014 a new screen (More > Purchase Orders, or \\u201cNew Purchase Order\\u201d from a supplier\\u2019s profile) to build a restock order line by line with quantities and unit costs. Save it as Open to just record what was ordered, or Save & Mark Received to update stock, refresh each product\\u2019s purchase price, and log it to the inventory history immediately \\u2014 whichever fits how you actually restock.',
-            ar: 'أضفنا طلبات الشراء \\u2014 شاشة جديدة (المزيد > طلبات الشراء، أو \\u201cطلب شراء جديد\\u201d من ملف المورّد) لإنشاء طلب إعادة تخزين عنصرًا بعنصر مع الكميات وتكلفة الوحدة. احفظه كـ\\u201cمفتوح\\u201d لمجرد تسجيل ما تم طلبه، أو \\u201cحفظ وتحديد كمستلَم\\u201d لتحديث المخزون وتحديث سعر شراء كل منتج وتسجيله في سجل المخزون فورًا \\u2014 أيهما يناسب طريقتك الفعلية في إعادة التخزين.',
-            fr: 'Ajout des Bons de Commande \\u2014 un nouvel écran (Plus > Bons de Commande, ou \\u00ab\\u00a0Nouveau Bon de Commande\\u00a0\\u00bb depuis le profil d\\u2019un fournisseur) pour composer une commande de réapprovisionnement article par article, avec quantités et coûts unitaires. Enregistrez-la comme Ouverte pour simplement noter ce qui a été commandé, ou Enregistrer et Marquer Reçu pour mettre à jour le stock, actualiser le coût d\\u2019achat de chaque produit et l\\u2019inscrire immédiatement dans l\\u2019historique du stock \\u2014 selon la façon dont vous réapprovisionnez réellement.',
+            en: 'Added Purchase Orders \u2014 a new screen (More > Purchase Orders, or \u201cNew Purchase Order\u201d from a supplier\u2019s profile) to build a restock order line by line with quantities and unit costs. Save it as Open to just record what was ordered, or Save & Mark Received to update stock, refresh each product\u2019s purchase price, and log it to the inventory history immediately \u2014 whichever fits how you actually restock.',
+            ar: 'أضفنا طلبات الشراء \u2014 شاشة جديدة (المزيد > طلبات الشراء، أو \u201cطلب شراء جديد\u201d من ملف المورّد) لإنشاء طلب إعادة تخزين عنصرًا بعنصر مع الكميات وتكلفة الوحدة. احفظه كـ\u201cمفتوح\u201d لمجرد تسجيل ما تم طلبه، أو \u201cحفظ وتحديد كمستلَم\u201d لتحديث المخزون وتحديث سعر شراء كل منتج وتسجيله في سجل المخزون فورًا \u2014 أيهما يناسب طريقتك الفعلية في إعادة التخزين.',
+            fr: 'Ajout des Bons de Commande \u2014 un nouvel écran (Plus > Bons de Commande, ou \u00ab\u00a0Nouveau Bon de Commande\u00a0\u00bb depuis le profil d\u2019un fournisseur) pour composer une commande de réapprovisionnement article par article, avec quantités et coûts unitaires. Enregistrez-la comme Ouverte pour simplement noter ce qui a été commandé, ou Enregistrer et Marquer Reçu pour mettre à jour le stock, actualiser le coût d\u2019achat de chaque produit et l\u2019inscrire immédiatement dans l\u2019historique du stock \u2014 selon la façon dont vous réapprovisionnez réellement.',
           },
         },
       ],
@@ -64,9 +77,9 @@ const WhatsNew = (() => {
         {
           icon: Icon('wallet'),
           text: {
-            en: 'Added customer credit and debts \\u2014 sell \\u201cOn Credit\\u201d to any attached customer from checkout (with an optional down payment), and their running balance now shows on their profile. Tap Record Payment to pay it down by any amount, which prints/shares its own Payment Receipt, modeled on the refund receipt, with the balance before and after.',
-            ar: 'أضفنا البيع بالدين وديون العملاء \\u2014 يمكنك الآن البيع \\u201cبالدين\\u201d لأي عميل مرتبط من شاشة الدفع (مع إمكانية دفعة أولى اختيارية)، ويظهر رصيده المستحق في ملفه. اضغط على \\u201cتسجيل دفعة\\u201d لسداد أي مبلغ، مع طباعة/مشاركة إيصال دفعة خاص، على غرار إيصال الاسترجاع، يوضح الرصيد قبل وبعد.',
-            fr: 'Ajout du crédit client et des dettes \\u2014 vendez \\u00ab\\u00a0à crédit\\u00a0\\u00bb à tout client associé depuis la caisse (avec un acompte optionnel), et son solde en cours s\\u2019affiche désormais sur son profil. Appuyez sur \\u00ab\\u00a0Enregistrer un paiement\\u00a0\\u00bb pour rembourser n\\u2019importe quel montant, ce qui imprime/partage un reçu de paiement dédié, calqué sur le reçu de remboursement, avec le solde avant et après.',
+            en: 'Added customer credit and debts \u2014 sell \u201cOn Credit\u201d to any attached customer from checkout (with an optional down payment), and their running balance now shows on their profile. Tap Record Payment to pay it down by any amount, which prints/shares its own Payment Receipt, modeled on the refund receipt, with the balance before and after.',
+            ar: 'أضفنا البيع بالدين وديون العملاء \u2014 يمكنك الآن البيع \u201cبالدين\u201d لأي عميل مرتبط من شاشة الدفع (مع إمكانية دفعة أولى اختيارية)، ويظهر رصيده المستحق في ملفه. اضغط على \u201cتسجيل دفعة\u201d لسداد أي مبلغ، مع طباعة/مشاركة إيصال دفعة خاص، على غرار إيصال الاسترجاع، يوضح الرصيد قبل وبعد.',
+            fr: 'Ajout du crédit client et des dettes \u2014 vendez \u00ab\u00a0à crédit\u00a0\u00bb à tout client associé depuis la caisse (avec un acompte optionnel), et son solde en cours s\u2019affiche désormais sur son profil. Appuyez sur \u00ab\u00a0Enregistrer un paiement\u00a0\u00bb pour rembourser n\u2019importe quel montant, ce qui imprime/partage un reçu de paiement dédié, calqué sur le reçu de remboursement, avec le solde avant et après.',
           },
         },
       ],
@@ -77,9 +90,9 @@ const WhatsNew = (() => {
         {
           icon: Icon('printer'),
           text: {
-            en: 'Added support for Bluetooth thermal receipt printers \\u2014 connect one from Settings > Point of Sale > Receipt Printer, and sale/refund receipts print straight to it instead of opening the system print dialog. Prints as crisp native text when the receipt is plain text, and automatically switches to a pixel-perfect image (matching the on-screen preview exactly) for Arabic or accented text, with a manual \\u201cAlways as image\\u201d option and a printer test page.',
-            ar: 'أضفنا دعمًا لطابعات الإيصالات الحرارية عبر البلوتوث \\u2014 وصّل واحدة من الإعدادات > نقطة البيع > طابعة الإيصالات، وستُطبع إيصالات البيع والاسترجاع مباشرة عليها بدلاً من فتح نافذة طباعة النظام. تُطبع كنص أصلي واضح عندما يكون الإيصال نصًا عاديًا، وتنتقل تلقائيًا إلى صورة دقيقة (تطابق المعاينة على الشاشة تمامًا) مع النص العربي أو المُشكَّل، مع خيار يدوي \\u201cدائمًا كصورة\\u201d وصفحة اختبار للطابعة.',
-            fr: 'Ajout de la prise en charge des imprimantes thermiques de reçus Bluetooth \\u2014 connectez-en une depuis Paramètres > Point de Vente > Imprimante de reçus, et les reçus de vente/remboursement s\\u2019impriment directement dessus au lieu d\\u2019ouvrir la boîte de dialogue d\\u2019impression du système. Imprime en texte natif net lorsque le reçu est du texte brut, et bascule automatiquement vers une image au pixel près (correspondant exactement à l\\u2019aperçu à l\\u2019écran) pour l\\u2019arabe ou le texte accentué, avec une option manuelle \\u00ab\\u00a0Toujours en image\\u00a0\\u00bb et une page de test d\\u2019imprimante.',
+            en: 'Added support for Bluetooth thermal receipt printers \u2014 connect one from Settings > Point of Sale > Receipt Printer, and sale/refund receipts print straight to it instead of opening the system print dialog. Prints as crisp native text when the receipt is plain text, and automatically switches to a pixel-perfect image (matching the on-screen preview exactly) for Arabic or accented text, with a manual \u201cAlways as image\u201d option and a printer test page.',
+            ar: 'أضفنا دعمًا لطابعات الإيصالات الحرارية عبر البلوتوث \u2014 وصّل واحدة من الإعدادات > نقطة البيع > طابعة الإيصالات، وستُطبع إيصالات البيع والاسترجاع مباشرة عليها بدلاً من فتح نافذة طباعة النظام. تُطبع كنص أصلي واضح عندما يكون الإيصال نصًا عاديًا، وتنتقل تلقائيًا إلى صورة دقيقة (تطابق المعاينة على الشاشة تمامًا) مع النص العربي أو المُشكَّل، مع خيار يدوي \u201cدائمًا كصورة\u201d وصفحة اختبار للطابعة.',
+            fr: 'Ajout de la prise en charge des imprimantes thermiques de reçus Bluetooth \u2014 connectez-en une depuis Paramètres > Point de Vente > Imprimante de reçus, et les reçus de vente/remboursement s\u2019impriment directement dessus au lieu d\u2019ouvrir la boîte de dialogue d\u2019impression du système. Imprime en texte natif net lorsque le reçu est du texte brut, et bascule automatiquement vers une image au pixel près (correspondant exactement à l\u2019aperçu à l\u2019écran) pour l\u2019arabe ou le texte accentué, avec une option manuelle \u00ab\u00a0Toujours en image\u00a0\u00bb et une page de test d\u2019imprimante.',
           },
         },
       ],

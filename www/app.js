@@ -500,19 +500,32 @@ window.DoodleHint = DoodleHint;
 /* ---------------------------------------------------------------------- */
 
 const Sheet = (() => {
-  let backdropEl = null;
-  let sheetEl = null;
-  let onCloseCb = null;
+  // A stack of layers rather than one singleton pair — see the `stacked`
+  // option on open() below. Every existing call site keeps its old
+  // behavior (one sheet at a time, opening a new one destroys the last);
+  // only call sites that opt in with `stacked: true` (the product/
+  // supplier/customer "pick one" utilities) layer on top of what's
+  // already open instead of destroying it, e.g. picking a product from
+  // inside a Purchase Order form no longer closes the PO form underneath.
+  const stack = [];
+  const top = () => stack[stack.length - 1] || null;
 
-  function open({ title, bodyHTML, footerHTML = '', onClose = null }) {
-    close(true); // close any existing sheet instantly first
+  function open({ title, bodyHTML, footerHTML = '', onClose = null, stacked = false }) {
+    if (stacked && top()) {
+      // Layer on top: hide (not destroy) whatever's currently showing.
+      // visibility:hidden also removes it from hit-testing, so a misclick
+      // can't reach its close button or backdrop while it's covered.
+      const below = top();
+      below.backdropEl.style.visibility = 'hidden';
+      below.sheetEl.style.visibility = 'hidden';
+    } else {
+      closeAll(true); // old behavior: any existing sheet(s) are destroyed instantly
+    }
 
-    onCloseCb = onClose;
-
-    backdropEl = document.createElement('div');
+    const backdropEl = document.createElement('div');
     backdropEl.className = 'sheet-backdrop';
 
-    sheetEl = document.createElement('div');
+    const sheetEl = document.createElement('div');
     sheetEl.className = 'sheet';
     sheetEl.innerHTML = `
       <div class="sheet__handle"></div>
@@ -532,6 +545,8 @@ const Sheet = (() => {
       backdropEl.classList.add('open');
       sheetEl.classList.add('open');
     });
+
+    stack.push({ backdropEl, sheetEl, onCloseCb: onClose });
 
     backdropEl.addEventListener('click', () => close());
     sheetEl.querySelector('#sheetCloseBtn').addEventListener('click', () => close());
@@ -593,28 +608,51 @@ const Sheet = (() => {
   }
 
   function close(instant = false) {
-    if (!sheetEl) return;
-    const cb = onCloseCb;
-    onCloseCb = null;
+    const layer = stack.pop();
+    if (!layer) return;
+    const { backdropEl, sheetEl, onCloseCb } = layer;
 
     if (instant) {
       sheetEl.remove();
       backdropEl.remove();
-      sheetEl = null;
-      backdropEl = null;
-      return;
+    } else {
+      sheetEl.classList.remove('open');
+      backdropEl.classList.remove('open');
+      setTimeout(() => { sheetEl.remove(); backdropEl.remove(); }, 260);
     }
 
-    sheetEl.classList.remove('open');
-    backdropEl.classList.remove('open');
-    const s = sheetEl, b = backdropEl;
-    sheetEl = null;
-    backdropEl = null;
-    setTimeout(() => { s.remove(); b.remove(); }, 260);
-    if (cb) cb();
+    // Reveal whatever was layered underneath, exactly as it was left.
+    const below = top();
+    if (below) {
+      below.backdropEl.style.visibility = '';
+      below.sheetEl.style.visibility = '';
+    }
+
+    if (!instant && onCloseCb) onCloseCb();
   }
 
-  return { open, close, get el() { return sheetEl; } };
+  function closeAll(instant = true) {
+    while (stack.length) close(instant);
+  }
+
+  /** Visually pushes the current top sheet back (dimmed, non-interactive,
+   *  but still visible) without removing it — for a full-screen overlay
+   *  that isn't itself a Sheet (the barcode scanner) to sit on top of one
+   *  temporarily. Pair with restore(). No-op if nothing is open. */
+  function recede() {
+    const layer = top();
+    if (!layer) return;
+    layer.sheetEl.classList.add('receded');
+    layer.backdropEl.classList.add('receded');
+  }
+  function restore() {
+    const layer = top();
+    if (!layer) return;
+    layer.sheetEl.classList.remove('receded');
+    layer.backdropEl.classList.remove('receded');
+  }
+
+  return { open, close, closeAll, recede, restore, get el() { return top() ? top().sheetEl : null; } };
 })();
 window.Sheet = Sheet;
 
@@ -2765,7 +2803,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.12.0';
+const CURRENT_VERSION = '1.9.12.1';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via

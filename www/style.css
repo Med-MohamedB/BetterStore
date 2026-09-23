@@ -1067,6 +1067,13 @@ main#view {
 }
 .sheet.open { transform: translateY(0); transition: transform 460ms var(--ease-spring); }
 .sheet.dragging { transition: none; }
+/* Pushed back (not closed) while a full-screen overlay that isn't itself
+   a Sheet — the barcode scanner — needs to sit on top of it temporarily.
+   Still visible so the person keeps their place; pointer-events:none so
+   a stray tap can't dismiss it before they've finished scanning. See
+   Sheet.recede()/restore() in app.js. */
+.sheet.receded { transform: translateY(28px) scale(0.96); opacity: 0.5; pointer-events: none; transition: transform 220ms var(--ease-out), opacity 220ms var(--ease-out); }
+.sheet-backdrop.receded { opacity: 0.15; pointer-events: none; transition: opacity 220ms var(--ease-out); }
 
 .sheet__handle {
   width: 36px;
@@ -1593,6 +1600,13 @@ main#view {
 /* ==========================================================================
    Scanner overlay
    ========================================================================== */
+
+/* Opened via a button inside an already-open Sheet (e.g. "scan" in the
+   Add Product form) — needs to sit above that Sheet (221) rather than
+   behind it, the reverse of the normal camera-picker-sheet-over-scanner
+   relationship above. Sheet.recede()/restore() (app.js) + scanner.js
+   toggle this together. */
+.scanner-overlay.above-sheet { z-index: 222; }
 
 .scanner-overlay {
   position: fixed;

@@ -180,7 +180,9 @@ const Suppliers = (() => {
       </div>
       <div id="suppPickerResults" class="list"></div>
     `;
-    const sheetEl = Sheet.open({ title: I18n.t('suppliers.picker.title'), bodyHTML });
+    // stacked: true — commonly opened from inside another sheet (e.g. a
+    // new Purchase Order form); layer on top instead of destroying it.
+    const sheetEl = Sheet.open({ title: I18n.t('suppliers.picker.title'), bodyHTML, stacked: true });
     const resultsEl = sheetEl.querySelector('#suppPickerResults');
     const searchEl = sheetEl.querySelector('#suppPickerSearch');
 

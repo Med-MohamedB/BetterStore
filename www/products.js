@@ -552,7 +552,9 @@ const Products = (() => {
     sheetEl.querySelector('#scanBarcodeFieldBtn').addEventListener('click', async () => {
       const code = await Scanner.scanOnce();
       if (code) {
-        sheetEl.querySelector('#f_barcode').value = code;
+        const barcodeInput = sheetEl.querySelector('#f_barcode');
+        barcodeInput.value = code;
+        barcodeInput.focus();
         Toast.success(I18n.t('products.form.barcodeScanned'));
       }
     });
@@ -682,6 +684,7 @@ const Products = (() => {
         </div>
         <button class="btn btn-secondary btn-sm tappable" id="saveStockBtn">${I18n.t('common.save')}</button>
       </div>
+      <button class="btn btn-secondary tappable mt-8" id="restockBtn" style="width:100%;">${Icon('package')} ${I18n.t('products.detail.restock')}</button>
 
       <div class="section-title">${I18n.t('products.detail.details')}</div>
       <div class="card">
@@ -713,6 +716,10 @@ const Products = (() => {
     sheetEl.querySelector('#stockPlus').addEventListener('click', () => {
       pendingQty += 1;
       valueEl.textContent = pendingQty;
+    });
+    sheetEl.querySelector('#restockBtn').addEventListener('click', () => {
+      Sheet.close();
+      setTimeout(() => PurchaseOrders.openForm(null, [{ productId: p.id, productName: p.name, unit: p.unit || 'pcs', qty: 1, unitCost: p.purchasePrice || 0 }]), 260);
     });
     sheetEl.querySelector('#saveStockBtn').addEventListener('click', async () => {
       const delta = pendingQty - p.quantity;
@@ -778,7 +785,9 @@ const Products = (() => {
       </div>
       <div id="prodPickerResults" class="list"></div>
     `;
-    const sheetEl = Sheet.open({ title: I18n.t('products.picker.title'), bodyHTML });
+    // stacked: true — commonly opened from inside another sheet (e.g. a
+    // new Purchase Order form); layer on top instead of destroying it.
+    const sheetEl = Sheet.open({ title: I18n.t('products.picker.title'), bodyHTML, stacked: true });
     const resultsEl = sheetEl.querySelector('#prodPickerResults');
     const searchEl = sheetEl.querySelector('#prodPickerSearch');
 

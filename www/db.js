@@ -267,6 +267,10 @@ const DEFAULT_SETTINGS = {
     paperMm: 58, // 58 | 80 — roll width; decides the printable dot width (384 / 576)
     mode: 'auto', // 'auto' (text when the printer can be trusted with it, image otherwise) | 'image'
   },
+  scanner: {
+    address: null, // Bluetooth MAC of a paired scanner the person picked to label as theirs; purely informational — see hardwareScan.js
+    name: null,
+  },
   inventory: {
     lowStockWarnings: true,
     defaultMinStock: 5,

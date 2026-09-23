@@ -46,6 +46,19 @@ const WhatsNew = (() => {
   //     fabricated version number.
   const CHANGELOG = [
     {
+      version: '1.9.13.0',
+      items: [
+        {
+          icon: Icon('scan'),
+          text: {
+            en: 'Added barcode scanner support \u2014 a physical Bluetooth or USB scanner (the common kind that acts like a keyboard) now works from any screen with nothing to pair in the app: scan while looking at the POS screen to add straight to cart, or from most other screens to open or create that product. Settings > Point of Sale now has a Hardware section with big icons for the printer and scanner that light up once each is set up, and a new Barcode Scanner row to label which paired device is yours.',
+            ar: 'أضفنا دعم ماسح الباركود \u2014 ماسح بلوتوث أو USB فعلي (النوع الشائع الذي يعمل مثل لوحة المفاتيح) يعمل الآن من أي شاشة دون الحاجة لاقتران داخل التطبيق: امسح وأنت في شاشة نقطة البيع لإضافته مباشرة إلى السلة، أو من معظم الشاشات الأخرى لفتح ذلك المنتج أو إنشائه. الإعدادات > نقطة البيع أصبحت الآن تحتوي على قسم الأجهزة بأيقونات كبيرة للطابعة والماسح تُضاء بمجرد إعداد كل منهما، وصف جديد لماسح الباركود لتحديد أي جهاز مقترن هو جهازك.',
+            fr: 'Ajout de la prise en charge du scanner de codes-barres \u2014 un scanner Bluetooth ou USB physique (le type courant qui se comporte comme un clavier) fonctionne désormais depuis n\u2019importe quel écran sans rien à jumeler dans l\u2019application\u00a0: scannez depuis l\u2019écran de caisse pour ajouter directement au panier, ou depuis la plupart des autres écrans pour ouvrir ou créer ce produit. Paramètres > Point de Vente comporte maintenant une section Matériel avec de grandes icônes pour l\u2019imprimante et le scanner qui s\u2019allument une fois chacun configuré, ainsi qu\u2019une nouvelle ligne Scanner de Code-barres pour identifier quel appareil jumelé est le vôtre.',
+          },
+        },
+      ],
+    },
+    {
       version: '1.9.12.1',
       items: [
         {

@@ -11,9 +11,10 @@ const SettingsScreen = (() => {
   async function render(container) {
     document.getElementById('topbarActions').innerHTML = '';
 
-    const [store, appearance, pos, inventory, security] = await Promise.all([
+    const [store, appearance, pos, inventory, security, printerCfg, scannerCfg] = await Promise.all([
       Settings.get('store'), Settings.get('appearance'), Settings.get('pos'),
       Settings.get('inventory'), Settings.get('security'),
+      Settings.get('printer'), Settings.get('scanner'),
     ]);
 
     container.innerHTML = `
@@ -71,7 +72,19 @@ const SettingsScreen = (() => {
           ${I18n.LANGUAGES.map((l) => `<option value="${l.code}" ${pos.receiptLanguage === l.code ? 'selected' : ''}>${l.flag} ${l.nativeName}</option>`).join('')}
         </select>
       </div>
-      <div class="mt-8" id="printerRowWrap">${ThermalPrinter.settingsRowHTML(await Settings.get('printer'))}</div>
+      <div class="section-title">${I18n.t('settings.sectionHardware')}</div>
+      <div class="hardware-badges" id="hardwareBadges">
+        <div class="hardware-badge${printerCfg.address ? ' hardware-badge--active' : ''}" id="printerBadge">
+          ${Icon('printer', { size: 30 })}
+          <span>${I18n.t('printer.settingsTitle')}</span>
+        </div>
+        <div class="hardware-badge${scannerCfg.address ? ' hardware-badge--active' : ''}" id="scannerBadge">
+          ${Icon('scan', { size: 30 })}
+          <span>${I18n.t('hardwareScan.settingsTitle')}</span>
+        </div>
+      </div>
+      <div class="mt-8" id="printerRowWrap">${ThermalPrinter.settingsRowHTML(printerCfg)}</div>
+      <div class="mt-8" id="scannerRowWrap">${HardwareScan.settingsRowHTML(scannerCfg)}</div>
 
       <div class="section-title">${I18n.t('settings.sectionInventory')}</div>
       <div class="card flex-between">
@@ -196,11 +209,27 @@ const SettingsScreen = (() => {
     container.querySelector('#s_confirmSale').addEventListener('change', (e) => save({ confirmBeforeSale: e.target.checked }));
     container.querySelector('#s_receiptFooter').addEventListener('change', (e) => save({ receiptFooter: e.target.value.trim() }));
     container.querySelector('#s_receiptLanguage').addEventListener('change', (e) => save({ receiptLanguage: e.target.value }));
+    const printerBadge = container.querySelector('#printerBadge');
+    const scannerBadge = container.querySelector('#scannerBadge');
     const wrap = container.querySelector('#printerRowWrap');
     wrap.addEventListener('click', (e) => {
       if (e.target.closest('#printerRow')) {
         ThermalPrinter.openSetup({
-          onChange: async (cfg) => { wrap.innerHTML = ThermalPrinter.settingsRowHTML(cfg); },
+          onChange: async (cfg) => {
+            wrap.innerHTML = ThermalPrinter.settingsRowHTML(cfg);
+            printerBadge.classList.toggle('hardware-badge--active', !!cfg.address);
+          },
+        });
+      }
+    });
+    const scannerWrap = container.querySelector('#scannerRowWrap');
+    scannerWrap.addEventListener('click', (e) => {
+      if (e.target.closest('#scannerRow')) {
+        HardwareScan.openSetup({
+          onChange: async (cfg) => {
+            scannerWrap.innerHTML = HardwareScan.settingsRowHTML(cfg);
+            scannerBadge.classList.toggle('hardware-badge--active', !!cfg.address);
+          },
         });
       }
     });

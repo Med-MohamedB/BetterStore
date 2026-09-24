@@ -164,6 +164,17 @@ const Reports = (() => {
           <span class="num" style="font-weight:700; color:var(--accent);">${Fmt.money(profit)}</span>
         </div>
       </div>
+
+      <div class="list mt-16">
+        <div class="list-row tappable" id="accountingExportRow">
+          <div class="list-row__icon">${Icon('receipt')}</div>
+          <div class="list-row__body">
+            <div class="list-row__title">${I18n.t('reports.accountingExportTitle')}</div>
+            <div class="list-row__subtitle">${I18n.t('reports.accountingExportSub')}</div>
+          </div>
+          <div class="list-row__trailing">${Icon('chevron-right', { size: 16 })}</div>
+        </div>
+      </div>
     `;
 
     container.querySelectorAll('[data-range]').forEach((chip) => {
@@ -175,6 +186,9 @@ const Reports = (() => {
     if (endInput) endInput.addEventListener('change', (e) => { customEnd = e.target.value; if (customStart && customEnd) renderReport(container); });
 
     drawBarChart(container.querySelector('#dailyChart'), dailySeries);
+
+    const exportRow = container.querySelector('#accountingExportRow');
+    if (exportRow) exportRow.addEventListener('click', () => Router.goTo('accounting-export'));
   }
 
   function barRow(label, value, maxValue, color) {

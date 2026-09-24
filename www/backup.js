@@ -22,6 +22,13 @@ const Backup = (() => {
     for (const name of STORE_NAMES) counts[name] = await DB.count(name);
 
     container.innerHTML = `
+      <div class="card" style="border-color:var(--accent);">
+        <div class="flex-between">
+          <span class="text-sm">${I18n.t('backup.accountingHint')}</span>
+          <span class="text-sm tappable" id="accountingHintLink" style="color:var(--accent); font-weight:700; white-space:nowrap;">${I18n.t('backup.accountingHintLink')}</span>
+        </div>
+      </div>
+
       <div class="section-title">${I18n.t('backup.sectionIncluded')}</div>
       <div class="card">
         ${STORE_NAMES.map((name) => `
@@ -60,6 +67,7 @@ const Backup = (() => {
     container.querySelector('#csvProductsBtn').addEventListener('click', exportProductsCSV);
     container.querySelector('#csvSalesBtn').addEventListener('click', exportSalesCSV);
     container.querySelector('#clearDataBtn').addEventListener('click', () => clearAllData(container));
+    container.querySelector('#accountingHintLink').addEventListener('click', () => Router.goTo('reports'));
   }
 
   async function downloadBlob(content, filename, type, webSuccessMessage) {

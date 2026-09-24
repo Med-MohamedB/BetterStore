@@ -50,7 +50,7 @@ const Router = (() => {
   // than isolated screens.
   const ROUTE_ORDER = [
     'dashboard', 'products', 'pos', 'sales', 'more',
-    'inventory', 'reports', 'customers', 'suppliers', 'purchase-orders', 'backup', 'settings',
+    'inventory', 'reports', 'accounting-export', 'customers', 'suppliers', 'purchase-orders', 'backup', 'settings',
   ];
 
   function register(name, renderFn, opts = {}) {
@@ -197,6 +197,7 @@ const Router = (() => {
       settings: I18n.t('screenTitles.settings'),
       backup: I18n.t('screenTitles.backup'),
       scanner: I18n.t('screenTitles.scanner'),
+      'accounting-export': I18n.t('screenTitles.accounting-export'),
     };
     return map[name] || name;
   }
@@ -2803,7 +2804,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.13.0';
+const CURRENT_VERSION = '1.9.14.0';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -3476,6 +3477,7 @@ function paymentMethodLabel(method, lang) {
     card: I18n.t('common.paymentMethods.card', null, lang),
     'bank transfer': I18n.t('common.paymentMethods.bankTransfer', null, lang),
     other: I18n.t('common.paymentMethods.other', null, lang),
+    credit: I18n.t('common.paymentMethods.credit', null, lang),
   };
   return map[method] || method;
 }

@@ -1287,6 +1287,14 @@ main#view {
   border-color: var(--accent);
   color: var(--accent-ink);
 }
+.chip--disabled {
+  opacity: 0.45;
+}
+.chip--disabled.active {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text-dim);
+}
 
 /* --- Theme pack picker (Settings > Appearance) --- */
 

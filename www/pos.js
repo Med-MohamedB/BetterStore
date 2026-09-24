@@ -301,7 +301,8 @@ const POS = (() => {
     const grandTotal = afterAllDiscounts + taxAmount;
 
     let method = posSettings.defaultPaymentMethod || 'cash';
-    const methodLabels = { cash: I18n.t('pos.methodCash'), card: I18n.t('pos.methodCard'), 'bank transfer': I18n.t('pos.methodBankTransfer'), other: I18n.t('pos.methodOther') };
+    if (method === 'credit' && !selectedCustomer) method = 'cash'; // a stored default can't be honored without a customer attached
+    const methodLabels = { cash: I18n.t('pos.methodCash'), card: I18n.t('pos.methodCard'), 'bank transfer': I18n.t('pos.methodBankTransfer'), other: I18n.t('pos.methodOther'), credit: I18n.t('pos.methodCredit') };
 
     const bodyHTML = `
       <div class="flex-between">
@@ -310,8 +311,8 @@ const POS = (() => {
       </div>
 
       <div class="chip-row mt-16" id="paymentChips" style="margin-bottom:4px;">
-        ${['cash', 'card', 'bank transfer', 'other'].map((m) => `
-          <button class="chip tappable${m === method ? ' active' : ''}" data-method="${m}">${methodLabels[m]}</button>
+        ${['cash', 'card', 'bank transfer', 'other', 'credit'].map((m) => `
+          <button class="chip tappable${m === method ? ' active' : ''}${m === 'credit' && !selectedCustomer ? ' chip--disabled' : ''}" data-method="${m}">${methodLabels[m]}</button>
         `).join('')}
       </div>
 
@@ -325,6 +326,17 @@ const POS = (() => {
           <span class="num" id="changeDisplay" style="font-weight:700;">${Fmt.money(0)}</span>
         </div>
       </div>
+
+      <div id="creditFields" style="${method === 'credit' ? '' : 'display:none;'}">
+        <div class="field mt-16">
+          <label>${I18n.t('pos.amountReceived')}</label>
+          <input type="number" inputmode="decimal" id="downPayment" placeholder="0">
+        </div>
+        <div class="flex-between">
+          <span class="text-dim text-sm">${I18n.t('pos.creditRemainingLabel')}</span>
+          <span class="num" id="creditRemainingDisplay" style="font-weight:700; color:var(--coral);">${Fmt.money(grandTotal)}</span>
+        </div>
+      </div>
     `;
     const footerHTML = `<button class="btn btn-primary tappable" id="completeSaleBtn">${I18n.t('pos.completeSale')}</button>`;
 
@@ -332,9 +344,15 @@ const POS = (() => {
 
     sheetEl.querySelectorAll('[data-method]').forEach((chip) => {
       chip.addEventListener('click', () => {
-        method = chip.dataset.method;
+        const picked = chip.dataset.method;
+        if (picked === 'credit' && !selectedCustomer) {
+          Toast.error(I18n.t('pos.creditRequiresCustomer'));
+          return; // don't switch — nothing to attach the debt to
+        }
+        method = picked;
         sheetEl.querySelectorAll('[data-method]').forEach((c) => c.classList.toggle('active', c === chip));
         sheetEl.querySelector('#cashFields').style.display = method === 'cash' ? '' : 'none';
+        sheetEl.querySelector('#creditFields').style.display = method === 'credit' ? '' : 'none';
       });
     });
 
@@ -346,10 +364,28 @@ const POS = (() => {
       changeDisplay.textContent = Fmt.money(change);
     });
 
+    const downPaymentInput = sheetEl.querySelector('#downPayment');
+    const creditRemainingDisplay = sheetEl.querySelector('#creditRemainingDisplay');
+    downPaymentInput.addEventListener('input', () => {
+      // Clamped to the total — a down payment can't exceed what's owed,
+      // and if it covers the whole thing there's nothing left "on credit".
+      const down = Math.min(grandTotal, Math.max(0, parseFloat(downPaymentInput.value) || 0));
+      creditRemainingDisplay.textContent = Fmt.money(grandTotal - down);
+    });
+
     sheetEl.querySelector('#completeSaleBtn').addEventListener('click', async (e) => {
       const btn = e.currentTarget;
       if (btn.disabled) return; // guards against a rapid double-tap creating two sales
-      const received = method === 'cash' ? (parseFloat(receivedInput.value) || 0) : grandTotal;
+      if (method === 'credit' && !selectedCustomer) {
+        // Safety net: the customer could in theory have been detached
+        // (via the picker's own clear option) after credit was already
+        // selected on this sheet.
+        Toast.error(I18n.t('pos.creditRequiresCustomer'));
+        return;
+      }
+      const received = method === 'cash' ? (parseFloat(receivedInput.value) || 0)
+        : method === 'credit' ? Math.min(grandTotal, Math.max(0, parseFloat(downPaymentInput.value) || 0))
+        : grandTotal;
       if (method === 'cash' && received < grandTotal) {
         Toast.error(I18n.t('pos.amountLessThanTotal'));
         return;
@@ -365,6 +401,7 @@ const POS = (() => {
           paymentMethod: method,
           amountReceived: received,
           change: method === 'cash' ? Math.max(0, received - grandTotal) : 0,
+          creditAmount: method === 'credit' ? Math.max(0, grandTotal - received) : 0,
         });
       } catch (err) {
         console.error('Sale failed:', err);
@@ -380,7 +417,7 @@ const POS = (() => {
     });
   }
 
-  async function completeSale({ itemsSubtotal, itemDiscounts, totalDiscount, taxAmount, grandTotal, paymentMethod, amountReceived, change }) {
+  async function completeSale({ itemsSubtotal, itemDiscounts, totalDiscount, taxAmount, grandTotal, paymentMethod, amountReceived, change, creditAmount }) {
     const receiptNumber = Ids.receiptNumber();
     let sale;
 
@@ -428,6 +465,7 @@ const POS = (() => {
         paymentMethod,
         amountReceived,
         change,
+        creditAmount: creditAmount || 0, // outstanding portion — see Customers.balanceFor()
         customerId: selectedCustomer ? selectedCustomer.id : null,
         customerName: selectedCustomer ? selectedCustomer.name : null,
         status: 'completed',

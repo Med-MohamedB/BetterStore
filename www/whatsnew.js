@@ -46,6 +46,19 @@ const WhatsNew = (() => {
   //     fabricated version number.
   const CHANGELOG = [
     {
+      version: '1.9.14.0',
+      items: [
+        {
+          icon: Icon('receipt'),
+          text: {
+            en: 'Added an Accounting Export (Reports > Export for Accounting) \u2014 pick any date range and get an itemized CSV (one row per sale, refunds netted out clearly) plus an optional one-page summary PDF, with revenue, cost, profit, and cash collected vs. still owed on credit all broken out. Also fixed On Credit not actually being selectable at checkout \u2014 it\u2019s a real payment-method option again, with the down-payment field and running balance working as intended.',
+            ar: 'أضفنا تصدير المحاسبة (التقارير > تصدير للمحاسبة) \u2014 اختر أي فترة زمنية واحصل على ملف CSV تفصيلي (سطر لكل عملية بيع، مع خصم المبالغ المستردة بوضوح) بالإضافة إلى ملخص PDF اختياري من صفحة واحدة، يوضح الإيرادات والتكلفة والربح والمبلغ المحصَّل نقدًا مقابل المتبقي بالدين. كما أصلحنا مشكلة عدم إمكانية اختيار \u201cبالدين\u201d فعليًا عند الدفع \u2014 أصبح خيار دفع حقيقي من جديد، مع عمل حقل الدفعة الأولى والرصيد المستحق كما هو مقصود.',
+            fr: 'Ajout d\u2019un Export Comptable (Rapports > Export Comptable) \u2014 choisissez n\u2019importe quelle période et obtenez un CSV détaillé (une ligne par vente, remboursements déduits clairement) ainsi qu\u2019un résumé PDF optionnel d\u2019une page, avec revenu, coût, profit et montant encaissé vs. encore dû à crédit, tous détaillés. Correction également du mode \u00ab\u00a0À Crédit\u00a0\u00bb qui n\u2019était en réalité pas sélectionnable à la caisse \u2014 c\u2019est de nouveau une vraie option de paiement, avec le champ d\u2019acompte et le solde en cours qui fonctionnent comme prévu.',
+          },
+        },
+      ],
+    },
+    {
       version: '1.9.13.0',
       items: [
         {

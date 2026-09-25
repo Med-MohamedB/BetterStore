@@ -92,6 +92,37 @@ const Customers = (() => {
     return Math.max(0, owed - paid);
   }
 
+  /** Free-text "tag1, tag2" input -> a clean deduped array. Same simple,
+   *  schema-light approach as products' single `category` string — no
+   *  separate tag directory to manage. */
+  function parseTagsInput(raw) {
+    const seen = new Set();
+    const tags = [];
+    for (const part of (raw || '').split(',')) {
+      const t = part.trim();
+      if (t && !seen.has(t.toLowerCase())) { seen.add(t.toLowerCase()); tags.push(t); }
+    }
+    return tags;
+  }
+
+  /** Chronological charge/payment timeline for a customer's balance.
+   *  Each charge is shown net of any refund already applied to that sale
+   *  (creditOutstanding), so the entries always sum to exactly the
+   *  balance shown above them — a sale that ended up refunded to $0
+   *  outstanding is left out rather than shown as a confusing "$0"
+   *  charge. */
+  function debtActivityFor(customerId, sales, payments) {
+    const charges = sales
+      .filter((s) => s.customerId === customerId && s.paymentMethod === 'credit')
+      .map((s) => ({ type: 'charge', date: new Date(s.date), amount: creditOutstanding(s), receiptNumber: s.receiptNumber, refunded: (s.totalRefunded || 0) > 0 }))
+      .filter((entry) => entry.amount > 0.001);
+    const pays = payments
+      .filter((p) => p.customerId === customerId)
+      .map((p) => ({ type: 'payment', date: new Date(p.date), amount: p.amount, receiptNumber: p.receiptNumber }));
+    return [...charges, ...pays].sort((a, b) => b.date - a.date);
+  }
+
+
   function customerRowHTML(c, sales, payments) {
     const { total, count } = statsFor(c.id, sales);
     const balance = balanceFor(c.id, sales, payments);
@@ -111,12 +142,13 @@ const Customers = (() => {
 
   function openForm(existing = null) {
     const isEdit = !!existing;
-    const c = existing || { name: '', phone: '', email: '', notes: '' };
+    const c = existing || { name: '', phone: '', email: '', notes: '', tags: [] };
 
     const bodyHTML = `
       <div class="field"><label>${I18n.t('customers.form.nameLabel')}</label><input type="text" id="f_name" value="${escapeHTML(c.name)}" placeholder="${I18n.t('customers.form.namePlaceholder')}"></div>
       <div class="field"><label>${I18n.t('customers.form.phoneLabel')}</label><input type="tel" id="f_phone" value="${escapeHTML(c.phone)}" placeholder="${I18n.t('customers.form.optional')}"></div>
       <div class="field"><label>${I18n.t('customers.form.emailLabel')}</label><input type="text" id="f_email" value="${escapeHTML(c.email)}" placeholder="${I18n.t('customers.form.optional')}"></div>
+      <div class="field"><label>${I18n.t('customers.form.tagsLabel')}</label><input type="text" id="f_tags" value="${escapeHTML((c.tags || []).join(', '))}" placeholder="${I18n.t('customers.form.tagsPlaceholder')}"></div>
       <div class="field"><label>${I18n.t('customers.form.notesLabel')}</label><textarea id="f_notes" placeholder="${I18n.t('customers.form.optional')}">${escapeHTML(c.notes || '')}</textarea></div>
     `;
     const footerHTML = `<button class="btn btn-primary tappable" id="saveCustomerBtn">${isEdit ? I18n.t('customers.form.saveChanges') : I18n.t('customers.form.addTitle')}</button>`;
@@ -130,6 +162,7 @@ const Customers = (() => {
         name,
         phone: sheetEl.querySelector('#f_phone').value.trim(),
         email: sheetEl.querySelector('#f_email').value.trim(),
+        tags: parseTagsInput(sheetEl.querySelector('#f_tags').value),
         notes: sheetEl.querySelector('#f_notes').value.trim(),
       };
       if (isEdit) { record.id = c.id; await DB.put('customers', record); Toast.success(I18n.t('customers.form.updated')); }
@@ -143,12 +176,26 @@ const Customers = (() => {
   async function openDetail(c, sales, payments, listContainer) {
     const { total, count, last } = statsFor(c.id, sales);
     const balance = balanceFor(c.id, sales, payments);
+    const history = sales.filter((s) => s.customerId === c.id).sort((a, b) => new Date(b.date) - new Date(a.date));
+    const activity = debtActivityFor(c.id, sales, payments);
+
     const bodyHTML = `
       <div style="text-align:center;">
         <div style="width:56px;height:56px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 10px;">${Icon('user', { size: 26 })}</div>
         <div style="font-weight:700; font-size:17px;">${escapeHTML(c.name)}</div>
         ${c.phone ? `<div class="text-dim text-sm mt-8">${escapeHTML(c.phone)}</div>` : ''}
         ${c.email ? `<div class="text-dim text-sm">${escapeHTML(c.email)}</div>` : ''}
+        ${c.phone ? `
+          <div class="flex gap-8 mt-8" style="justify-content:center;">
+            <a class="chip tappable" href="tel:${escapeHTML(c.phone)}" style="text-decoration:none;">${Icon('phone', { size: 13 })} ${I18n.t('customers.detail.callAction')}</a>
+            <a class="chip tappable" href="sms:${escapeHTML(c.phone)}" style="text-decoration:none;">${Icon('send', { size: 13 })} ${I18n.t('customers.detail.messageAction')}</a>
+          </div>
+        ` : ''}
+        ${(c.tags || []).length ? `
+          <div class="chip-row mt-8" style="justify-content:center; overflow:visible;">
+            ${c.tags.map((t) => `<span class="chip" style="flex-shrink:0;">${escapeHTML(t)}</span>`).join('')}
+          </div>
+        ` : ''}
       </div>
       <div class="stat-grid mt-16">
         <div class="stat-card"><div class="stat-card__label">${I18n.t('customers.detail.totalPurchases')}</div><div class="stat-card__value accent num">${Fmt.money(total)}</div></div>
@@ -164,6 +211,38 @@ const Customers = (() => {
       ` : ''}
       ${last ? `<div class="text-dim text-sm mt-16">${I18n.t('customers.detail.lastPurchase', { date: Fmt.dateTime(last) })}</div>` : ''}
       ${c.notes ? `<div class="card mt-16"><div class="text-sm">${escapeHTML(c.notes)}</div></div>` : ''}
+
+      ${activity.length ? `
+        <div class="section-title">${I18n.t('customers.detail.activityTitle')}</div>
+        <div class="list">
+          ${activity.map((entry) => `
+            <div class="list-row">
+              <div class="list-row__icon">${Icon(entry.type === 'charge' ? 'wallet' : 'banknote')}</div>
+              <div class="list-row__body">
+                <div class="list-row__title">${entry.type === 'charge' ? I18n.t('customers.detail.chargedLabel') : I18n.t('customers.detail.paymentLabel')}${entry.refunded ? ` · ${I18n.t('customers.detail.partRefunded')}` : ''}</div>
+                <div class="list-row__subtitle">${Fmt.dateTime(entry.date)}${entry.receiptNumber ? ` · ${escapeHTML(entry.receiptNumber)}` : ''}</div>
+              </div>
+              <div class="list-row__trailing"><div class="list-row__amount num" style="color:${entry.type === 'charge' ? 'var(--coral)' : 'var(--teal)'};">${entry.type === 'charge' ? '+' : '\u2212'} ${Fmt.money(entry.amount)}</div></div>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+
+      ${history.length ? `
+        <div class="section-title">${I18n.t('customers.detail.purchaseHistoryTitle')}</div>
+        <div class="list" id="custPurchaseHistory">
+          ${history.map((s) => `
+            <div class="list-row tappable" data-history-sale="${s.id}">
+              <div class="list-row__icon">${Icon('receipt')}</div>
+              <div class="list-row__body">
+                <div class="list-row__title">${escapeHTML(s.receiptNumber || '')}</div>
+                <div class="list-row__subtitle">${Fmt.dateTime(s.date)}</div>
+              </div>
+              <div class="list-row__trailing"><div class="list-row__amount num">${Fmt.money(saleNetTotal(s))}</div></div>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
     `;
     const footerHTML = `
       ${balance ? `<button class="btn btn-primary tappable" id="recordPaymentBtn">${Icon('banknote')} ${I18n.t('customers.detail.recordPayment')}</button>` : ''}
@@ -182,14 +261,41 @@ const Customers = (() => {
       Sheet.close();
       setTimeout(() => openForm(c), 260);
     });
+    sheetEl.querySelectorAll('[data-history-sale]').forEach((row) => {
+      row.addEventListener('click', () => {
+        const sale = history.find((s) => s.id === Number(row.dataset.historySale));
+        if (!sale) return;
+        Sheet.close();
+        setTimeout(() => Sales.openDetail(sale, document.getElementById('view')), 260);
+      });
+    });
     sheetEl.querySelector('#deleteCustomerBtn').addEventListener('click', async (e) => {
       Icon.shake(e.currentTarget.querySelector('.icon-svg'));
-      if (!(await Confirm.show(I18n.t('customers.detail.deleteConfirm', { name: c.name }), { danger: true }))) return;
+      if (balance > 0) {
+        // Deleting a customer who still owes money doesn't erase the debt
+        // from sales/payment records (those keep their own customerName),
+        // but it does remove the only place that balance is surfaced —
+        // so this gets two separate, explicit confirmations rather than one.
+        const step1 = await Confirm.show(I18n.t('customers.detail.deleteBalanceWarning1', { name: c.name, amount: Fmt.money(balance) }), { danger: true, confirmText: I18n.t('customers.detail.deleteBalanceContinue') });
+        if (!step1) return;
+        const step2 = await Confirm.show(I18n.t('customers.detail.deleteBalanceWarning2', { amount: Fmt.money(balance) }), { danger: true, confirmText: I18n.t('customers.detail.deleteBalanceFinal') });
+        if (!step2) return;
+      } else if (!(await Confirm.show(I18n.t('customers.detail.deleteConfirm', { name: c.name }), { danger: true }))) {
+        return;
+      }
       await DB.delete('customers', c.id);
       Toast.success(I18n.t('customers.detail.deleted'));
       Sheet.close();
       if (Router.current === 'customers') renderList(listContainer);
     });
+  }
+
+  /** Opens a customer's profile straight from an id — used by Reports'
+   *  outstanding-balances drill-down, which only has ids to work with. */
+  async function openDetailById(id) {
+    const [c, sales, payments] = await Promise.all([DB.get('customers', id), DB.getAll('sales'), DB.getAll('customerPayments')]);
+    if (!c) { Toast.error(I18n.t('customers.detail.notFound')); return; }
+    openDetail(c, sales, payments, document.getElementById('view'));
   }
 
   /* ---------------------------------------------------------------- */
@@ -337,7 +443,7 @@ const Customers = (() => {
     setTimeout(() => searchEl.focus(), 300);
   }
 
-  return { render, openPicker };
+  return { render, openPicker, openDetailById };
 })();
 
 Router.register('customers', Customers.render);

@@ -43,8 +43,21 @@ const Reports = (() => {
 
   async function renderReport(container) {
     const { start, end } = rangeDates();
-    const [allSales, allProducts] = await Promise.all([DB.getAll('sales'), DB.getAll('products')]);
+    const [allSales, allProducts, allCustomers, allPayments] = await Promise.all([DB.getAll('sales'), DB.getAll('products'), DB.getAll('customers'), DB.getAll('customerPayments')]);
     const productMap = new Map(allProducts.map((p) => [p.id, p]));
+
+    /* Outstanding credit balances — deliberately computed over ALL sales,
+       not the date-filtered `sales` below: "who owes money right now" is
+       a current-state snapshot, not a period total. Mirrors customers.js's
+       creditOutstanding()/balanceFor() exactly. */
+    const outstandingCreditOf = (sale) => sale.paymentMethod === 'credit' ? Math.max(0, (sale.creditAmount || 0) - (sale.totalRefunded || 0)) : 0;
+    const debtors = allCustomers.map((c) => {
+      const owed = allSales.filter((s) => s.customerId === c.id).reduce((sum, s) => sum + outstandingCreditOf(s), 0);
+      const paid = allPayments.filter((p) => p.customerId === c.id).reduce((sum, p) => sum + p.amount, 0);
+      return { id: c.id, name: c.name, balance: Math.max(0, owed - paid) };
+    }).filter((d) => d.balance > 0.001).sort((a, b) => b.balance - a.balance);
+    const totalOutstanding = debtors.reduce((sum, d) => sum + d.balance, 0);
+
 
     const sales = allSales.filter((s) => {
       const d = new Date(s.date);
@@ -99,7 +112,15 @@ const Reports = (() => {
     const dailySeries = buildDailySeries(sales, start, end);
 
     container.innerHTML = `
-      <div class="chip-row">
+      <div class="card tappable" id="outstandingBalanceCard" style="border-color:${totalOutstanding ? 'var(--coral)' : 'var(--border)'};">
+        <div class="flex-between">
+          <span class="text-sm" style="font-weight:700; ${totalOutstanding ? 'color:var(--coral);' : ''}">${I18n.t('reports.outstandingBalancesTitle')}</span>
+          <span class="num" style="font-weight:700; font-size:16px; ${totalOutstanding ? 'color:var(--coral);' : ''}">${Fmt.money(totalOutstanding)}</span>
+        </div>
+        ${totalOutstanding ? `<div class="text-dim text-sm mt-4">${I18n.t('reports.tapToSeeDebtors', { count: debtors.length })}</div>` : ''}
+      </div>
+
+      <div class="chip-row mt-16">
         ${[['today', I18n.t('reports.rangeToday')], ['yesterday', I18n.t('reports.rangeYesterday')], ['week', I18n.t('reports.rangeWeek')], ['month', I18n.t('reports.rangeMonth')], ['custom', I18n.t('reports.rangeCustom')]].map(([k, label]) => `
           <button class="chip tappable${rangeMode === k ? ' active' : ''}" data-range="${k}">${label}</button>
         `).join('')}
@@ -189,6 +210,32 @@ const Reports = (() => {
 
     const exportRow = container.querySelector('#accountingExportRow');
     if (exportRow) exportRow.addEventListener('click', () => Router.goTo('accounting-export'));
+
+    const debtCard = container.querySelector('#outstandingBalanceCard');
+    if (debtCard && totalOutstanding) debtCard.addEventListener('click', () => openDebtorsSheet(debtors));
+  }
+
+  /** Drill-down from the Outstanding Balances card — who owes money and
+   *  how much, tap through to any of their profiles. */
+  function openDebtorsSheet(debtors) {
+    const bodyHTML = `
+      <div class="list">
+        ${debtors.map((d) => `
+          <div class="list-row tappable" data-debtor="${d.id}">
+            <div class="list-row__icon warn">${Icon('wallet')}</div>
+            <div class="list-row__body"><div class="list-row__title">${escapeHTML(d.name)}</div></div>
+            <div class="list-row__trailing"><div class="list-row__amount num" style="color:var(--coral);">${Fmt.money(d.balance)}</div></div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    const sheetEl = Sheet.open({ title: I18n.t('reports.debtorsSheetTitle'), bodyHTML });
+    sheetEl.querySelectorAll('[data-debtor]').forEach((row) => {
+      row.addEventListener('click', () => {
+        Sheet.close();
+        setTimeout(() => Customers.openDetailById(Number(row.dataset.debtor)), 260);
+      });
+    });
   }
 
   function barRow(label, value, maxValue, color) {

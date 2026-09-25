@@ -68,6 +68,17 @@ const Suppliers = (() => {
     return products.filter((p) => (p.supplier || '').trim().toLowerCase() === supplierName.trim().toLowerCase());
   }
 
+  /** Free-text "tag1, tag2" input -> a clean deduped array. */
+  function parseTagsInput(raw) {
+    const seen = new Set();
+    const tags = [];
+    for (const part of (raw || '').split(',')) {
+      const t = part.trim();
+      if (t && !seen.has(t.toLowerCase())) { seen.add(t.toLowerCase()); tags.push(t); }
+    }
+    return tags;
+  }
+
   function supplierRowHTML(s, products) {
     const linked = productsFor(s.name, products);
     return `
@@ -83,13 +94,14 @@ const Suppliers = (() => {
 
   function openForm(existing = null) {
     const isEdit = !!existing;
-    const s = existing || { name: '', phone: '', email: '', address: '', notes: '' };
+    const s = existing || { name: '', phone: '', email: '', address: '', notes: '', tags: [] };
 
     const bodyHTML = `
       <div class="field"><label>${I18n.t('suppliers.form.nameLabel')}</label><input type="text" id="f_name" value="${escapeHTML(s.name)}" placeholder="${I18n.t('suppliers.form.namePlaceholder')}"></div>
       <div class="field"><label>${I18n.t('suppliers.form.phoneLabel')}</label><input type="tel" id="f_phone" value="${escapeHTML(s.phone)}" placeholder="${I18n.t('suppliers.form.optional')}"></div>
       <div class="field"><label>${I18n.t('suppliers.form.emailLabel')}</label><input type="text" id="f_email" value="${escapeHTML(s.email)}" placeholder="${I18n.t('suppliers.form.optional')}"></div>
       <div class="field"><label>${I18n.t('suppliers.form.addressLabel')}</label><input type="text" id="f_address" value="${escapeHTML(s.address)}" placeholder="${I18n.t('suppliers.form.optional')}"></div>
+      <div class="field"><label>${I18n.t('suppliers.form.tagsLabel')}</label><input type="text" id="f_tags" value="${escapeHTML((s.tags || []).join(', '))}" placeholder="${I18n.t('suppliers.form.tagsPlaceholder')}"></div>
       <div class="field"><label>${I18n.t('suppliers.form.notesLabel')}</label><textarea id="f_notes" placeholder="${I18n.t('suppliers.form.optional')}">${escapeHTML(s.notes || '')}</textarea></div>
     `;
     const footerHTML = `<button class="btn btn-primary tappable" id="saveSupplierBtn">${isEdit ? I18n.t('suppliers.form.saveChanges') : I18n.t('suppliers.form.addTitle')}</button>`;
@@ -104,6 +116,7 @@ const Suppliers = (() => {
         phone: sheetEl.querySelector('#f_phone').value.trim(),
         email: sheetEl.querySelector('#f_email').value.trim(),
         address: sheetEl.querySelector('#f_address').value.trim(),
+        tags: parseTagsInput(sheetEl.querySelector('#f_tags').value),
         notes: sheetEl.querySelector('#f_notes').value.trim(),
       };
       if (isEdit) { record.id = s.id; await DB.put('suppliers', record); Toast.success(I18n.t('suppliers.form.updated')); }
@@ -117,6 +130,8 @@ const Suppliers = (() => {
   async function openDetail(s, products, listContainer) {
     const linked = productsFor(s.name, products);
     const inventoryValue = linked.reduce((sum, p) => sum + (p.quantity || 0) * (p.purchasePrice || 0), 0);
+    const allPOs = await DB.getAll('purchaseOrders');
+    const orders = allPOs.filter((po) => po.supplierId === s.id).sort((a, b) => new Date(b.date) - new Date(a.date));
 
     const bodyHTML = `
       <div style="text-align:center;">
@@ -125,6 +140,17 @@ const Suppliers = (() => {
         ${s.phone ? `<div class="text-dim text-sm mt-8">${escapeHTML(s.phone)}</div>` : ''}
         ${s.email ? `<div class="text-dim text-sm">${escapeHTML(s.email)}</div>` : ''}
         ${s.address ? `<div class="text-dim text-sm">${escapeHTML(s.address)}</div>` : ''}
+        ${s.phone ? `
+          <div class="flex gap-8 mt-8" style="justify-content:center;">
+            <a class="chip tappable" href="tel:${escapeHTML(s.phone)}" style="text-decoration:none;">${Icon('phone', { size: 13 })} ${I18n.t('suppliers.detail.callAction')}</a>
+            <a class="chip tappable" href="sms:${escapeHTML(s.phone)}" style="text-decoration:none;">${Icon('send', { size: 13 })} ${I18n.t('suppliers.detail.messageAction')}</a>
+          </div>
+        ` : ''}
+        ${(s.tags || []).length ? `
+          <div class="chip-row mt-8" style="justify-content:center; overflow:visible;">
+            ${s.tags.map((t) => `<span class="chip" style="flex-shrink:0;">${escapeHTML(t)}</span>`).join('')}
+          </div>
+        ` : ''}
       </div>
       <div class="stat-grid mt-16">
         <div class="stat-card"><div class="stat-card__label">${I18n.t('suppliers.detail.productsSupplied')}</div><div class="stat-card__value num">${linked.length}</div></div>
@@ -139,6 +165,21 @@ const Suppliers = (() => {
               <div class="list-row__icon">${p.image ? `<img src="${p.image}" alt="">` : Icon('package')}</div>
               <div class="list-row__body"><div class="list-row__title">${escapeHTML(p.name)}</div><div class="list-row__subtitle">${I18n.t('suppliers.detail.inStockUnit', { qty: p.quantity, unit: escapeHTML(p.unit || 'pcs') })}</div></div>
               <div class="list-row__trailing"><div class="list-row__amount num">${Fmt.money(p.sellingPrice)}</div></div>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+      ${orders.length ? `
+        <div class="section-title">${I18n.t('suppliers.detail.orderHistoryTitle')}</div>
+        <div class="list">
+          ${orders.map((po) => `
+            <div class="list-row tappable" data-history-po="${po.id}">
+              <div class="list-row__icon">${Icon('package')}</div>
+              <div class="list-row__body">
+                <div class="list-row__title">${escapeHTML(po.poNumber || '')}</div>
+                <div class="list-row__subtitle">${Fmt.dateTime(po.date)} · ${I18n.t(po.status === 'received' ? 'purchaseOrders.statusReceived' : 'purchaseOrders.statusOpen')}</div>
+              </div>
+              <div class="list-row__trailing"><div class="list-row__amount num">${Fmt.money((po.items || []).reduce((sum, it) => sum + it.qty * it.unitCost, 0))}</div></div>
             </div>
           `).join('')}
         </div>
@@ -160,9 +201,20 @@ const Suppliers = (() => {
       Sheet.close();
       setTimeout(() => openForm(s), 260);
     });
+    sheetEl.querySelectorAll('[data-history-po]').forEach((row) => {
+      row.addEventListener('click', () => {
+        const po = orders.find((o) => o.id === Number(row.dataset.historyPo));
+        if (!po) return;
+        Sheet.close();
+        setTimeout(() => PurchaseOrders.openDetail(po, document.getElementById('view')), 260);
+      });
+    });
     sheetEl.querySelector('#deleteSupplierBtn').addEventListener('click', async (e) => {
       Icon.shake(e.currentTarget.querySelector('.icon-svg'));
-      if (!(await Confirm.show(I18n.t('suppliers.detail.deleteConfirm', { name: s.name }), { danger: true }))) return;
+      const msg = orders.length
+        ? I18n.t('suppliers.detail.deleteConfirmWithOrders', { name: s.name, count: orders.length })
+        : I18n.t('suppliers.detail.deleteConfirm', { name: s.name });
+      if (!(await Confirm.show(msg, { danger: true }))) return;
       await DB.delete('suppliers', s.id);
       Toast.success(I18n.t('suppliers.detail.deleted'));
       Sheet.close();

@@ -46,6 +46,19 @@ const WhatsNew = (() => {
   //     fabricated version number.
   const CHANGELOG = [
     {
+      version: '1.9.15.0',
+      items: [
+        {
+          icon: Icon('wallet'),
+          text: {
+            en: 'Rounded out Customers and Suppliers: tap-to-call/message, tags, a full purchase (or purchase-order) history on every profile, and a proper debt activity timeline showing every charge and payment behind a customer\u2019s balance. Reports now has an Outstanding Balances card \u2014 tap it to see exactly who owes money and jump straight to their profile. Deleting a customer who still owes money now takes two explicit confirmations instead of one, since it\u2019s the only place that balance is tracked.',
+            ar: '\u0623\u0643\u0645\u0644\u0646\u0627 \u0642\u0633\u0645\u064a \u0627\u0644\u0639\u0645\u0644\u0627\u0621 \u0648\u0627\u0644\u0645\u0648\u0631\u062f\u064a\u0646: \u0627\u0644\u0627\u062a\u0635\u0627\u0644/\u0627\u0644\u0631\u0633\u0627\u0626\u0644 \u0628\u0636\u063a\u0637\u0629 \u0648\u0627\u062d\u062f\u0629\u060c \u0648\u0633\u0648\u0645\u060c \u0648\u0633\u062c\u0644 \u0645\u0634\u062a\u0631\u064a\u0627\u062a \u0643\u0627\u0645\u0644 (\u0623\u0648 \u0637\u0644\u0628\u0627\u062a \u0634\u0631\u0627\u0621) \u0641\u064a \u0643\u0644 \u0645\u0644\u0641، \u0648\u062c\u062f\u0648\u0644 \u0632\u0645\u0646\u064a \u062d\u0642\u064a\u0642\u064a \u0644\u0646\u0634\u0627\u0637 \u0627\u0644\u062f\u064a\u0646 \u064a\u0648\u0636\u062d \u0643\u0644 \u0634\u0631\u0627\u0621 \u0648\u062f\u0641\u0639\u0629 \u0648\u0631\u0627\u0621 \u0631\u0635\u064a\u062f \u0627\u0644\u0639\u0645\u064a\u0644. \u0623\u0635\u0628\u062d\u062a \u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631 \u062a\u062d\u062a\u0648\u064a \u0627\u0644\u0622\u0646 \u0639\u0644\u0649 \u0628\u0637\u0627\u0642\u0629 \u0627\u0644\u0623\u0631\u0635\u062f\u0629 \u0627\u0644\u0645\u0633\u062a\u062d\u0642\u0629 \u2014 \u0627\u0636\u063a\u0637 \u0639\u0644\u064a\u0647\u0627 \u0644\u062a\u0631\u0649 \u0628\u0627\u0644\u0636\u0628\u0637 \u0645\u0646 \u0639\u0644\u064a\u0647 \u0627\u0644\u0645\u0627\u0644 \u0648\u0627\u0644\u0627\u0646\u062a\u0642\u0627\u0644 \u0645\u0628\u0627\u0634\u0631\u0629 \u0625\u0644\u0649 \u0645\u0644\u0641\u0647. \u062d\u0630\u0641 \u0639\u0645\u064a\u0644 \u0644\u0627 \u064a\u0632\u0627\u0644 \u0645\u062f\u064a\u0646\u064b\u0627 \u064a\u062a\u0637\u0644\u0628 \u0627\u0644\u0622\u0646 \u062a\u0623\u0643\u064a\u062f\u064a\u0646 \u0635\u0631\u064a\u062d\u064a\u0646 \u0628\u062f\u0644\u0627\u064b \u0645\u0646 \u0648\u0627\u062d\u062f\u060c \u0644\u0623\u0646\u0647 \u0627\u0644\u0645\u0643\u0627\u0646 \u0627\u0644\u0648\u062d\u064a\u062f \u0627\u0644\u0630\u064a \u064a\u064f\u062a\u0627\u0628\u0639 \u0641\u064a\u0647 \u0647\u0630\u0627 \u0627\u0644\u0631\u0635\u064a\u062f.',
+            fr: 'Client et Fournisseurs sont maintenant plus complets\u00a0: appel/message en un geste, étiquettes, un historique complet des achats (ou bons de commande) sur chaque profil, et un vrai historique de dette montrant chaque charge et paiement derrière le solde d\u2019un client. Rapports affiche désormais une carte Soldes Impayés \u2014 appuyez dessus pour voir qui doit de l\u2019argent et accéder directement à son profil. Supprimer un client qui doit encore de l\u2019argent demande maintenant deux confirmations explicites au lieu d\u2019une, puisque c\u2019est le seul endroit où ce solde est suivi.',
+          },
+        },
+      ],
+    },
+    {
       version: '1.9.14.0',
       items: [
         {

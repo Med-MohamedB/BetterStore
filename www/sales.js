@@ -305,7 +305,7 @@ const Sales = (() => {
       onCloseSkip = true;
       Sheet.close();
       Toast.success(I18n.t('sales.refundAppliedToast'));
-      renderList(listContainer);
+      if (Router.current === 'sales' && listContainer) renderList(listContainer);
       openRefundReceiptSheet(sale, { items: refundedItems, total: refundTotal, date: new Date() });
     });
 
@@ -415,7 +415,7 @@ const Sales = (() => {
     });
   }
 
-  return { render };
+  return { render, openDetail };
 })();
 
 Router.register('sales', Sales.render);

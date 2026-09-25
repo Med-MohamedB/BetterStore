@@ -325,7 +325,7 @@ const PurchaseOrders = (() => {
     if (doneBtn) doneBtn.addEventListener('click', () => Sheet.close());
   }
 
-  return { render, openForm };
+  return { render, openForm, openDetail };
 })();
 
 Router.register('purchase-orders', PurchaseOrders.render);

@@ -46,6 +46,19 @@ const WhatsNew = (() => {
   //     fabricated version number.
   const CHANGELOG = [
     {
+      version: '1.9.15.1',
+      items: [
+        {
+          icon: Icon('wallet'),
+          text: {
+            en: 'Reports is clearer about money now: a new Inventory Value card shows what your stock is worth at cost vs. at full retail (and the potential profit sitting in it), and the period breakdown now also shows what you actually spent restocking \u2014 a different number from cost of goods sold, since that\u2019s the cost of what you bought this period, not what sold.',
+            ar: 'أصبحت شاشة التقارير أوضح فيما يخص الأموال: بطاقة جديدة لقيمة المخزون تعرض قيمة بضاعتك بسعر التكلفة مقابل سعر البيع الكامل (والربح المحتمل فيها)، كما يعرض تفصيل الفترة الآن المبلغ الذي أنفقته فعليًا على التزويد \u2014 وهو رقم مختلف عن تكلفة البضاعة المباعة، لأنه تكلفة ما اشتريته خلال هذه الفترة، وليس ما بِيع.',
+            fr: 'Rapports est maintenant plus clair sur l\u2019argent\u00a0: une nouvelle carte Valeur du Stock montre ce que vaut votre stock au coût vs. au prix de détail complet (et le profit potentiel qu\u2019il contient), et le détail de la période affiche aussi ce que vous avez réellement dépensé en réapprovisionnement \u2014 un chiffre différent du coût des marchandises vendues, puisque c\u2019est le coût de ce que vous avez acheté sur la période, pas de ce qui a été vendu.',
+          },
+        },
+      ],
+    },
+    {
       version: '1.9.15.0',
       items: [
         {

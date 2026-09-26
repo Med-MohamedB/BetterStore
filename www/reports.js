@@ -43,7 +43,7 @@ const Reports = (() => {
 
   async function renderReport(container) {
     const { start, end } = rangeDates();
-    const [allSales, allProducts, allCustomers, allPayments] = await Promise.all([DB.getAll('sales'), DB.getAll('products'), DB.getAll('customers'), DB.getAll('customerPayments')]);
+    const [allSales, allProducts, allCustomers, allPayments, allPOs] = await Promise.all([DB.getAll('sales'), DB.getAll('products'), DB.getAll('customers'), DB.getAll('customerPayments'), DB.getAll('purchaseOrders')]);
     const productMap = new Map(allProducts.map((p) => [p.id, p]));
 
     /* Outstanding credit balances — deliberately computed over ALL sales,
@@ -58,11 +58,26 @@ const Reports = (() => {
     }).filter((d) => d.balance > 0.001).sort((a, b) => b.balance - a.balance);
     const totalOutstanding = debtors.reduce((sum, d) => sum + d.balance, 0);
 
+    /* Inventory value — a live snapshot of current stock, not a period
+       figure, so it's computed once here (not from the date-filtered
+       `sales` below) and shown in its own "right now" section. */
+    const inventoryCost = allProducts.reduce((sum, p) => sum + (p.quantity || 0) * (p.purchasePrice || 0), 0);
+    const inventoryRetail = allProducts.reduce((sum, p) => sum + (p.quantity || 0) * (p.sellingPrice || 0), 0);
+    const potentialProfit = inventoryRetail - inventoryCost;
 
     const sales = allSales.filter((s) => {
       const d = new Date(s.date);
       return d >= start && d <= end && s.status !== 'refunded';
     });
+
+    /* What was actually spent restocking in this period — dated by when
+       stock was received (receivedDate), not when the PO was drafted,
+       since that's when cash/inventory actually moved. A different
+       figure from COGS below: COGS is the cost of what SOLD this period,
+       this is what was BOUGHT this period — they rarely match. */
+    const restockSpent = allPOs
+      .filter((po) => po.status === 'received' && po.receivedDate && new Date(po.receivedDate) >= start && new Date(po.receivedDate) <= end)
+      .reduce((sum, po) => sum + (po.items || []).reduce((s, it) => s + it.qty * it.unitCost, 0), 0);
 
     const revenue = sales.reduce((s, sale) => s + saleNetTotal(sale), 0);
     const discounts = sales.reduce((s, sale) => s + (sale.itemDiscounts || 0) + (sale.discount || 0), 0);
@@ -118,6 +133,16 @@ const Reports = (() => {
           <span class="num" style="font-weight:700; font-size:16px; ${totalOutstanding ? 'color:var(--coral);' : ''}">${Fmt.money(totalOutstanding)}</span>
         </div>
         ${totalOutstanding ? `<div class="text-dim text-sm mt-4">${I18n.t('reports.tapToSeeDebtors', { count: debtors.length })}</div>` : ''}
+      </div>
+
+      <div class="section-title">${I18n.t('reports.inventoryValueTitle')}</div>
+      <div class="card">
+        <div class="flex-between"><span class="text-dim text-sm">${I18n.t('reports.inventoryValueCost')}</span><span class="num text-sm">${Fmt.money(inventoryCost)}</span></div>
+        <div class="flex-between mt-8"><span class="text-dim text-sm">${I18n.t('reports.inventoryValueRetail')}</span><span class="num text-sm">${Fmt.money(inventoryRetail)}</span></div>
+        <div class="flex-between mt-16" style="padding-top:12px; border-top:1px solid var(--border);">
+          <span style="font-weight:700;">${I18n.t('reports.potentialProfit')}</span>
+          <span class="num" style="font-weight:700; color:var(--teal);">${Fmt.money(potentialProfit)}</span>
+        </div>
       </div>
 
       <div class="chip-row mt-16">
@@ -184,6 +209,7 @@ const Reports = (() => {
           <span style="font-weight:700;">${I18n.t('reports.statEstProfit')}</span>
           <span class="num" style="font-weight:700; color:var(--accent);">${Fmt.money(profit)}</span>
         </div>
+        <div class="flex-between mt-16" style="padding-top:12px; border-top:1px solid var(--border);"><span class="text-dim text-sm">${I18n.t('reports.spentOnRestocking')}</span><span class="num text-sm">${Fmt.money(restockSpent)}</span></div>
       </div>
 
       <div class="list mt-16">

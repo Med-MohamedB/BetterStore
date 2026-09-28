@@ -25,6 +25,15 @@ const config: CapacitorConfig = {
       // via `isTesting` in www/adMob.js (currently true, using Google's
       // public test ad unit id, until a real one is configured there).
       initializeForTesting: false
+    },
+    FirebaseAuthentication: {
+      // Only Google needs building in natively (see android/variables.gradle
+      // — rgcfaIncludeGoogle) and configuring here. skipNativeAuth: false
+      // (the default) means sign-in goes through the native Firebase Auth
+      // SDK on Android rather than a WebView — see the file's own notes
+      // on why that matters.
+      providers: ['google.com'],
+      skipNativeAuth: false
     }
   }
 };

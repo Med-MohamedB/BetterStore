@@ -12,7 +12,20 @@
           "package_name": "com.mohaab.storeapp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "335774636576-otp40fv129jdu1jogmb6nu750v43e039.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mohaab.storeapp",
+            "certificate_hash": "4c06a215ec8e3f0afb487ed36d8fccbd9a276290"
+          }
+        },
+        {
+          "client_id": "335774636576-14fbeltat7nihg6j4tpc60126j20v9bq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAv54xaZuWvVZiS8GwOO-SDFFNjIVoEkqU"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "335774636576-14fbeltat7nihg6j4tpc60126j20v9bq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

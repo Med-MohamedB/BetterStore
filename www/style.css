@@ -1959,6 +1959,38 @@ body.swipe-active .topbar {
   text-align: center;
   font-weight: 700;
 }
+.onboard-signin-card {
+  width: 100%;
+  max-width: 260px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  margin-bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.onboard-signin-card__title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+.onboard-signin-card__btn {
+  width: 100%;
+  padding: 13px;
+  border-radius: 999px;
+  border: none;
+  background: var(--accent);
+  color: var(--accent-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.onboard-signin-card__btn:active { transform: scale(0.96); }
+.onboard-signin-card__btn:disabled { opacity: 0.6; }
 
 .onboard-footer {
   flex-shrink: 0;

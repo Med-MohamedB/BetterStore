@@ -281,6 +281,17 @@ const DEFAULT_SETTINGS = {
     biometricEnabled: false,
     biometricCredentialId: null,
   },
+  auth: {
+    // Minimal local mirror of the signed-in Google identity — Firebase
+    // Auth's own user record is the source of truth; this is just enough
+    // to show a name/photo and key local data (future staff profiles,
+    // Feature 5) without another round-trip. null uid = not signed in,
+    // which must remain a fully valid, permanent state forever.
+    uid: null,
+    name: null,
+    email: null,
+    photoUrl: null,
+  },
 };
 
 const Settings = {

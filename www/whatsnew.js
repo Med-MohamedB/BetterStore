@@ -46,6 +46,19 @@ const WhatsNew = (() => {
   //     fabricated version number.
   const CHANGELOG = [
     {
+      version: '1.9.16.0',
+      items: [
+        {
+          icon: Icon('user'),
+          text: {
+            en: 'You can now sign in with Google \u2014 completely optional. It\u2019s the foundation for staff accounts and Google Drive backup coming soon, and it\u2019s offered as a skippable last step in setup and anytime under Settings > Account. The app works exactly the same without it.',
+            ar: 'يمكنك الآن تسجيل الدخول بحساب Google \u2014 اختياري تمامًا. هذه هي الأساس لحسابات الموظفين والنسخ الاحتياطي على Google Drive القادمين قريبًا، ويُعرض كخطوة أخيرة يمكن تخطيها في الإعداد وفي أي وقت من الإعدادات > الحساب. يعمل التطبيق بنفس الطريقة تمامًا بدونه.',
+            fr: 'Vous pouvez maintenant vous connecter avec Google \u2014 entièrement facultatif. C\u2019est la base des comptes employés et de la sauvegarde sur Google Drive à venir, proposée comme dernière étape facultative de la configuration et à tout moment dans Paramètres > Compte. L\u2019application fonctionne exactement pareil sans cela.',
+          },
+        },
+      ],
+    },
+    {
       version: '1.9.15.1',
       items: [
         {

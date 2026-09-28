@@ -11,10 +11,10 @@ const SettingsScreen = (() => {
   async function render(container) {
     document.getElementById('topbarActions').innerHTML = '';
 
-    const [store, appearance, pos, inventory, security, printerCfg, scannerCfg] = await Promise.all([
+    const [store, appearance, pos, inventory, security, printerCfg, scannerCfg, auth] = await Promise.all([
       Settings.get('store'), Settings.get('appearance'), Settings.get('pos'),
       Settings.get('inventory'), Settings.get('security'),
-      Settings.get('printer'), Settings.get('scanner'),
+      Settings.get('printer'), Settings.get('scanner'), Settings.get('auth'),
     ]);
 
     container.innerHTML = `
@@ -28,6 +28,31 @@ const SettingsScreen = (() => {
       <div class="field"><label>${I18n.t('settings.addressLabel')}</label><input type="text" id="s_address" value="${escapeHTML(store.address)}"></div>
       <div class="field"><label>${I18n.t('settings.currencyLabel')}</label><input type="text" id="s_currency" value="${escapeHTML(store.currency)}" placeholder="DZD" list="currencyList">
         <datalist id="currencyList"><option value="DZD"><option value="USD"><option value="EUR"><option value="MAD"><option value="TND"><option value="GBP"></datalist>
+      </div>
+
+      <div class="section-title">${I18n.t('settings.sectionAccount')}</div>
+      <div class="list">
+        ${auth.uid ? `
+          <div class="list-row">
+            <div class="list-row__icon">${auth.photoUrl ? `<img src="${auth.photoUrl}" alt="">` : Icon('user')}</div>
+            <div class="list-row__body">
+              <div class="list-row__title">${escapeHTML(auth.name || auth.email || '')}</div>
+              ${auth.email ? `<div class="list-row__subtitle">${escapeHTML(auth.email)}</div>` : ''}
+            </div>
+          </div>
+          <div class="list-row tappable" id="signOutRow">
+            <div class="list-row__icon warn">${Icon('x-circle')}</div>
+            <div class="list-row__body"><div class="list-row__title">${I18n.t('settings.signOut')}</div></div>
+          </div>
+        ` : `
+          <div class="list-row tappable" id="signInRow">
+            <div class="list-row__icon">${Auth.GOOGLE_ICON}</div>
+            <div class="list-row__body">
+              <div class="list-row__title">${I18n.t('auth.signInWithGoogle')}</div>
+              <div class="list-row__subtitle">${I18n.t('settings.signInSub')}</div>
+            </div>
+          </div>
+        `}
       </div>
 
       <div class="section-title">${I18n.t('settings.sectionAppearance')}</div>
@@ -123,11 +148,33 @@ const SettingsScreen = (() => {
     `;
 
     wireStoreFields(container, store);
+    wireAccount(container);
     wireAppearance(container, appearance);
     wirePOSFields(container, pos);
     wireInventoryFields(container, inventory);
     wireSecurity(container, security);
     container.querySelector('#aboutAppRow').addEventListener('click', openAboutSheet);
+  }
+
+  function wireAccount(container) {
+    const signInRow = container.querySelector('#signInRow');
+    if (signInRow) signInRow.addEventListener('click', async () => {
+      try {
+        await Auth.signIn();
+        Toast.success(I18n.t('auth.signedInToast'));
+        render(container);
+      } catch (err) {
+        console.error('Sign-in failed:', err);
+        Toast.error(I18n.t('auth.signInFailedToast'));
+      }
+    });
+    const signOutRow = container.querySelector('#signOutRow');
+    if (signOutRow) signOutRow.addEventListener('click', async () => {
+      if (!(await Confirm.show(I18n.t('settings.signOutConfirm'), { danger: true }))) return;
+      await Auth.signOut();
+      Toast.success(I18n.t('settings.signedOutToast'));
+      render(container);
+    });
   }
 
   function wireStoreFields(container, store) {

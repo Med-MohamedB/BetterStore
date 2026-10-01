@@ -292,6 +292,12 @@ const DEFAULT_SETTINGS = {
     email: null,
     photoUrl: null,
   },
+  privacy: {
+    // Honored by anything that ever reports anonymous usage data (see
+    // Terms of Use section 5) — controls whether this device's activity
+    // is included in it. Independent of the Google sign-in above.
+    analyticsOptOut: false,
+  },
 };
 
 const Settings = {

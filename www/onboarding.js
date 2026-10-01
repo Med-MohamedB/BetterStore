@@ -96,38 +96,19 @@ const Onboarding = (() => {
       nameInput.addEventListener('input', () => { storeNameValue = nameInput.value; });
     }
 
-    const signInBtn = overlayEl.querySelector('#obGoogleSignInBtn');
-    if (signInBtn) {
-      signInBtn.addEventListener('click', async () => {
-        signInBtn.disabled = true;
-        try {
-          await Auth.signIn();
-          Toast.success(I18n.t('auth.signedInToast'));
-          finish(); // nothing left after this slide — a successful sign-in completes onboarding same as "Get Started"
-        } catch (err) {
-          console.error('Onboarding sign-in failed:', err);
-          Toast.error(I18n.t('auth.signInFailedToast'));
-          signInBtn.disabled = false;
-        }
-      });
-    }
+    Auth.wireHero(overlayEl, finish); // nothing left after this slide — a successful sign-in completes onboarding same as "Get Started"
 
     initDrag();
     layout(false);
   }
 
   function slideHTML(s, i) {
+    if (s.type === 'googlesignin') {
+      return `<div class="onboard-slide onboard-slide--signin" data-slide="${i}">${Auth.heroHTML('onboarding')}</div>`;
+    }
     return `
       <div class="onboard-slide" data-slide="${i}">
-        ${s.type === 'googlesignin' ? `
-          <div class="onboard-signin-card">
-            <div class="onboard-signin-card__logo">${Auth.GOOGLE_ICON}</div>
-            <div class="onboard-signin-card__title">${escapeHTML(I18n.t('onboarding.googleSignInCardTitle'))}</div>
-            <button class="onboard-signin-card__btn tappable" id="obGoogleSignInBtn">${Icon('chevron-right', { size: 20 })}</button>
-          </div>
-        ` : `
-          <div class="onboard-slide__art"><img src="${themedIllustration(s.imgBase, 'onboarding')}" alt="" class="onboard-slide__img" data-parallax></div>
-        `}
+        <div class="onboard-slide__art"><img src="${themedIllustration(s.imgBase, 'onboarding')}" alt="" class="onboard-slide__img" data-parallax></div>
         <div class="onboard-slide__title">${escapeHTML(I18n.t(s.titleKey))}</div>
         <div class="onboard-slide__sub">${escapeHTML(I18n.t(s.subKey))}</div>
         ${s.type === 'storename' ? `

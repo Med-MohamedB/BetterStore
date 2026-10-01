@@ -50,7 +50,7 @@ const Router = (() => {
   // than isolated screens.
   const ROUTE_ORDER = [
     'dashboard', 'products', 'pos', 'sales', 'more',
-    'inventory', 'reports', 'accounting-export', 'customers', 'suppliers', 'purchase-orders', 'backup', 'settings',
+    'inventory', 'reports', 'accounting-export', 'customers', 'suppliers', 'purchase-orders', 'backup', 'settings', 'profile',
   ];
 
   function register(name, renderFn, opts = {}) {
@@ -198,6 +198,7 @@ const Router = (() => {
       backup: I18n.t('screenTitles.backup'),
       scanner: I18n.t('screenTitles.scanner'),
       'accounting-export': I18n.t('screenTitles.accounting-export'),
+      profile: I18n.t('screenTitles.profile'),
     };
     return map[name] || name;
   }
@@ -210,6 +211,7 @@ const Router = (() => {
     // with something other than a plain text node.
     document.getElementById('topbarTitle').innerHTML = `${escapeHTML(title)} <small id="topbarSubtitle">&nbsp;</small>`;
     document.getElementById('topbarActions').innerHTML = '';
+    Auth.refreshTopbarIndicator();
   }
 
   function updateNavHighlight(name) {
@@ -2804,7 +2806,7 @@ window.APP_BUILD_DATE = APP_BUILD_DATE;
 // FEATURE bumps for a genuine new feature (PATCH resets to 0 alongside it).
 // PATCH bumps (0→99) for literally any other change, however tiny — never
 // skip this, never ship three-number versions like "1.9.8" again.
-const CURRENT_VERSION = '1.9.16.0';
+const CURRENT_VERSION = '1.9.17.0';
 window.CURRENT_VERSION = CURRENT_VERSION;
 
 /* Real installed app version, read from the native package itself via
@@ -3500,7 +3502,8 @@ window.saleNetTotal = saleNetTotal;
 /* More menu                                                                */
 /* ---------------------------------------------------------------------- */
 
-function renderMore(container) {
+async function renderMore(container) {
+  const authProfile = await Auth.currentProfile();
   const items = [
     ['inventory', Icon('bar-chart'), I18n.t('more.inventoryTitle'), I18n.t('more.inventorySub')],
     ['reports', Icon('trending-up'), I18n.t('more.reportsTitle'), I18n.t('more.reportsSub')],
@@ -3508,7 +3511,6 @@ function renderMore(container) {
     ['suppliers', Icon('truck'), I18n.t('more.suppliersTitle'), I18n.t('more.suppliersSub')],
     ['purchase-orders', Icon('package'), I18n.t('more.purchaseOrdersTitle'), I18n.t('more.purchaseOrdersSub')],
     ['backup', Icon('database'), I18n.t('more.backupTitle'), I18n.t('more.backupSub')],
-    ['settings', Icon('settings'), I18n.t('more.settingsTitle'), I18n.t('more.settingsSub')],
   ];
   container.innerHTML = `
     <div class="list stagger">
@@ -3520,6 +3522,22 @@ function renderMore(container) {
         </div>
         <div class="list-row__trailing text-faint disclosure-chevron">›</div>
       </div>
+      <a class="list-row tappable" href="#profile" id="profileRow">
+        <div class="list-row__icon" id="moreProfileIcon">${authProfile && authProfile.photoUrl ? `<img src="${authProfile.photoUrl}" alt="" style="width:32px; height:32px; border-radius:50%; object-fit:cover;">` : Icon('user')}</div>
+        <div class="list-row__body">
+          <div class="list-row__title" id="moreProfileTitle">${authProfile ? escapeHTML(authProfile.name || authProfile.email || I18n.t('more.profileTitle')) : I18n.t('more.profileTitle')}</div>
+          <div class="list-row__subtitle" id="moreProfileSub">${authProfile ? I18n.t('more.profileSubSignedIn') : I18n.t('more.profileSubSignedOut')}</div>
+        </div>
+        <div class="list-row__trailing text-faint disclosure-chevron">›</div>
+      </a>
+      <a class="list-row tappable" href="#settings">
+        <div class="list-row__icon">${Icon('settings')}</div>
+        <div class="list-row__body">
+          <div class="list-row__title">${I18n.t('more.settingsTitle')}</div>
+          <div class="list-row__subtitle">${I18n.t('more.settingsSub')}</div>
+        </div>
+        <div class="list-row__trailing text-faint disclosure-chevron">›</div>
+      </a>
       <div class="list-row tappable" id="replayTourRow">
         <div class="list-row__icon">${Icon('play-circle')}</div>
         <div class="list-row__body">

@@ -94,7 +94,7 @@ const Auth = (() => {
         <div style="text-align:center;">
           <div style="width:52px;height:52px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">${Icon('user', { size: 24 })}</div>
           <div class="text-sm" style="margin-bottom:22px; color:var(--text-dim);">${I18n.t(reasonKey)}</div>
-          <button class="onboard-signin-card__btn tappable" id="authPromptSignInBtn" style="max-width:280px; margin:0 auto;">
+          <button class="google-signin-btn tappable" id="authPromptSignInBtn" style="max-width:280px; margin:0 auto;">
             ${GOOGLE_ICON}
             <span>${I18n.t('auth.signInWithGoogle')}</span>
           </button>
@@ -127,6 +127,120 @@ const Auth = (() => {
     });
   }
 
-  return { signIn, signOut, currentProfile, isSignedIn, requireSignIn, GOOGLE_ICON, DRIVE_SCOPE };
+  /** Shared "Sign in with Google" hero — illustration + overlapping
+   *  card — used identically by the onboarding slide and the Profile
+   *  screen's signed-out state, so the design only exists in one place.
+   *  `variant` only affects sizing/spacing via CSS
+   *  (.signin-hero--onboarding vs .signin-hero--profile). */
+  function heroHTML(variant) {
+    return `
+      <div class="signin-hero signin-hero--${variant}">
+        <img src="${themedIllustration('signin-hero', 'signin')}" alt="" class="signin-hero__img">
+        <div class="signin-hero__card">
+          <div class="signin-hero__title">${I18n.t('auth.heroTitlePrefix')}<span class="signin-hero__title-accent">Google</span></div>
+          <div class="signin-hero__sub">${I18n.t('auth.heroSub')}</div>
+          <button class="google-signin-btn tappable" id="signInHeroBtn">
+            ${Icon('chevron-right', { size: 18 })}
+            <span>${I18n.t('auth.signInWithGoogle')}</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  /** Wires the button inside heroHTML()'s markup once it's in the DOM.
+   *  onSuccess is called after a successful sign-in (e.g. to re-render
+   *  the screen showing the now-signed-in state). */
+  function wireHero(container, onSuccess) {
+    const btn = container.querySelector('#signInHeroBtn');
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        await signIn();
+        Toast.success(I18n.t('auth.signedInToast'));
+        if (onSuccess) onSuccess();
+      } catch (err) {
+        console.error('Sign-in failed:', err);
+        Toast.error(I18n.t('auth.signInFailedToast'));
+        btn.disabled = false;
+      }
+    });
+  }
+
+  /** Permanently deletes the Firebase/Google account itself — NOT the
+   *  shop's business data (products/sales/etc.), which is entirely
+   *  separate and untouched; that's what Backup > Clear All Data is
+   *  for. Firebase requires a "recent" sign-in to allow account
+   *  deletion, so this re-runs signIn() (normally instant/silent since
+   *  they're already signed in) right before deleting rather than
+   *  surfacing that as a confusing error. Caller is responsible for
+   *  confirming with the person first — this does not prompt. */
+  async function deleteAccount() {
+    const p = plugin();
+    if (!p) throw new Error('FirebaseAuthentication plugin not available');
+    await p.signInWithGoogle({ scopes: [DRIVE_SCOPE] }); // refresh session so deleteUser() doesn't fail with requires-recent-login
+    await p.deleteUser();
+    await Settings.set('auth', { uid: null, name: null, email: null, photoUrl: null });
+  }
+
+  /** Renders the small account indicator that sits in every screen's
+   *  topbar (top-right, next to the actions) — a Sign In chip when
+   *  signed out, the person's avatar (opening a Profile/Sign Out menu)
+   *  when signed in. Called by the router on every navigation, so it
+   *  always reflects current state regardless of which screen just
+   *  rendered. */
+  async function refreshTopbarIndicator() {
+    const el = document.getElementById('topbarAccount');
+    if (!el) return;
+    const profile = await currentProfile();
+
+    if (!isSignedIn(profile)) {
+      el.innerHTML = `<button class="topbar-signin-chip tappable" id="topbarSignInChip">${I18n.t('auth.topbarSignIn')}</button>`;
+      el.querySelector('#topbarSignInChip').addEventListener('click', () => Router.goTo('profile'));
+      return;
+    }
+
+    el.innerHTML = `
+      <button class="topbar-avatar tappable" id="topbarAvatarBtn">
+        ${profile.photoUrl ? `<img src="${profile.photoUrl}" alt="">` : Icon('user', { size: 16 })}
+      </button>
+    `;
+    el.querySelector('#topbarAvatarBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openTopbarMenu(el);
+    });
+  }
+
+  function openTopbarMenu(anchorEl) {
+    document.querySelectorAll('.topbar-account-menu').forEach((m) => m.remove());
+
+    const menu = document.createElement('div');
+    menu.className = 'topbar-account-menu';
+    menu.innerHTML = `
+      <button class="topbar-account-menu__item tappable" id="topbarMenuProfile">${Icon('user', { size: 15 })} ${I18n.t('auth.menuProfile')}</button>
+      <button class="topbar-account-menu__item tappable topbar-account-menu__item--danger" id="topbarMenuSignOut">${Icon('x-circle', { size: 15 })} ${I18n.t('settings.signOut')}</button>
+    `;
+    anchorEl.appendChild(menu);
+
+    const close = () => { menu.remove(); document.removeEventListener('click', close); };
+    setTimeout(() => document.addEventListener('click', close), 0);
+
+    menu.querySelector('#topbarMenuProfile').addEventListener('click', () => { close(); Router.goTo('profile'); });
+    menu.querySelector('#topbarMenuSignOut').addEventListener('click', async () => {
+      close();
+      if (!(await Confirm.show(I18n.t('settings.signOutConfirm'), { danger: true }))) return;
+      await signOut();
+      Toast.success(I18n.t('settings.signedOutToast'));
+      refreshTopbarIndicator();
+      if (Router.current === 'profile') Router.refresh();
+    });
+  }
+
+  return {
+    signIn, signOut, currentProfile, isSignedIn, requireSignIn, deleteAccount,
+    heroHTML, wireHero, refreshTopbarIndicator,
+    GOOGLE_ICON, DRIVE_SCOPE,
+  };
 })();
 window.Auth = Auth;

@@ -46,6 +46,19 @@ const WhatsNew = (() => {
   //     fabricated version number.
   const CHANGELOG = [
     {
+      version: '1.9.17.0',
+      items: [
+        {
+          icon: Icon('user'),
+          text: {
+            en: 'Redesigned the Google sign-in screen, and gave it a real home: a new Profile page (More > Profile), with your account info, a Google Drive backup status card, and privacy controls \u2014 an analytics opt-out and a Delete Account option with several confirmations, since it\u2019s permanent. Also added a Privacy Policy, and you\u2019ll now see a small sign-in prompt or your own photo in the top corner of every screen.',
+            ar: 'أعدنا تصميم شاشة تسجيل الدخول بحساب Google، ومنحناها مكانًا حقيقيًا: صفحة ملف شخصي جديدة (المزيد > الملف الشخصي)، تعرض معلومات حسابك، وبطاقة حالة النسخ الاحتياطي على Google Drive، وأدوات تحكم في الخصوصية \u2014 إلغاء اشتراك في التحليلات وخيار حذف الحساب مع عدة تأكيدات لأنه إجراء نهائي. أضفنا أيضًا سياسة خصوصية، وستظهر الآن رسالة صغيرة لتسجيل الدخول أو صورتك الشخصية في الزاوية العلوية من كل شاشة.',
+            fr: 'Nous avons repensé l\u2019écran de connexion Google et lui avons donné un vrai chez-soi\u00a0: une nouvelle page Profil (Plus > Profil), avec les infos de votre compte, une carte d\u2019état de la sauvegarde Google Drive, et des contrôles de confidentialité \u2014 une désactivation des analyses et une option Supprimer le Compte avec plusieurs confirmations, puisque c\u2019est définitif. Ajout aussi d\u2019une Politique de Confidentialité, et vous verrez désormais une petite invite de connexion ou votre propre photo dans le coin supérieur de chaque écran.',
+          },
+        },
+      ],
+    },
+    {
       version: '1.9.16.0',
       items: [
         {

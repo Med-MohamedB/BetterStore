@@ -2068,8 +2068,8 @@ body.swipe-active .topbar {
   width: 100%;
 }
 .signin-hero__img {
+  display: block;
   width: 100%;
-  max-width: 320px;
   height: auto;
   margin-bottom: -10px;
   position: relative;
@@ -2077,38 +2077,41 @@ body.swipe-active .topbar {
 }
 .signin-hero__card {
   width: 100%;
-  max-width: 310px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 24px 22px 22px;
+  padding: 26px 24px 24px;
   box-shadow: var(--shadow-lg);
   position: relative;
   z-index: 1;
 }
 .signin-hero__title {
-  font-size: 21px;
+  font-size: 23px;
   font-weight: 800;
   letter-spacing: -0.01em;
   color: var(--text);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 .signin-hero__title-accent { color: var(--accent); }
 .signin-hero__sub {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--text-dim);
-  line-height: 1.5;
-  margin-bottom: 20px;
+  line-height: 1.55;
+  margin-bottom: 22px;
 }
 .signin-hero--onboarding {
   flex: 1;
   justify-content: flex-end;
-  padding-bottom: 6px;
+  padding-bottom: 0;
 }
 .signin-hero--profile {
-  padding: 8px 16px 24px;
+  /* #view has 16px side/top padding everywhere else — this cancels it
+     out so the illustration and card actually reach the edges, like
+     every other full-bleed surface in this design (onboarding included,
+     via .onboard-slide--signin's own padding:0). */
+  margin: -16px -16px 0;
+  width: calc(100% + 32px);
 }
-.signin-hero--profile .signin-hero__img { max-width: 280px; }
 
 .onboard-footer {
   flex-shrink: 0;

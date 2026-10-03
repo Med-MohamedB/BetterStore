@@ -46,6 +46,19 @@ const WhatsNew = (() => {
   //     fabricated version number.
   const CHANGELOG = [
     {
+      version: '1.9.17.1',
+      items: [
+        {
+          icon: Icon('user'),
+          text: {
+            en: 'Fixed the Google sign-in screen \u2014 the illustration and card were boxed in with visible margins on every side instead of running edge to edge like they\u2019re meant to.',
+            ar: 'أصلحنا شاشة تسجيل الدخول بحساب Google \u2014 كانت الرسمة والبطاقة محصورتين بهوامش ظاهرة من كل جانب بدلاً من الامتداد حتى الحواف كما هو مقصود.',
+            fr: 'Correction de l\u2019écran de connexion Google \u2014 l\u2019illustration et la carte étaient enfermées dans des marges visibles de chaque côté au lieu de s\u2019étendre jusqu\u2019aux bords comme prévu.',
+          },
+        },
+      ],
+    },
+    {
       version: '1.9.17.0',
       items: [
         {

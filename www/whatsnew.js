@@ -46,6 +46,19 @@ const WhatsNew = (() => {
   //     fabricated version number.
   const CHANGELOG = [
     {
+      version: '1.9.17.2',
+      items: [
+        {
+          icon: Icon('user'),
+          text: {
+            en: 'Rebuilt the Google sign-in screen to match the exact reference design this time \u2014 only the illustration runs edge to edge, the card below it floats with its own margins. Also fixed two bugs: your profile picture showing up square instead of round, and the account menu being invisible when you tapped your avatar (it was rendering, just clipped out of view by the header).',
+            ar: 'أعدنا بناء شاشة تسجيل الدخول بحساب Google لتطابق التصميم المرجعي هذه المرة بدقة \u2014 الرسمة فقط تمتد حتى الحواف، أما البطاقة أسفلها فتطفو بهوامشها الخاصة. كما أصلحنا خللين: صورة ملفك الشخصي كانت تظهر مربعة بدل دائرية، وقائمة الحساب كانت غير مرئية عند الضغط على صورتك (كانت تُرسم فعليًا لكن الترويسة كانت تقصّها عن الظهور).',
+            fr: 'Reconstruction de l\u2019écran de connexion Google pour correspondre exactement au design de référence cette fois \u2014 seule l\u2019illustration s\u2019étend jusqu\u2019aux bords, la carte en dessous flotte avec ses propres marges. Correction aussi de deux bugs\u00a0: votre photo de profil apparaissait carrée au lieu de ronde, et le menu du compte était invisible en appuyant sur votre avatar (il s\u2019affichait bien, mais était coupé par l\u2019en-tête).',
+          },
+        },
+      ],
+    },
+    {
       version: '1.9.17.1',
       items: [
         {

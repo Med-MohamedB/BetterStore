@@ -297,7 +297,7 @@ a { color: inherit; text-decoration: none; }
   color: var(--text-dim);
   flex-shrink: 0;
 }
-.topbar-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.topbar-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
 
 .profile-avatar {
   width: 76px;
@@ -314,18 +314,19 @@ a { color: inherit; text-decoration: none; }
 .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
 .topbar-account-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
+  position: fixed;
+  /* top + left/right set inline (auth.js) from the avatar's real
+     on-screen position — appended to <body>, so this can't rely on an
+     ancestor's padding/offset the way an absolutely-positioned child
+     normally would. */
   min-width: 168px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-lg);
   padding: 6px;
-  z-index: 50;
+  z-index: 10000;
 }
-[dir="rtl"] .topbar-account-menu { right: auto; left: 0; }
 .topbar-account-menu__item {
   width: 100%;
   display: flex;
@@ -2041,74 +2042,88 @@ body.swipe-active .topbar {
   text-align: center;
   font-weight: 700;
 }
-.google-signin-btn {
-  width: 100%;
-  padding: 15px;
-  border-radius: 999px;
-  border: none;
-  background: var(--accent);
-  color: var(--accent-ink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  font-weight: 700;
-  font-size: 15px;
-  transition: transform var(--dur-fast) var(--ease-out);
-}
-.google-signin-btn:active { transform: scale(0.96); }
-.google-signin-btn:disabled { opacity: 0.6; }
-
-/* --- Shared "Sign in with Google" hero (onboarding's last slide AND  --- */
-/* --- the Profile screen's signed-out state — same design, one place) --- */
+/* --- Shared "Sign in with Google" hero (onboarding's last slide AND
+   the Profile screen's signed-out state — same design, one place).
+   This is a fixed-light-tone "island", matching the reference design's
+   own hardcoded palette rather than the live theme's --bg/--text/--surface
+   — the illustration has its own baked-in cream background, so following
+   the app's normal dark-theme colors here would leave a mismatched pale
+   rectangle around it. --accent stays live/themed throughout, since
+   that's the one thing that's meant to repaint per pack. */
 .signin-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  --sh-bg: #F7EEE5;
+  --sh-card: #FBF6F1;
+  --sh-ink: #1D0D15;
+  --sh-muted: #86746A;
+  display: block;
   width: 100%;
+  background: var(--sh-bg);
 }
 .signin-hero__img {
   display: block;
   width: 100%;
   height: auto;
-  margin-bottom: -10px;
-  position: relative;
-  z-index: 0;
+}
+.signin-hero__lower {
+  padding: 22px 18px 26px;
 }
 .signin-hero__card {
-  width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 26px 24px 24px;
-  box-shadow: var(--shadow-lg);
-  position: relative;
-  z-index: 1;
+  background: var(--sh-card);
+  border-radius: 26px;
+  padding: 28px 24px;
+  box-shadow: 0 10px 30px rgba(29, 13, 21, 0.06);
 }
 .signin-hero__title {
+  margin: 0 0 12px;
   font-size: 23px;
-  font-weight: 800;
+  line-height: 1.3;
+  font-weight: 700;
   letter-spacing: -0.01em;
-  color: var(--text);
-  margin-bottom: 12px;
+  color: var(--sh-ink);
 }
 .signin-hero__title-accent { color: var(--accent); }
 .signin-hero__sub {
+  margin: 0 0 22px;
   font-size: 14px;
-  color: var(--text-dim);
-  line-height: 1.55;
-  margin-bottom: 22px;
+  line-height: 1.5;
+  color: var(--sh-muted);
 }
+.signin-hero__btn {
+  width: 100%;
+  height: 54px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white), var(--accent));
+  color: var(--accent-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 15.5px;
+  font-weight: 600;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 30%, transparent);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.signin-hero__btn svg { width: 22px; height: 16px; flex-shrink: 0; }
+.signin-hero__btn:active { transform: scale(0.97); }
+.signin-hero__btn:disabled { opacity: 0.6; }
+
 .signin-hero--onboarding {
   flex: 1;
-  justify-content: flex-end;
-  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+.signin-hero--onboarding .signin-hero__lower {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .signin-hero--profile {
   /* #view has 16px side/top padding everywhere else — this cancels it
-     out so the illustration and card actually reach the edges, like
-     every other full-bleed surface in this design (onboarding included,
-     via .onboard-slide--signin's own padding:0). */
+     out so the illustration reaches the actual screen edges. Only the
+     illustration is edge-to-edge, per the reference — the card below
+     stays inset (that's .signin-hero__lower's own side padding). */
   margin: -16px -16px 0;
   width: calc(100% + 32px);
 }

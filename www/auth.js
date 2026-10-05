@@ -94,8 +94,8 @@ const Auth = (() => {
         <div style="text-align:center;">
           <div style="width:52px;height:52px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">${Icon('user', { size: 24 })}</div>
           <div class="text-sm" style="margin-bottom:22px; color:var(--text-dim);">${I18n.t(reasonKey)}</div>
-          <button class="google-signin-btn tappable" id="authPromptSignInBtn" style="max-width:280px; margin:0 auto;">
-            ${GOOGLE_ICON}
+          <button class="signin-hero__btn tappable" id="authPromptSignInBtn" style="max-width:280px; margin:0 auto;">
+            <svg viewBox="0 0 44 32" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16h40M28 3l13 13-13 13"/></svg>
             <span>${I18n.t('auth.signInWithGoogle')}</span>
           </button>
         </div>
@@ -136,13 +136,15 @@ const Auth = (() => {
     return `
       <div class="signin-hero signin-hero--${variant}">
         <img src="${themedIllustration('signin-hero', 'signin')}" alt="" class="signin-hero__img">
-        <div class="signin-hero__card">
-          <div class="signin-hero__title">${I18n.t('auth.heroTitlePrefix')}<span class="signin-hero__title-accent">Google</span></div>
-          <div class="signin-hero__sub">${I18n.t('auth.heroSub')}</div>
-          <button class="google-signin-btn tappable" id="signInHeroBtn">
-            ${Icon('chevron-right', { size: 18 })}
-            <span>${I18n.t('auth.signInWithGoogle')}</span>
-          </button>
+        <div class="signin-hero__lower">
+          <div class="signin-hero__card">
+            <h1 class="signin-hero__title">${I18n.t('auth.heroTitlePrefix')}<span class="signin-hero__title-accent">Google</span></h1>
+            <p class="signin-hero__sub">${I18n.t('auth.heroSub')}</p>
+            <button class="signin-hero__btn tappable" id="signInHeroBtn">
+              <svg viewBox="0 0 44 32" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16h40M28 3l13 13-13 13"/></svg>
+              <span>${I18n.t('auth.signInWithGoogle')}</span>
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -202,9 +204,9 @@ const Auth = (() => {
     }
 
     el.innerHTML = `
-      <button class="topbar-avatar tappable" id="topbarAvatarBtn">
+      <div class="topbar-avatar tappable" id="topbarAvatarBtn" role="button" tabindex="0">
         ${profile.photoUrl ? `<img src="${profile.photoUrl}" alt="">` : Icon('user', { size: 16 })}
-      </button>
+      </div>
     `;
     el.querySelector('#topbarAvatarBtn').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -215,13 +217,23 @@ const Auth = (() => {
   function openTopbarMenu(anchorEl) {
     document.querySelectorAll('.topbar-account-menu').forEach((m) => m.remove());
 
+    // Appended to <body> (not anchorEl) and positioned fixed from the
+    // avatar's actual screen coordinates — .topbar has its own
+    // overflow:hidden (for its decorative header sheen), which would
+    // silently clip this if it were a normal in-flow child positioned
+    // below the topbar's own bounds.
+    const rect = anchorEl.getBoundingClientRect();
+    const rtl = document.documentElement.getAttribute('dir') === 'rtl';
+
     const menu = document.createElement('div');
     menu.className = 'topbar-account-menu';
+    menu.style.top = `${rect.bottom + 8}px`;
+    if (rtl) menu.style.left = `${rect.left}px`; else menu.style.right = `${window.innerWidth - rect.right}px`;
     menu.innerHTML = `
       <button class="topbar-account-menu__item tappable" id="topbarMenuProfile">${Icon('user', { size: 15 })} ${I18n.t('auth.menuProfile')}</button>
       <button class="topbar-account-menu__item tappable topbar-account-menu__item--danger" id="topbarMenuSignOut">${Icon('x-circle', { size: 15 })} ${I18n.t('settings.signOut')}</button>
     `;
-    anchorEl.appendChild(menu);
+    document.body.appendChild(menu);
 
     const close = () => { menu.remove(); document.removeEventListener('click', close); };
     setTimeout(() => document.addEventListener('click', close), 0);
